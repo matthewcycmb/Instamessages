@@ -1,65 +1,101 @@
-import Image from "next/image";
+import Link from "next/link";
+import { currentAccount } from "@/lib/account";
+import { ThreadList } from "@/components/thread-list";
+import { ImportButton } from "@/components/import-button";
 
-export default function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const account = await currentAccount();
+  const { error } = await searchParams;
+
+  if (!account) return <ConnectScreen error={error} />;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-8 pt-[max(1.5rem,env(safe-area-inset-top))]">
+      <header className="rise mb-5 flex items-end justify-between" style={{ animationDelay: "0ms" }}>
+        <div>
+          <h1 className="font-display text-3xl font-semibold italic tracking-tight">
+            instamessages
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+          <p className="mt-0.5 text-sm text-muted">@{account.username}</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <nav className="flex items-center gap-2">
+          <ImportButton />
+          <Link
+            href="/settings"
+            className="rounded-full border border-line px-3.5 py-1.5 text-sm text-muted transition-colors hover:border-amber hover:text-ink"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            Settings
+          </Link>
+        </nav>
+      </header>
+
+      <aside
+        className="rise mb-4 rounded-2xl border border-line bg-surface px-4 py-3 text-[13px] leading-relaxed text-muted"
+        style={{ animationDelay: "80ms" }}
+      >
+        <span className="mr-1.5 font-semibold text-amber">Heads up:</span>
+        Instagram&rsquo;s API never shows <span className="text-ink">group chats</span>. Check
+        instagram.com/direct in a browser once or twice a week so plans don&rsquo;t slip past you.
+      </aside>
+
+      <div className="rise" style={{ animationDelay: "160ms" }}>
+        <ThreadList />
+      </div>
     </div>
+  );
+}
+
+function ConnectScreen({ error }: { error?: string }) {
+  return (
+    <main className="relative flex flex-1 flex-col items-center justify-center overflow-hidden px-6 text-center">
+      {/* ember glow behind the wordmark */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-1/3 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-25 blur-3xl"
+        style={{ background: "radial-gradient(circle, #e8963e 0%, #d9552f 45%, transparent 70%)" }}
+      />
+
+      {error && (
+        <div className="rise relative mb-8 max-w-md rounded-xl border border-ember/50 bg-ember/10 px-4 py-3 text-sm text-ink">
+          {error}
+        </div>
+      )}
+
+      <p className="rise relative text-xs uppercase tracking-[0.3em] text-faint" style={{ animationDelay: "0ms" }}>
+        deleted the app · kept the friends
+      </p>
+
+      <h1
+        className="rise relative mt-4 font-display text-6xl font-semibold italic leading-none tracking-tight sm:text-7xl"
+        style={{ animationDelay: "120ms" }}
+      >
+        insta<span className="text-amber">messages</span>
+      </h1>
+
+      <p className="rise relative mt-5 max-w-sm text-lg leading-relaxed text-muted" style={{ animationDelay: "240ms" }}>
+        Your friends&rsquo; Instagram DMs, delivered here. No reels, no explore page, no feed —
+        just the conversations.
+      </p>
+
+      <a
+        href="/api/auth/instagram/login"
+        className="rise relative mt-10 rounded-full px-8 py-3.5 text-base font-bold text-bubble-ink shadow-lg transition-transform hover:scale-[1.03] active:scale-[0.98]"
+        style={{
+          animationDelay: "360ms",
+          background: "linear-gradient(135deg, #e8963e, #d9552f)",
+        }}
+      >
+        Connect Instagram
+      </a>
+
+      <p className="rise relative mt-6 max-w-xs text-xs leading-relaxed text-faint" style={{ animationDelay: "480ms" }}>
+        Requires an Instagram creator or business account. Instagram only lets connected apps
+        reply within 24&nbsp;hours — the app is honest about that everywhere.
+      </p>
+    </main>
   );
 }
