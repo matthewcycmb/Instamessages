@@ -33,9 +33,11 @@ export function ThreadList() {
     load();
     const onVisible = () => document.visibilityState === "visible" && load();
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("im:refresh-threads", load);
     const interval = setInterval(load, 15_000);
     return () => {
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("im:refresh-threads", load);
       clearInterval(interval);
     };
   }, [load]);
