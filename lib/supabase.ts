@@ -30,6 +30,8 @@ export type Account = {
   quiet_hours_end: number;
   timezone: string;
   retention_days: number | null;
+  auto_reply_enabled?: boolean;
+  auto_reply_text?: string | null;
 };
 
 export type Conversation = {
@@ -43,6 +45,7 @@ export type Conversation = {
   last_message_at: string | null;
   last_inbound_at: string | null;
   unread_count: number;
+  auto_replied_at?: string | null;
 };
 
 export type Message = {

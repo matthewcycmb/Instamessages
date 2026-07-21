@@ -17,7 +17,7 @@ export default async function SettingsPage() {
         >
           ←
         </Link>
-        <h1 className="font-display text-2xl font-semibold italic">Settings</h1>
+        <h1 className="text-2xl font-bold">Settings</h1>
       </header>
       <SettingsForm />
     </div>

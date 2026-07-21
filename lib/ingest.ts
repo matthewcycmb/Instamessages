@@ -1,6 +1,8 @@
 import { supabaseAdmin, Account, Attachment } from "./supabase";
-import { getProfile } from "./instagram";
+import { getProfile, sendText } from "./instagram";
 import { pushNewMessage } from "./push";
+
+const AUTO_REPLY_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // once per person per week
 
 export type WebhookMessagingEvent = {
   sender?: { id: string };
@@ -93,5 +95,49 @@ export async function ingestMessagingEvent(
       convo.peer_name || (convo.peer_username ? `@${convo.peer_username}` : "New message");
     const snippet = msg.text ?? (msg.attachments?.length ? "Sent an attachment" : "New message");
     await pushNewMessage(account, label, snippet, convo.id);
+    await maybeAutoReply(account, convo.id, peerIgsid);
+  }
+}
+
+/**
+ * Optional away-message: replies automatically to an inbound DM, at most
+ * once per person per week. Requires auto_reply_enabled + auto_reply_text
+ * on the account (see supabase/auto-reply.sql).
+ */
+async function maybeAutoReply(
+  account: Account,
+  conversationId: string,
+  peerIgsid: string
+): Promise<void> {
+  const text = account.auto_reply_text?.trim();
+  if (!account.auto_reply_enabled || !text) return;
+
+  const db = supabaseAdmin();
+  const { data: convo } = await db
+    .from("conversations")
+    .select("auto_replied_at")
+    .eq("id", conversationId)
+    .maybeSingle();
+
+  const lastReplied = convo?.auto_replied_at ? new Date(convo.auto_replied_at).getTime() : 0;
+  if (Date.now() - lastReplied < AUTO_REPLY_COOLDOWN_MS) return;
+
+  try {
+    const sent = await sendText(account.access_token, peerIgsid, text);
+    const now = new Date().toISOString();
+    await db.from("messages").insert({
+      account_id: account.id,
+      conversation_id: conversationId,
+      mid: sent.message_id ?? null,
+      is_from_me: true,
+      text,
+      sent_at: now,
+    });
+    await db
+      .from("conversations")
+      .update({ auto_replied_at: now, last_message_at: now })
+      .eq("id", conversationId);
+  } catch (err) {
+    console.error("auto-reply failed", err);
   }
 }

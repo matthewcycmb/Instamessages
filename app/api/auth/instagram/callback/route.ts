@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   const expectedState = store.get("ig_oauth_state")?.value;
   store.delete("ig_oauth_state");
   if (!expectedState || state !== expectedState) {
-    return NextResponse.redirect(withError(home, "State mismatch — try again"));
+    return NextResponse.redirect(withError(home, "State mismatch. Try again."));
   }
 
   try {
@@ -55,11 +55,11 @@ export async function GET(req: NextRequest) {
     await primeWebhooks(longLived.access_token);
 
     await createSession(account.id);
-    return NextResponse.redirect(home);
+    return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin));
   } catch (err) {
     console.error("Instagram connect failed", err);
     return NextResponse.redirect(
-      withError(home, "Connecting Instagram failed — check server logs")
+      withError(home, "Connecting Instagram failed. Check the server logs.")
     );
   }
 }

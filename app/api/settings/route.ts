@@ -12,6 +12,8 @@ export async function GET() {
     quiet_hours_end: account.quiet_hours_end,
     timezone: account.timezone,
     retention_days: account.retention_days,
+    auto_reply_enabled: account.auto_reply_enabled ?? false,
+    auto_reply_text: account.auto_reply_text ?? "",
   });
 }
 
@@ -38,6 +40,12 @@ export async function PATCH(req: NextRequest) {
   }
   if (body.retention_days === null || (Number.isInteger(body.retention_days) && body.retention_days > 0)) {
     updates.retention_days = body.retention_days;
+  }
+  if (typeof body.auto_reply_enabled === "boolean") {
+    updates.auto_reply_enabled = body.auto_reply_enabled;
+  }
+  if (typeof body.auto_reply_text === "string" && body.auto_reply_text.length <= 500) {
+    updates.auto_reply_text = body.auto_reply_text.trim() || null;
   }
 
   if (!Object.keys(updates).length) {

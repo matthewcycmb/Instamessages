@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { InstallApp } from "./install-app";
 
 type Settings = {
   username: string;
@@ -8,6 +9,8 @@ type Settings = {
   quiet_hours_end: number;
   timezone: string;
   retention_days: number | null;
+  auto_reply_enabled: boolean;
+  auto_reply_text: string;
 };
 
 export function SettingsForm() {
@@ -98,6 +101,10 @@ export function SettingsForm() {
         </div>
       )}
 
+      <Section title="Install as app">
+        <InstallApp />
+      </Section>
+
       <Section title="Notifications">
         {pushState === "enabled" ? (
           <p className="text-sm text-muted">Push notifications are on for this device.</p>
@@ -118,6 +125,34 @@ export function SettingsForm() {
             Enable notifications on this device
           </button>
         )}
+      </Section>
+
+      <Section title="Auto-reply">
+        <p className="mb-3 text-sm text-muted">
+          Replies automatically when someone DMs you, at most once per person per week. Keep it
+          clearly automated (Meta requires it) and only share what you would share publicly.
+        </p>
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={settings.auto_reply_enabled}
+            onChange={(e) => save({ auto_reply_enabled: e.target.checked })}
+            className="h-5 w-5 accent-[var(--amber)]"
+          />
+          <span className="text-sm font-semibold">Send auto-replies</span>
+        </label>
+        <textarea
+          defaultValue={settings.auto_reply_text}
+          onBlur={(e) => {
+            if (e.target.value !== settings.auto_reply_text) {
+              save({ auto_reply_text: e.target.value });
+            }
+          }}
+          rows={3}
+          maxLength={500}
+          placeholder="Automated reply: I don't check Instagram anymore. Text me instead!"
+          className="mt-3 w-full resize-none rounded-xl border border-line bg-surface-2 px-3 py-2.5 text-sm placeholder:text-faint focus:border-amber focus:outline-none"
+        />
       </Section>
 
       <Section title="Quiet hours">
@@ -175,7 +210,7 @@ export function SettingsForm() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-2xl border border-line bg-surface px-5 py-4">
-      <h2 className="mb-2 font-display text-lg font-semibold italic">{title}</h2>
+      <h2 className="mb-2 text-[17px] font-bold">{title}</h2>
       {children}
     </section>
   );

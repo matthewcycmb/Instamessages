@@ -68,12 +68,17 @@ export async function refreshLongLived(token: string): Promise<{
 export async function getMe(token: string): Promise<{
   user_id: string; // professional account ID — matches webhook entry.id
   username: string;
+  account_type?: string; // e.g. MEDIA_CREATOR, BUSINESS, PERSONAL
 }> {
   const res = await fetch(
-    `${GRAPH}/me?fields=user_id,username&access_token=${encodeURIComponent(token)}`
+    `${GRAPH}/me?fields=user_id,username,account_type&access_token=${encodeURIComponent(token)}`
   );
   const data = await asJson(res, "me");
-  return { user_id: String(data.user_id), username: data.username };
+  return {
+    user_id: String(data.user_id),
+    username: data.username,
+    account_type: data.account_type,
+  };
 }
 
 export type IgParticipant = { id: string; username?: string };
@@ -103,7 +108,7 @@ export async function getConversations(
 ): Promise<IgConversation[]> {
   const fields =
     "id,updated_time,participants,messages.limit(20){id,created_time,from,to,message,attachments}";
-  let url = `${GRAPH}/me/conversations?platform=instagram&fields=${encodeURIComponent(
+  let url = `${GRAPH}/me/conversations?platform=instagram&limit=50&fields=${encodeURIComponent(
     fields
   )}&access_token=${encodeURIComponent(token)}`;
 

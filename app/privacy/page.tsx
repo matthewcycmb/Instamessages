@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Instamessages",
+  title: "Privacy Policy | Instamessages",
 };
 
 const CONTACT_EMAIL = "jchanh@gmail.com";
@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         <Link href="/" className="text-sm text-muted transition-colors hover:text-ink">
           ← instamessages
         </Link>
-        <h1 className="mt-4 font-display text-4xl font-semibold italic tracking-tight">
+        <h1 className="mt-4 text-4xl font-bold tracking-tight">
           Privacy Policy
         </h1>
         <p className="mt-2 text-sm text-faint">Effective {EFFECTIVE_DATE}</p>
@@ -33,17 +33,17 @@ export default function PrivacyPage() {
         <Section title="What we collect">
           <ul className="list-disc space-y-2 pl-5">
             <li>
-              <span className="text-ink">Your Instagram account basics</span> — username and
+              <span className="text-ink">Your Instagram account basics</span>: username and
               account ID, plus the access token Instagram issues when you connect. The token is
               stored server-side only and is never shared with your browser.
             </li>
             <li>
-              <span className="text-ink">Your direct messages</span> — the contents of 1:1
+              <span className="text-ink">Your direct messages</span>: the contents of 1:1
               conversations on your account (text, timestamps, and attachment links), received
               from Meta&rsquo;s webhooks and conversation API so they can be shown to you.
             </li>
             <li>
-              <span className="text-ink">Push subscription</span> — if you enable notifications,
+              <span className="text-ink">Push subscription</span>: if you enable notifications,
               the push endpoint your browser generates, used only to notify you of new messages.
             </li>
           </ul>
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
         <Section title="Third parties">
           <ul className="list-disc space-y-2 pl-5">
             <li>
-              <span className="text-ink">Meta Platforms</span> — messages are sent and received
+              <span className="text-ink">Meta Platforms</span>: messages are sent and received
               through Meta&rsquo;s Instagram API under{" "}
               <a
                 href="https://www.facebook.com/privacy/policy"
@@ -94,10 +94,10 @@ export default function PrivacyPage() {
               .
             </li>
             <li>
-              <span className="text-ink">Supabase</span> — database hosting.
+              <span className="text-ink">Supabase</span>: database hosting.
             </li>
             <li>
-              <span className="text-ink">Vercel</span> — application hosting.
+              <span className="text-ink">Vercel</span>: application hosting.
             </li>
           </ul>
         </Section>
@@ -118,7 +118,7 @@ export default function PrivacyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="mb-2 font-display text-xl font-semibold italic text-ink">{title}</h2>
+      <h2 className="mb-2 text-xl font-bold text-ink">{title}</h2>
       {children}
     </section>
   );
