@@ -40,3 +40,4 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 wrapper/src-tauri/target
+extension/_metadata/
