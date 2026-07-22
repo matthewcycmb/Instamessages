@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ThreadList } from "./thread-list";
 import { ImportButton } from "./import-button";
 import { NewMessage } from "./new-message";
+import { PushBanner } from "./push-banner";
 
 /** Desktop sidebar (design 3a split view). */
 export function Sidebar({ username }: { username: string }) {
@@ -18,6 +19,7 @@ export function Sidebar({ username }: { username: string }) {
           <SettingsIcon />
         </div>
       </div>
+      <PushBanner />
       <ThreadList />
     </aside>
   );

@@ -95,6 +95,21 @@ you hit send ──► POST /api/messages/send ── enforces 24h window ──
 - **Echoes**: messages you send from instagram.com (e.g. during a weekly group-chat check)
   arrive as `is_echo` webhooks and appear in history automatically.
 
+## Desktop wrapper (`wrapper/`)
+
+A Tauri app that loads instagram.com in a cage: DM inbox and login flows only — the feed,
+reels, explore, and profiles are unreachable (enforced in Rust via a navigation allowlist
+plus an injected document-start script that bounces SPA redirects back to the inbox).
+It exists for the two things Meta's API can never do: starting new conversations and
+group chats.
+
+- Build: `cd wrapper && npx @tauri-apps/cli build` (needs Rust; output in
+  `src-tauri/target/release/bundle/macos/`)
+- Registers the `instamessages://dm/<username>` URL scheme. Turn on
+  "Open new chats in the wrapper" in the web app's Settings and the New-message button
+  hands cold sends to the wrapper instead of the browser.
+- First run: log into instagram.com inside the wrapper once; the session persists.
+
 ## Roadmap
 
 - **v1.1** — full history backfill from Instagram's "Download Your Information" export

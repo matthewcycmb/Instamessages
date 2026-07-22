@@ -58,10 +58,10 @@ export function SetupSteps({ username }: { username: string }) {
             Instagram says your account is still personal.
           </p>
           <button
-            onClick={() => router.push("/?step=1")}
+            onClick={() => router.push("/?step=2")}
             className="mt-7 min-h-[50px] w-full rounded-btn bg-amber text-[16px] text-white transition-opacity hover:opacity-90"
           >
-            Back to step 1
+            Show me the switch steps
           </button>
           <button
             onClick={check}

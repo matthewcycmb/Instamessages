@@ -45,6 +45,45 @@ export function OnboardingSteps({
 
       {step === 1 && (
         <StepChrome step={1} onBack={() => setStep(0)}>
+          <div className="mx-auto flex w-full max-w-[520px] flex-col justify-center">
+            <h1 className="text-[28px] leading-[1.12] sm:text-[40px] sm:leading-[1.1]">
+              Your profile will go public.
+            </h1>
+            <p className="mt-3 text-[15px] leading-relaxed text-muted sm:text-[16px]">
+              Instagram only connects professional accounts, and those can&rsquo;t be private.
+              If your account is private, do this first:
+            </p>
+            <div className="mt-5 overflow-hidden rounded-2xl bg-surface">
+              <StepRow n={1}>
+                Deny pending follow requests. Switching{" "}
+                <strong className="font-semibold text-ink">accepts them all</strong>.
+              </StepRow>
+              <StepRow n={2}>
+                <strong className="font-semibold text-ink">Archive</strong> posts you want hidden
+              </StepRow>
+              <StepRow n={3} last>
+                Set stories to <strong className="font-semibold text-ink">Close Friends</strong>
+              </StepRow>
+            </div>
+            <details className="mt-5">
+              <summary className="text-[13px] text-faint">Does this change my DMs?</summary>
+              <p className="mt-2 max-w-[46ch] text-[13px] leading-relaxed text-muted">
+                No. Messages work exactly the same. Already public? Skip straight ahead. You can
+                switch back to a personal account later.
+              </p>
+            </details>
+            <button
+              onClick={() => setStep(2)}
+              className="mt-6 min-h-[50px] w-full rounded-btn bg-amber text-[16px] text-white transition-opacity hover:opacity-90"
+            >
+              Next
+            </button>
+          </div>
+        </StepChrome>
+      )}
+
+      {step === 2 && (
+        <StepChrome step={2} onBack={() => setStep(1)}>
           <div className="flex flex-col gap-10 md:flex-row md:items-center">
             <div className="min-w-0 md:max-w-[520px] md:flex-1">
               <h1 className="text-[28px] leading-[1.12] sm:text-[40px] sm:leading-[1.1]">
@@ -82,7 +121,7 @@ export function OnboardingSteps({
                   Open Instagram settings
                 </a>
                 <button
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(3)}
                   className="min-h-[50px] flex-1 rounded-btn bg-amber text-[16px] text-white transition-opacity hover:opacity-90"
                 >
                   Continue
@@ -112,8 +151,8 @@ export function OnboardingSteps({
         </StepChrome>
       )}
 
-      {step === 2 && (
-        <StepChrome step={2} onBack={() => setStep(1)}>
+      {step === 3 && (
+        <StepChrome step={3} onBack={() => setStep(2)}>
           <div className="mx-auto flex w-full max-w-[440px] flex-1 flex-col justify-center">
             <h1 className="text-[30px] leading-[1.1] sm:text-[40px]">Connect your Instagram.</h1>
             <p className="mt-3 text-[15px] leading-relaxed text-muted sm:text-[16px]">
@@ -159,7 +198,7 @@ function StepChrome({
         <div className="h-[3px] rounded-full bg-surface">
           <div
             className="h-[3px] rounded-full bg-amber transition-all"
-            style={{ width: `${(step / 2) * 100}%` }}
+            style={{ width: `${(step / 3) * 100}%` }}
           />
         </div>
       </div>

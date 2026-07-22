@@ -188,6 +188,25 @@ export function SettingsForm() {
         </select>
       </Section>
 
+      <Section title="Desktop wrapper">
+        <p className="mb-3 text-sm text-muted">
+          With the Instamessages wrapper app installed on this computer, new chats open in its
+          caged Instagram window (DMs only, no feed) instead of your browser.
+        </p>
+        <label className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            defaultChecked={typeof window !== "undefined" && localStorage.getItem("im:wrapper") === "1"}
+            onChange={(e) => {
+              localStorage.setItem("im:wrapper", e.target.checked ? "1" : "0");
+              flash(e.target.checked ? "New chats open in the wrapper" : "New chats open in the browser");
+            }}
+            className="h-5 w-5 accent-[var(--amber)]"
+          />
+          <span className="text-sm font-semibold">Open new chats in the wrapper</span>
+        </label>
+      </Section>
+
       <Section title="Danger zone">
         <div className="flex flex-wrap items-center gap-3">
           <button

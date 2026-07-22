@@ -16,6 +16,7 @@ export function NewMessage() {
   const [username, setUsername] = useState("");
   const [checking, setChecking] = useState(false);
   const [handedOff, setHandedOff] = useState(false);
+  const [target, setTarget] = useState<"web" | "wrapper">("web");
   const router = useRouter();
 
   async function go() {
@@ -38,7 +39,16 @@ export function NewMessage() {
     } catch {
       /* fall through to handoff */
     }
-    window.open(`https://ig.me/m/${encodeURIComponent(u)}`, "_blank", "noopener");
+    const wantWrapper =
+      localStorage.getItem("im:wrapper") === "1" &&
+      !/iphone|ipad|ipod|android/i.test(navigator.userAgent);
+    if (wantWrapper) {
+      window.location.href = `instamessages://dm/${encodeURIComponent(u)}`;
+      setTarget("wrapper");
+    } else {
+      window.open(`https://ig.me/m/${encodeURIComponent(u)}`, "_blank", "noopener");
+      setTarget("web");
+    }
     setHandedOff(true);
     setChecking(false);
   }
@@ -116,8 +126,9 @@ export function NewMessage() {
               <>
                 <p className="mt-4 text-center text-[14px] leading-relaxed text-muted">
                   Opened <span className="font-semibold text-ink">@{username.trim().replace(/^@/, "")}</span>&rsquo;s
-                  DM box on instagram.com in a new tab. Send your first message there. The moment
-                  it sends, the conversation appears here and their reply unlocks normal chatting.
+                  DM box {target === "wrapper" ? "in the wrapper" : "on instagram.com in a new tab"}.
+                  Send your first message there. The moment it sends, the conversation appears
+                  here and their reply unlocks normal chatting.
                 </p>
                 <div className="mt-5 flex justify-center">
                   <button onClick={close} className="rounded-btn bg-amber px-6 py-2.5 text-sm text-white">
