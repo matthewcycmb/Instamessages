@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { identify, track } from "@/lib/analytics";
 
 type Phase = "checking" | "error" | "success";
 
@@ -26,6 +27,8 @@ export function SetupSteps({ username }: { username: string }) {
       // Kick off the first sync in the background; the inbox fills as it runs.
       if (!importStarted.current) {
         importStarted.current = true;
+        identify(username);
+        track("instagram_connected", { username });
         fetch("/api/import", { method: "POST" }).catch(() => {});
       }
       setPhase("success");

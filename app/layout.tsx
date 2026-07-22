@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa-register";
+import { PostHogProvider } from "@/components/posthog-provider";
 
 export const metadata: Metadata = {
   title: "Instamessages",
@@ -35,7 +37,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        {children}
+        <Suspense>
+          <PostHogProvider>{children}</PostHogProvider>
+        </Suspense>
         <PwaRegister />
       </body>
     </html>

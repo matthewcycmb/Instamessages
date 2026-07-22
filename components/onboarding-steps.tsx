@@ -1,6 +1,8 @@
+import { InstallButton } from "./install-button";
+
 /**
- * Landing screen: Instamessages + Get started → straight to Instagram login.
- * (The old multi-step pre-connect walkthrough was dropped by request.)
+ * Landing screen: Instamessages + Get started → straight to Instagram login,
+ * plus an Add to Home Screen button for people opening a shared link.
  */
 export function OnboardingSteps({ error }: { error?: string; initialStep?: number }) {
   return (
@@ -34,6 +36,9 @@ export function OnboardingSteps({ error }: { error?: string; initialStep?: numbe
         >
           Get started
         </a>
+        <div className="w-full">
+          <InstallButton />
+        </div>
         <p className="mt-3.5 text-[13px] text-faint">
           Needs a public Instagram creator account.
         </p>
