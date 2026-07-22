@@ -65,11 +65,13 @@ export function InstallButton() {
     }
   }
 
+  const label = mode === "ios" ? "Add to Home Screen" : "Install the app";
+
   return (
     <>
       <button
         onClick={onClick}
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-btn border border-line py-3 text-[15px] font-semibold text-ink transition-colors hover:bg-surface"
+        className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-btn bg-amber text-[17px] font-semibold text-white transition-opacity hover:opacity-90"
       >
         <svg
           className="h-4 w-4"
@@ -85,7 +87,7 @@ export function InstallButton() {
           <path d="m8 11 4 4 4-4" />
           <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
         </svg>
-        Add to Home Screen
+        {label}
       </button>
 
       {showIos && (
@@ -104,9 +106,10 @@ export function InstallButton() {
             <ol className="mt-5 space-y-2.5 text-left">
               {(mode === "ios"
                 ? [
-                    "Tap the Share button in Safari",
-                    "Scroll and tap “Add to Home Screen”",
-                    "Tap Add. The icon appears on your home screen.",
+                    "Tap the ••• (three dots) beside the address bar",
+                    "Tap the Share button",
+                    "Scroll down and tap “Add to Home Screen”",
+                    "Tap Add — the icon lands on your home screen",
                   ]
                 : [
                     "Open your browser’s menu (⋮ or the address bar icon)",
@@ -129,6 +132,28 @@ export function InstallButton() {
               Got it
             </button>
           </div>
+
+          {/* Red arrow pointing down at the ••• button in Safari's toolbar,
+              where the Share button lives on iPhone. */}
+          {mode === "ios" && (
+            <div className="pointer-events-none absolute bottom-1 right-4 z-[60] animate-bounce">
+              <svg width="52" height="94" viewBox="0 0 52 94" fill="none" aria-hidden>
+                <path
+                  d="M32 8 C 48 34, 42 60, 33 80"
+                  stroke="#ff3b30"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M19 64 L 33 86 L 47 64"
+                  stroke="#ff3b30"
+                  strokeWidth="7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          )}
         </div>
       )}
     </>

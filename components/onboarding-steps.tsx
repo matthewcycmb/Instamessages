@@ -1,8 +1,10 @@
 import { InstallButton } from "./install-button";
+import { HeroPreview } from "./hero-preview";
 
 /**
  * Landing screen: Instamessages + Get started → straight to Instagram login,
- * plus an Add to Home Screen button for people opening a shared link.
+ * plus an Add to Home Screen button for people opening a shared link. On
+ * desktop it sits beside a product preview so visitors see what it is.
  */
 export function OnboardingSteps({ error }: { error?: string; initialStep?: number }) {
   return (
@@ -13,32 +15,41 @@ export function OnboardingSteps({ error }: { error?: string; initialStep?: numbe
         </div>
       )}
 
-      <div className="rise mx-auto flex w-full max-w-[380px] flex-1 flex-col items-center justify-center text-center">
-        <div className="grid h-16 w-16 place-items-center rounded-2xl bg-amber">
-          <svg
-            className="h-8 w-8 text-white"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
-          </svg>
+      <div className="rise flex flex-1 flex-col items-center justify-center gap-14 lg:flex-row lg:gap-16">
+        <div className="flex w-full max-w-[380px] flex-col items-center text-center lg:items-start lg:text-left">
+          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-amber">
+            <svg
+              className="h-8 w-8 text-white"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+            </svg>
+          </div>
+          <h1 className="mt-7 text-[32px] leading-tight sm:text-[40px]">Instamessages</h1>
+          <p className="mt-2 text-[17px] text-muted">
+            Your Instagram DMs. Without Instagram.
+          </p>
+          <div className="mt-9 flex w-full flex-col gap-2.5">
+            <InstallButton />
+            <a
+              href="/api/auth/instagram/login"
+              className="grid min-h-[52px] w-full place-items-center rounded-btn border border-line text-[17px] font-semibold text-ink transition-colors hover:bg-surface"
+            >
+              Get started
+            </a>
+          </div>
+          <p className="mt-3.5 text-[13px] text-faint">
+            Add the app first, then get started inside it.
+          </p>
         </div>
-        <h1 className="mt-7 text-[32px] leading-tight sm:text-[40px]">Instamessages</h1>
-        <p className="mt-2 text-[17px] text-muted">Your Instagram DMs. Without Instagram.</p>
-        <a
-          href="/api/auth/instagram/login"
-          className="mt-9 grid min-h-[52px] w-full place-items-center rounded-btn bg-amber text-[17px] font-semibold text-white transition-opacity hover:opacity-90"
-        >
-          Get started
-        </a>
-        <div className="w-full">
-          <InstallButton />
-        </div>
+
+        <HeroPreview />
       </div>
     </main>
   );
