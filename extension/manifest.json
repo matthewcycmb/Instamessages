@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Instamessages — Instagram DMs only",
-  "version": "0.1.0",
-  "description": "Redirects Instagram's feed, reels, explore, posts, and profiles to your Instamessages inbox. DMs and login keep working.",
+  "name": "Instamessages: Instagram DMs Only",
+  "version": "0.1.1",
+  "description": "Blocks Instagram's feed, reels, and profiles in your browser. Your DMs and login still work.",
   "permissions": ["declarativeNetRequest"],
   "host_permissions": ["*://*.instagram.com/*"],
   "declarative_net_request": {

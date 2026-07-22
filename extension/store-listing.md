@@ -12,19 +12,20 @@
 
 ## Listing fields
 
-**Name:** NAME — Instagram DMs only
+**Name:** NAME: Instagram DMs Only
 
-**Summary (132 chars max):**
-Opens Instagram's feed, reels, and profiles in your NAME inbox instead.
-Your DMs and login keep working.
+**Summary (132 chars max, comes from manifest.json "description" — edit
+there and rebuild the zip, not in the console):**
+Blocks Instagram's feed, reels, and profiles in your browser. Your DMs and
+login still work.
 
 **Description:**
 NAME keeps you reachable on Instagram DMs without the feed.
 
-This extension redirects Instagram's addictive surfaces — the home feed,
-Reels, Explore, posts, stories, and profile pages — to your NAME inbox.
-Direct messages, the login flow, and ig.me links are untouched, so
-messaging keeps working exactly as before.
+When you open instagram.com, the addictive parts (the home feed, Reels,
+Explore, posts, stories, and profile pages) are blocked and you land in
+your NAME inbox instead. Direct messages, the login flow, and ig.me links
+are untouched, so messaging keeps working exactly as before.
 
 No data is collected, read, or transmitted. The extension contains only
 static redirect rules (Chrome's declarativeNetRequest) and runs no code on
