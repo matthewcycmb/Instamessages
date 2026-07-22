@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { currentAccount } from "@/lib/account";
 import { ThreadList } from "@/components/thread-list";
 import { ImportButton } from "@/components/import-button";
@@ -12,13 +14,22 @@ import { DockHintBanner } from "@/components/dock-hint-banner";
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; utm_source?: string }>;
 }) {
   const account = await currentAccount();
-  const { error } = await searchParams;
+  const { error, utm_source } = await searchParams;
 
   if (!account) {
-    return <OnboardingSteps error={error} />;
+    // Older extension builds redirect here instead of /blocked.
+    if (utm_source === "extension") redirect("/blocked");
+    // Server-side UA sniff so the first paint already shows the right CTA
+    // stack (no flash). The client only upgrades to "standalone" if the
+    // page is running inside the installed app.
+    const ua = (await headers()).get("user-agent") ?? "";
+    const mobile = /iphone|ipad|ipod|android/i.test(ua);
+    const chromium = /chrome|chromium|crios|edg|arc/i.test(ua);
+    const initialEnv = mobile ? "mobile-browser" : chromium ? "desktop-chromium" : "desktop-other";
+    return <OnboardingSteps error={error} initialEnv={initialEnv} />;
   }
 
   return (

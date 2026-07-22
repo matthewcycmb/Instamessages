@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics";
-
-/** Chrome Web Store listing — swap in once the extension is published. */
-const CHROME_STORE_URL: string | null = null;
+import { CHROME_STORE_URL } from "@/lib/extension";
 
 const DISMISS_KEY = "im_block_banner_dismissed";
 

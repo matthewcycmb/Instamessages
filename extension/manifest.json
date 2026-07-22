@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Instamessages: Instagram DMs Only",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Blocks Instagram's feed, reels, and profiles in your browser. Your DMs and login still work.",
   "permissions": ["declarativeNetRequest"],
   "host_permissions": ["*://*.instagram.com/*"],
