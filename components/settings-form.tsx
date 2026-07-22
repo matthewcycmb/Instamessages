@@ -190,7 +190,7 @@ export function SettingsForm() {
 
       <Section title="Desktop wrapper">
         <p className="mb-3 text-sm text-muted">
-          With the Instamessages wrapper app installed on this computer, new chats open in its
+          With the Instachat wrapper app installed on this computer, new chats open in its
           caged Instagram window (DMs only, no feed) instead of your browser.
         </p>
         <label className="flex items-center gap-3">

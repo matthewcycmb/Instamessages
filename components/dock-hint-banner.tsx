@@ -32,9 +32,9 @@ export function DockHintBanner() {
 
   return (
     <div className="w-full max-w-md rounded-2xl border border-line bg-surface px-5 py-4 text-left">
-      <p className="text-[14px] font-semibold text-ink">Keep Instamessages in your Dock</p>
+      <p className="text-[14px] font-semibold text-ink">Keep Instachat in your Dock</p>
       <p className="mt-1 text-[12px] leading-relaxed text-muted">
-        Right-click the Instamessages icon in the Dock →{" "}
+        Right-click the Instachat icon in the Dock →{" "}
         <span className="font-semibold text-ink">Options</span> →{" "}
         <span className="font-semibold text-ink">Keep in Dock</span>. It stays one click away even
         after you close the app.

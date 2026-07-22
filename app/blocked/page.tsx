@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { currentAccount } from "@/lib/account";
 
 export const metadata: Metadata = {
-  title: "Instagram is blocked | Instamessages",
+  title: "Instagram is blocked | Instachat",
 };
 
 /**
@@ -77,8 +77,8 @@ export default async function BlockedPage() {
         </h1>
         <p style={{ fontSize: 17, color: "#98989d", margin: "0 0 36px", textAlign: "center" }}>
           {account
-            ? "Check your messages in Instamessages."
-            : "Set up Instamessages to read and reply."}
+            ? "Check your messages in Instachat."
+            : "Set up Instachat to read and reply."}
         </p>
         <a
           href="/"
@@ -96,7 +96,7 @@ export default async function BlockedPage() {
             fontWeight: 600,
           }}
         >
-          {account ? "Open Instamessages" : "Set up Instamessages"}
+          {account ? "Open Instachat" : "Set up Instachat"}
         </a>
       </div>
       <div
@@ -109,7 +109,7 @@ export default async function BlockedPage() {
           justifyContent: "center",
         }}
       >
-        <span style={{ fontSize: 13, color: "#48484a" }}>Blocked by Instamessages</span>
+        <span style={{ fontSize: 13, color: "#48484a" }}>Blocked by Instachat</span>
       </div>
     </main>
   );

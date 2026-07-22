@@ -13,7 +13,7 @@ const LOGIN_HREF = "/api/auth/instagram/login";
  * install steps (phones: the app; desktop Chromium: extension first, then
  * the app) — the login button exists only inside the installed app. iOS
  * needs this because the home-screen app has its own cookie jar; on desktop
- * it enforces the product rule that Instamessages is used as an app.
+ * it enforces the product rule that Instachat is used as an app.
  */
 export function GetStarted() {
   const [env, setEnv] = useState<Env>("unknown");

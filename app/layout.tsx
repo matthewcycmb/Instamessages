@@ -5,13 +5,13 @@ import { PwaRegister } from "@/components/pwa-register";
 import { PostHogProvider } from "@/components/posthog-provider";
 
 export const metadata: Metadata = {
-  title: "Instamessages",
+  title: "Instachat",
   description: "Your Instagram DMs. Without Instagram.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Instamessages",
+    title: "Instachat",
   },
   icons: {
     icon: "/icon.svg",

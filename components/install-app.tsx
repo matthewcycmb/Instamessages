@@ -53,7 +53,7 @@ export function InstallApp() {
         onClick={install}
         className="rounded-btn bg-amber px-5 py-2.5 text-sm text-white transition-opacity hover:opacity-90"
       >
-        Install Instamessages
+        Install Instachat
       </button>
     );
   }

@@ -1,4 +1,4 @@
-/* Instamessages service worker: web push + notification click. */
+/* Instachat service worker: web push + notification click. */
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
@@ -6,7 +6,7 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("push", (event) => {
-  let data = { title: "Instamessages", body: "New message", url: "/" };
+  let data = { title: "Instachat", body: "New message", url: "/" };
   try {
     data = { ...data, ...event.data.json() };
   } catch {

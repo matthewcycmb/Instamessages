@@ -154,7 +154,7 @@ export function OnboardingSteps({
             <ChatIcon size={27} />
           </div>
           <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>
-            Instamessages
+            Instachat
           </span>
         </div>
         <h1
@@ -227,7 +227,7 @@ export function OnboardingSteps({
             />
             {env === "desktop-other" && (
               <p style={{ fontSize: 13, color: "#636366", lineHeight: 1.5 }}>
-                Instamessages installs as an app from Chrome or Edge &mdash; open this
+                Instachat installs as an app from Chrome or Edge &mdash; open this
                 page there to set up.
               </p>
             )}
@@ -314,7 +314,7 @@ function AlreadyInstalled({ onStartOver }: { onStartOver: () => void }) {
             textAlign: "center",
           }}
         >
-          Instamessages is
+          Instachat is
           <br />
           already installed
         </h1>

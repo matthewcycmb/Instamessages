@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Instamessages",
-    short_name: "Instamessages",
+    name: "Instachat",
+    short_name: "Instachat",
     description: "Your friends' Instagram DMs, without the feed.",
     start_url: "/",
     display: "standalone",

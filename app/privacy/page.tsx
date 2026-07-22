@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Instamessages",
+  title: "Privacy Policy | Instachat",
 };
 
 const CONTACT_EMAIL = "jchanh@gmail.com";
@@ -22,9 +22,9 @@ export default function PrivacyPage() {
       </header>
 
       <div className="space-y-8 text-[15px] leading-relaxed text-muted">
-        <Section title="What Instamessages is">
+        <Section title="What Instachat is">
           <p>
-            Instamessages is a personal messaging client. It connects to your own Instagram
+            Instachat is a personal messaging client. It connects to your own Instagram
             professional account through Meta&rsquo;s official Instagram API so you can read and
             reply to your Instagram direct messages without installing the Instagram app.
           </p>

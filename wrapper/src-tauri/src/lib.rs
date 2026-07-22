@@ -1,4 +1,4 @@
-// Instamessages Wrapper: a caged instagram.com for the things the official
+// Instachat Wrapper: a caged instagram.com for the things the official
 // API can never do — starting new conversations, group chats, and (on iOS)
 // DMs for private accounts. Cage rules: DM inbox + login flows only. No
 // feed, no reels, no explore, no profiles, no stories.
@@ -189,7 +189,7 @@ pub fn run() {
 
             #[cfg(desktop)]
             let builder = builder
-                .title("Instamessages")
+                .title("Instachat")
                 .inner_size(1100.0, 760.0);
 
             let window = builder.build()?;
@@ -238,7 +238,7 @@ pub fn run() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while building Instamessages")
+        .expect("error while building Instachat")
         .run(|_app, _event| {
             // Dock icon click while the window is hidden → bring it back.
             #[cfg(target_os = "macos")]
