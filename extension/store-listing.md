@@ -20,18 +20,14 @@ Blocks Instagram's feed, reels, and profiles in your browser. Your DMs and
 login still work.
 
 **Description:**
-Instagram is really two products. There's the part you need — messages
-from your friends — and the part built to eat your time: the feed, Reels,
-Explore, an endless scroll of other people's lives.
+This extension blocks the addictive parts of Instagram in your browser:
+the feed, Reels, Explore, posts, stories, and profiles. If you open any
+of them, you are sent to your NAME inbox instead.
 
-This extension separates them. Open instagram.com and the feed, Reels,
-Explore, posts, stories, and profile pages simply don't load. You land in
-your NAME inbox instead. Your DMs still work. Login still works. Links
-people send you still work. The only thing that stops working is the part
-you were trying to quit.
+Your DMs and login are not affected. Messaging works exactly as before.
 
-It collects nothing and reads nothing. It's a static list of redirect
-rules — no code runs on any page, and no data ever leaves your browser.
+The extension collects no data and runs no code on any page. It is just
+a fixed list of redirect rules.
 
 **Category:** Productivity → Workflow & Planning
 **Language:** English
