@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import "./globals.css";
 import { PwaRegister } from "@/components/pwa-register";
 import { PostHogProvider } from "@/components/posthog-provider";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Instamessages",
@@ -41,6 +42,7 @@ export default function RootLayout({
           <PostHogProvider>{children}</PostHogProvider>
         </Suspense>
         <PwaRegister />
+        <Analytics />
       </body>
     </html>
   );
