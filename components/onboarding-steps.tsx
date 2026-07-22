@@ -39,9 +39,6 @@ export function OnboardingSteps({ error }: { error?: string; initialStep?: numbe
         <div className="w-full">
           <InstallButton />
         </div>
-        <p className="mt-3.5 text-[13px] text-faint">
-          Needs a public Instagram creator account.
-        </p>
       </div>
     </main>
   );
