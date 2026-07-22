@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { cookies } from "next/headers";
 import {
   exchangeCode,
@@ -6,8 +6,9 @@ import {
   getMe,
   primeWebhooks,
 } from "@/lib/instagram";
-import { supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin, Account } from "@/lib/supabase";
 import { createSession } from "@/lib/session";
+import { syncAccount, backfillProfiles } from "@/lib/sync";
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
         },
         { onConflict: "ig_user_id" }
       )
-      .select("id")
+      .select("*")
       .single();
     if (dbError) throw dbError;
 
@@ -55,7 +56,15 @@ export async function GET(req: NextRequest) {
     await primeWebhooks(longLived.access_token);
 
     await createSession(account.id);
-    return NextResponse.redirect(new URL("/onboarding", req.nextUrl.origin));
+
+    // First sync runs in the background; the user lands directly in
+    // Messages and watches the inbox fill in. No onboarding detour.
+    after(async () => {
+      await syncAccount(account as Account);
+      await backfillProfiles(account as Account);
+    });
+
+    return NextResponse.redirect(new URL("/", req.nextUrl.origin));
   } catch (err) {
     console.error("Instagram connect failed", err);
     return NextResponse.redirect(

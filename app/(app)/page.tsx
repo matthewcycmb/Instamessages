@@ -5,6 +5,7 @@ import { SettingsIcon } from "@/components/sidebar";
 import { NewMessage } from "@/components/new-message";
 import { PushBanner } from "@/components/push-banner";
 import { OnboardingSteps } from "@/components/onboarding-steps";
+import { IdentifyUser } from "@/components/identify-user";
 
 export default async function Home({
   searchParams,
@@ -20,6 +21,7 @@ export default async function Home({
 
   return (
     <>
+      <IdentifyUser username={account.username} />
       {/* Desktop: sidebar comes from the layout; this is the empty pane */}
       <div className="hidden flex-1 items-center justify-center md:flex">
         <p className="text-[15px] text-faint">Select a conversation</p>
