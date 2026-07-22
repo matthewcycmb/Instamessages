@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Instamessages — Instagram DMs only",
+  "version": "0.1.0",
+  "description": "Redirects Instagram's feed, reels, explore, posts, and profiles to your Instamessages inbox. DMs and login keep working.",
+  "permissions": ["declarativeNetRequest"],
+  "host_permissions": ["*://*.instagram.com/*"],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "cage",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

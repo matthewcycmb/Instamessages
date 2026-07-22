@@ -5,6 +5,8 @@
 
 use tauri::{Url, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_deep_link::DeepLinkExt;
+#[cfg(target_os = "macos")]
+use tauri::Manager;
 
 const HOME: &str = "https://www.instagram.com/direct/inbox/";
 
@@ -192,6 +194,19 @@ pub fn run() {
 
             let window = builder.build()?;
 
+            // macOS: the red × hides the window instead of quitting, so the
+            // app stays in the Dock and reopens instantly (⌘Q still quits).
+            #[cfg(target_os = "macos")]
+            {
+                let hide_target = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = hide_target.hide();
+                    }
+                });
+            }
+
             #[cfg(all(debug_assertions, desktop))]
             window.open_devtools();
 
@@ -222,6 +237,16 @@ pub fn run() {
             });
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Instamessages Wrapper");
+        .build(tauri::generate_context!())
+        .expect("error while building Instamessages Wrapper")
+        .run(|_app, _event| {
+            // Dock icon click while the window is hidden → bring it back.
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = _event {
+                if let Some(w) = _app.get_webview_window("main") {
+                    let _ = w.show();
+                    let _ = w.set_focus();
+                }
+            }
+        });
 }

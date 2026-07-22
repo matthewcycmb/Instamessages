@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "priority": 100,
+    "action": { "type": "allow" },
+    "condition": {
+      "regexFilter": "^https?://(www\\.)?instagram\\.com/(direct|accounts|challenge|challenges|two_factor|auth_platform|oauth|api|graphql|session|login|legal|terms|privacy|about|emails|m)(/|$)",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": { "url": "https://instamessages.vercel.app/?utm_source=extension" }
+    },
+    "condition": {
+      "regexFilter": "^https?://(www\\.)?instagram\\.com/?(\\?.*)?$",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 3,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": { "url": "https://instamessages.vercel.app/?utm_source=extension" }
+    },
+    "condition": {
+      "regexFilter": "^https?://(www\\.)?instagram\\.com/(reels?|explore|p|tv|stories)(/|$)",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 4,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": { "url": "https://instamessages.vercel.app/?utm_source=extension" }
+    },
+    "condition": {
+      "regexFilter": "^https?://(www\\.)?instagram\\.com/[A-Za-z0-9._]+/?(\\?.*)?$",
+      "resourceTypes": ["main_frame"]
+    }
+  }
+]

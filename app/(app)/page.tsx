@@ -6,6 +6,7 @@ import { NewMessage } from "@/components/new-message";
 import { PushBanner } from "@/components/push-banner";
 import { OnboardingSteps } from "@/components/onboarding-steps";
 import { IdentifyUser } from "@/components/identify-user";
+import { BlockInstagramBanner } from "@/components/block-instagram-banner";
 
 export default async function Home({
   searchParams,
@@ -23,7 +24,8 @@ export default async function Home({
     <>
       <IdentifyUser username={account.username} />
       {/* Desktop: sidebar comes from the layout; this is the empty pane */}
-      <div className="hidden flex-1 items-center justify-center md:flex">
+      <div className="hidden flex-1 flex-col items-center justify-center gap-5 px-6 md:flex">
+        <BlockInstagramBanner />
         <p className="text-[15px] text-faint">Select a conversation</p>
       </div>
 
