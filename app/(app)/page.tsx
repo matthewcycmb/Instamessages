@@ -9,15 +9,13 @@ import { OnboardingSteps } from "@/components/onboarding-steps";
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; step?: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const account = await currentAccount();
-  const { error, step } = await searchParams;
+  const { error } = await searchParams;
 
   if (!account) {
-    const parsed = Number(step);
-    const initialStep = Number.isInteger(parsed) && parsed >= 1 && parsed <= 3 ? parsed : 0;
-    return <OnboardingSteps error={error} initialStep={initialStep} />;
+    return <OnboardingSteps error={error} />;
   }
 
   return (

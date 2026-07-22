@@ -58,7 +58,7 @@ export function SetupSteps({ username }: { username: string }) {
             Instagram says your account is still personal.
           </p>
           <button
-            onClick={() => router.push("/?step=2")}
+            onClick={() => window.open("https://www.instagram.com/accounts/convert_to_professional_account/", "_blank")}
             className="mt-7 min-h-[50px] w-full rounded-btn bg-amber text-[16px] text-white transition-opacity hover:opacity-90"
           >
             Show me the switch steps
