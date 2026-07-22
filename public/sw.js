@@ -13,18 +13,27 @@ self.addEventListener("push", (event) => {
     /* keep defaults */
   }
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      data: { url: data.url },
-      tag: data.url, // collapse multiple pushes from the same thread
-    })
+    (async () => {
+      await self.registration.showNotification(data.title, {
+        body: data.body,
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        data: { url: data.url },
+        tag: data.url, // collapse multiple pushes from the same thread
+      });
+      // App-icon unread badge: notifications collapse per thread, so their
+      // count ≈ conversations with something new.
+      if (self.navigator.setAppBadge) {
+        const shown = await self.registration.getNotifications();
+        await self.navigator.setAppBadge(Math.max(shown.length, 1)).catch(() => {});
+      }
+    })()
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  if (self.navigator.clearAppBadge) self.navigator.clearAppBadge().catch(() => {});
   const url = event.notification.data?.url || "/";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {

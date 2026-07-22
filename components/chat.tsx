@@ -307,6 +307,13 @@ function Bubble({
   );
 }
 
+function shareLabel(type: string): string {
+  if (type.includes("story")) return "Shared a story";
+  if (type.includes("reel")) return "Shared a reel";
+  if (type === "share") return "Shared a post";
+  return "Shared an attachment";
+}
+
 function AttachmentView({ attachment, fromMe }: { attachment: Attachment; fromMe: boolean }) {
   const url = attachment.payload?.url ?? attachment.url;
   const type = attachment.type ?? "";
@@ -316,17 +323,29 @@ function AttachmentView({ attachment, fromMe }: { attachment: Attachment; fromMe
     return <img src={url} alt="Attachment" className="mt-1 max-h-72 rounded-xl" />;
   }
   if (url) {
+    // Phones get an inert label: tapping through would open instagram.com
+    // (stories/reels/posts), the exact surface this app exists to avoid.
+    // Desktop keeps the link.
     return (
-      <a
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`mt-1 block text-[14px] font-semibold underline underline-offset-2 ${
-          fromMe ? "text-white" : "text-amber"
-        }`}
-      >
-        {type ? `View ${type.replace(/_/g, " ")}` : "View attachment"}
-      </a>
+      <>
+        <p
+          className={`mt-1 block text-[13px] italic md:hidden ${
+            fromMe ? "text-white/70" : "text-faint"
+          }`}
+        >
+          {shareLabel(type)} &middot; view on desktop
+        </p>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`mt-1 hidden text-[14px] font-semibold underline underline-offset-2 md:block ${
+            fromMe ? "text-white" : "text-amber"
+          }`}
+        >
+          {type ? `View ${type.replace(/_/g, " ")}` : "View attachment"}
+        </a>
+      </>
     );
   }
   return (

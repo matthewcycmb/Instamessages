@@ -1,10 +1,11 @@
-import { InstallButton } from "./install-button";
+import { GetStarted } from "./get-started";
 import { HeroPreview } from "./hero-preview";
 
 /**
- * Landing screen: Instamessages + Get started → straight to Instagram login,
- * plus an Add to Home Screen button for people opening a shared link. On
- * desktop it sits beside a product preview so visitors see what it is.
+ * Landing screen. The CTA stack (GetStarted) gates phones behind install:
+ * browsers only get Add to Home Screen, the installed app gets the login
+ * button. On desktop it sits beside a product preview so visitors see what
+ * it is.
  */
 export function OnboardingSteps({ error }: { error?: string; initialStep?: number }) {
   return (
@@ -35,18 +36,7 @@ export function OnboardingSteps({ error }: { error?: string; initialStep?: numbe
           <p className="mt-2 text-[17px] text-muted">
             Your Instagram DMs. Without Instagram.
           </p>
-          <div className="mt-9 flex w-full flex-col gap-2.5">
-            <InstallButton />
-            <a
-              href="/api/auth/instagram/login"
-              className="grid min-h-[52px] w-full place-items-center rounded-btn border border-line text-[17px] font-semibold text-ink transition-colors hover:bg-surface"
-            >
-              Get started
-            </a>
-          </div>
-          <p className="mt-3.5 text-[13px] text-faint">
-            Add the app first, then get started inside it.
-          </p>
+          <GetStarted />
         </div>
 
         <HeroPreview />
