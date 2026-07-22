@@ -50,6 +50,9 @@ export function InstallButton({
 
     const onInstalled = () => {
       track("app_installed");
+      try {
+        localStorage.setItem("im_app_installed", "1");
+      } catch {}
       setMode("hidden");
     };
     window.addEventListener("appinstalled", onInstalled);

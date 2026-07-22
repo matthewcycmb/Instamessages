@@ -8,6 +8,15 @@ export function PwaRegister() {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
 
+    // Remember installs permanently, wherever they happen (button or
+    // omnibox), so the landing can show "already installed".
+    const onInstalled = () => {
+      try {
+        localStorage.setItem("im_app_installed", "1");
+      } catch {}
+    };
+    window.addEventListener("appinstalled", onInstalled);
+
     // Opening (or returning to) the app means the unread badge is seen.
     const clearBadge = () => {
       const nav = navigator as Navigator & { clearAppBadge?: () => Promise<void> };
@@ -18,7 +27,10 @@ export function PwaRegister() {
       if (document.visibilityState === "visible") clearBadge();
     };
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
   return null;
 }

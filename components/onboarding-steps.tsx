@@ -6,6 +6,8 @@ import { ExtensionButton } from "./extension-button";
 import { MobileComingSoon } from "./mobile-coming-soon";
 
 const EXT_ENGAGED_KEY = "im_ext_engaged";
+const INSTALLED_KEY = "im_app_installed";
+const INSTALLED_DISMISSED_KEY = "im_installed_dismissed";
 
 type Env = "unknown" | "standalone" | "mobile-browser" | "desktop-chromium" | "desktop-other";
 
@@ -76,10 +78,48 @@ export function OnboardingSteps({
     }
   }
 
+  // Already-installed detection: the appinstalled flag is definitive; on
+  // Chromium desktop the absence of beforeinstallprompt (which Chrome fires
+  // on every visit when the app is NOT installed) is a strong heuristic for
+  // pre-existing installs. A firing beforeinstallprompt proves not-installed
+  // and self-heals a stale flag. "Start over" suppresses the heuristic.
+  const [installedScreen, setInstalledScreen] = useState(false);
+  useEffect(() => {
+    if (env !== "desktop-chromium") return;
+    if (localStorage.getItem(INSTALLED_KEY)) setInstalledScreen(true);
+    if (localStorage.getItem(INSTALLED_DISMISSED_KEY)) return;
+    let notInstalled = false;
+    const onBip = () => {
+      notInstalled = true;
+      localStorage.removeItem(INSTALLED_KEY);
+      setInstalledScreen(false);
+    };
+    window.addEventListener("beforeinstallprompt", onBip);
+    const t = setTimeout(() => {
+      if (!notInstalled) setInstalledScreen(true);
+    }, 2500);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBip);
+      clearTimeout(t);
+    };
+  }, [env]);
+
+  function startOver() {
+    try {
+      localStorage.removeItem(INSTALLED_KEY);
+      localStorage.setItem(INSTALLED_DISMISSED_KEY, "1");
+    } catch {}
+    setInstalledScreen(false);
+  }
+
   // Desktop-only for now: every mobile visit gets the handoff screen,
   // installed-app or not.
   if (env === "mobile-browser" || (env === "standalone" && isMobile)) {
     return <MobileComingSoon />;
+  }
+
+  if (installedScreen && env === "desktop-chromium") {
+    return <AlreadyInstalled onStartOver={startOver} />;
   }
 
   return (
@@ -201,6 +241,100 @@ export function OnboardingSteps({
         style={{ flex: "none", height: "100vh", alignItems: "center", overflow: "hidden" }}
       >
         <ProductMock />
+      </div>
+    </main>
+  );
+}
+
+/* Design 8a: the app is on this machine already — point at it, don't re-sell. */
+function AlreadyInstalled({ onStartOver }: { onStartOver: () => void }) {
+  return (
+    <main
+      style={{
+        width: "100%",
+        minHeight: "100dvh",
+        background: "#000",
+        color: "#f5f5f7",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          maxWidth: 460,
+          padding: "0 24px",
+        }}
+      >
+        <div
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 18,
+            background: "linear-gradient(180deg, #0a84ff, #0060df)",
+            boxShadow: "0 8px 28px rgba(10,132,255,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            position: "relative",
+          }}
+        >
+          <ChatIcon size={34} />
+          <span
+            style={{
+              position: "absolute",
+              right: -6,
+              bottom: -6,
+              width: 26,
+              height: 26,
+              borderRadius: "50%",
+              background: "#30d158",
+              border: "3px solid #000",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </span>
+        </div>
+        <h1
+          style={{
+            fontSize: "clamp(30px, 6vw, 40px)",
+            fontWeight: 700,
+            letterSpacing: "-0.02em",
+            lineHeight: 1.12,
+            margin: "28px 0 10px",
+            textAlign: "center",
+          }}
+        >
+          Instamessages is
+          <br />
+          already installed
+        </h1>
+        <p style={{ fontSize: 17, color: "#98989d", margin: 0, textAlign: "center" }}>
+          Open the app to check your DMs.
+        </p>
+        <button
+          onClick={onStartOver}
+          className="cursor-pointer transition-colors hover:text-white"
+          style={{
+            minHeight: 44,
+            marginTop: 28,
+            border: 0,
+            background: "none",
+            color: "#636366",
+            fontSize: 14,
+          }}
+        >
+          Not set up yet? Start over
+        </button>
       </div>
     </main>
   );

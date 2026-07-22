@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
+import { currentAccount } from "@/lib/account";
 
 export const metadata: Metadata = {
   title: "Instagram is blocked | Instamessages",
 };
 
-/** Where the browser extension sends every instagram.com attempt (design 4a). */
-export default function BlockedPage() {
+/**
+ * Where the browser extension sends every instagram.com attempt (design 4a).
+ * Desktop browsers share the installed app's session, so connected users go
+ * straight to their inbox; everyone else gets an honest setup label.
+ */
+export default async function BlockedPage() {
+  const account = await currentAccount();
   return (
     <main
       style={{
@@ -70,7 +76,9 @@ export default function BlockedPage() {
           But your DMs aren&rsquo;t.
         </h1>
         <p style={{ fontSize: 17, color: "#98989d", margin: "0 0 36px", textAlign: "center" }}>
-          Check your messages in Instamessages.
+          {account
+            ? "Check your messages in Instamessages."
+            : "Set up Instamessages to read and reply."}
         </p>
         <a
           href="/"
@@ -88,7 +96,7 @@ export default function BlockedPage() {
             fontWeight: 600,
           }}
         >
-          Open Instamessages
+          {account ? "Open Instamessages" : "Set up Instamessages"}
         </a>
       </div>
       <div

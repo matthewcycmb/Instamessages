@@ -189,7 +189,7 @@ pub fn run() {
 
             #[cfg(desktop)]
             let builder = builder
-                .title("Instamessages Wrapper")
+                .title("Instamessages")
                 .inner_size(1100.0, 760.0);
 
             let window = builder.build()?;
@@ -238,7 +238,7 @@ pub fn run() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while building Instamessages Wrapper")
+        .expect("error while building Instamessages")
         .run(|_app, _event| {
             // Dock icon click while the window is hidden → bring it back.
             #[cfg(target_os = "macos")]
