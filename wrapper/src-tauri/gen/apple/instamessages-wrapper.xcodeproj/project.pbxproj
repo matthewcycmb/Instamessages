@@ -1,0 +1,460 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0B57E8BB52ED4EE58F75C952 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2D83A2D0B4DA5EBDC69868F3 /* LaunchScreen.storyboard */; };
+		1296AD041CE022531D454A29 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91C0D64ACA8C1C9FB398552C /* UIKit.framework */; };
+		2EBC7E4D7763A81BBF587444 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 2A95ADD2DFE026F76C56FE1D /* assets */; };
+		31C709A01E03514554E976AB /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D7BA748251ED6F705D73AA2A /* Metal.framework */; };
+		3274EEB8AD3B404B6E55C41F /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = A79BDBF47F2511D3579F17D6 /* main.mm */; };
+		9502D46A2189E2D60086EA26 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6E5C36DED82E23A8C7C3504 /* WebKit.framework */; };
+		BB7CE57E41D91F2C0094C7EA /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 95565E088376809829C919A9 /* Security.framework */; };
+		E6CCD902F98D3B0923648D73 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CBEDA7ABE5C91AD11BB61F1 /* libapp.a */; };
+		EDF52AAF4B39F02B1B97138F /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 974A7F7F350DA4C43394A266 /* QuartzCore.framework */; };
+		F02D75A876ED4ADCC32147FE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8DD52691ABEE23DEC0327E87 /* Assets.xcassets */; };
+		F23657B56E778145A4750D6C /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C7740352F1FBB08F13A802A3 /* CoreGraphics.framework */; };
+		F872EE291AD812280AFB7B07 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDBA0A83D3429C96EF9809F5 /* MetalKit.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		11689584AFCF000C22156814 /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
+		1CBEDA7ABE5C91AD11BB61F1 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
+		1E6A599F9CE9A7F681077CEE /* lib.rs */ = {isa = PBXFileReference; path = lib.rs; sourceTree = "<group>"; };
+		2A95ADD2DFE026F76C56FE1D /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
+		2D83A2D0B4DA5EBDC69868F3 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
+		454A0DCC6B6C3EB03FD1430C /* main.rs */ = {isa = PBXFileReference; path = main.rs; sourceTree = "<group>"; };
+		69AF79EFEDF2844C01710404 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		8DD52691ABEE23DEC0327E87 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		91C0D64ACA8C1C9FB398552C /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
+		95565E088376809829C919A9 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		974A7F7F350DA4C43394A266 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		9F41D80ACBAB45D2562597B2 /* instamessages-wrapper_iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "instamessages-wrapper_iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6E5C36DED82E23A8C7C3504 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		A79BDBF47F2511D3579F17D6 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
+		BE2AF5F44C34C0B8C9A7B3C2 /* instamessages-wrapper_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "instamessages-wrapper_iOS.entitlements"; sourceTree = "<group>"; };
+		C7740352F1FBB08F13A802A3 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
+		CDBA0A83D3429C96EF9809F5 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		D7BA748251ED6F705D73AA2A /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		09C7400F58897631D969FA0C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E6CCD902F98D3B0923648D73 /* libapp.a in Frameworks */,
+				F23657B56E778145A4750D6C /* CoreGraphics.framework in Frameworks */,
+				31C709A01E03514554E976AB /* Metal.framework in Frameworks */,
+				F872EE291AD812280AFB7B07 /* MetalKit.framework in Frameworks */,
+				EDF52AAF4B39F02B1B97138F /* QuartzCore.framework in Frameworks */,
+				BB7CE57E41D91F2C0094C7EA /* Security.framework in Frameworks */,
+				1296AD041CE022531D454A29 /* UIKit.framework in Frameworks */,
+				9502D46A2189E2D60086EA26 /* WebKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1CA1A22555EB1ABFEC3CFE6B /* Externals */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Externals;
+			sourceTree = "<group>";
+		};
+		212B99CAB10543911E48B6EB /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				C7740352F1FBB08F13A802A3 /* CoreGraphics.framework */,
+				1CBEDA7ABE5C91AD11BB61F1 /* libapp.a */,
+				D7BA748251ED6F705D73AA2A /* Metal.framework */,
+				CDBA0A83D3429C96EF9809F5 /* MetalKit.framework */,
+				974A7F7F350DA4C43394A266 /* QuartzCore.framework */,
+				95565E088376809829C919A9 /* Security.framework */,
+				91C0D64ACA8C1C9FB398552C /* UIKit.framework */,
+				A6E5C36DED82E23A8C7C3504 /* WebKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		3347429CE70F404531F09DE9 /* instamessages-wrapper */ = {
+			isa = PBXGroup;
+			children = (
+				A79BDBF47F2511D3579F17D6 /* main.mm */,
+				C4FE8784ECD08BC66C3E58F3 /* bindings */,
+			);
+			path = "instamessages-wrapper";
+			sourceTree = "<group>";
+		};
+		949797467AA9EB2A3C4A84C3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9F41D80ACBAB45D2562597B2 /* instamessages-wrapper_iOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B57AB083899B828789B0E5C1 /* instamessages-wrapper_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				69AF79EFEDF2844C01710404 /* Info.plist */,
+				BE2AF5F44C34C0B8C9A7B3C2 /* instamessages-wrapper_iOS.entitlements */,
+			);
+			path = "instamessages-wrapper_iOS";
+			sourceTree = "<group>";
+		};
+		B7E80B00CDE5E3A5521A3C3B /* src */ = {
+			isa = PBXGroup;
+			children = (
+				1E6A599F9CE9A7F681077CEE /* lib.rs */,
+				454A0DCC6B6C3EB03FD1430C /* main.rs */,
+			);
+			name = src;
+			path = ../../src;
+			sourceTree = "<group>";
+		};
+		C4FE8784ECD08BC66C3E58F3 /* bindings */ = {
+			isa = PBXGroup;
+			children = (
+				11689584AFCF000C22156814 /* bindings.h */,
+			);
+			path = bindings;
+			sourceTree = "<group>";
+		};
+		F005A38DC8BE828C23119EC3 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				3347429CE70F404531F09DE9 /* instamessages-wrapper */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		FFDB89E8128E9A9B3A6FA620 = {
+			isa = PBXGroup;
+			children = (
+				2A95ADD2DFE026F76C56FE1D /* assets */,
+				8DD52691ABEE23DEC0327E87 /* Assets.xcassets */,
+				2D83A2D0B4DA5EBDC69868F3 /* LaunchScreen.storyboard */,
+				1CA1A22555EB1ABFEC3CFE6B /* Externals */,
+				B57AB083899B828789B0E5C1 /* instamessages-wrapper_iOS */,
+				F005A38DC8BE828C23119EC3 /* Sources */,
+				B7E80B00CDE5E3A5521A3C3B /* src */,
+				212B99CAB10543911E48B6EB /* Frameworks */,
+				949797467AA9EB2A3C4A84C3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		735DF95C8FC4A4ADB79577A0 /* instamessages-wrapper_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 394073D532AA8AA06DB0CA9E /* Build configuration list for PBXNativeTarget "instamessages-wrapper_iOS" */;
+			buildPhases = (
+				BF27D7F824B7CF39855BC793 /* Build Rust Code */,
+				DC78608C21758A76DCD32710 /* Sources */,
+				A294BED6AC7938256A0D0F1F /* Resources */,
+				09C7400F58897631D969FA0C /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "instamessages-wrapper_iOS";
+			packageProductDependencies = (
+			);
+			productName = "instamessages-wrapper_iOS";
+			productReference = 9F41D80ACBAB45D2562597B2 /* instamessages-wrapper_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E4B999A29DD51AE95DC96581 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 2386EE5CD8EA4B05F01B4E5C /* Build configuration list for PBXProject "instamessages-wrapper" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = FFDB89E8128E9A9B3A6FA620;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 949797467AA9EB2A3C4A84C3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				735DF95C8FC4A4ADB79577A0 /* instamessages-wrapper_iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A294BED6AC7938256A0D0F1F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F02D75A876ED4ADCC32147FE /* Assets.xcassets in Resources */,
+				0B57E8BB52ED4EE58F75C952 /* LaunchScreen.storyboard in Resources */,
+				2EBC7E4D7763A81BBF587444 /* assets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		BF27D7F824B7CF39855BC793 /* Build Rust Code */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build Rust Code";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libapp.a",
+				"$(SRCROOT)/Externals/arm64/${CONFIGURATION}/libapp.a",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "npm run -- tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths \"${FRAMEWORK_SEARCH_PATHS:?}\" --header-search-paths \"${HEADER_SEARCH_PATHS:?}\" --gcc-preprocessor-definitions \"${GCC_PREPROCESSOR_DEFINITIONS:-}\" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DC78608C21758A76DCD32710 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3274EEB8AD3B404B6E55C41F /* main.mm in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AB898EF1FC4599E1B97D54E0 /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ARCHS = (
+					arm64,
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "instamessages-wrapper_iOS/instamessages-wrapper_iOS.entitlements";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				INFOPLIST_FILE = "instamessages-wrapper_iOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.instamessages.wrapper;
+				PRODUCT_NAME = "Instamessages Wrapper";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = arm64;
+			};
+			name = release;
+		};
+		B738FD819CFD5570482CE4B0 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = debug;
+		};
+		CDE20183B5B893CDB820E58A /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = release;
+		};
+		EF0EB1CF6EDA4680148B4F45 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ARCHS = (
+					arm64,
+				);
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "instamessages-wrapper_iOS/instamessages-wrapper_iOS.entitlements";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_BITCODE = NO;
+				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\".\"",
+				);
+				INFOPLIST_FILE = "instamessages-wrapper_iOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = com.instamessages.wrapper;
+				PRODUCT_NAME = "Instamessages Wrapper";
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALID_ARCHS = arm64;
+			};
+			name = debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2386EE5CD8EA4B05F01B4E5C /* Build configuration list for PBXProject "instamessages-wrapper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B738FD819CFD5570482CE4B0 /* debug */,
+				CDE20183B5B893CDB820E58A /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		394073D532AA8AA06DB0CA9E /* Build configuration list for PBXNativeTarget "instamessages-wrapper_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EF0EB1CF6EDA4680148B4F45 /* debug */,
+				AB898EF1FC4599E1B97D54E0 /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E4B999A29DD51AE95DC96581 /* Project object */;
+}
