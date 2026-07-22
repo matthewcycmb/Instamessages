@@ -20,16 +20,18 @@ Blocks Instagram's feed, reels, and profiles in your browser. Your DMs and
 login still work.
 
 **Description:**
-NAME keeps you reachable on Instagram DMs without the feed.
+Instagram is really two products. There's the part you need — messages
+from your friends — and the part built to eat your time: the feed, Reels,
+Explore, an endless scroll of other people's lives.
 
-When you open instagram.com, the addictive parts (the home feed, Reels,
-Explore, posts, stories, and profile pages) are blocked and you land in
-your NAME inbox instead. Direct messages, the login flow, and ig.me links
-are untouched, so messaging keeps working exactly as before.
+This extension separates them. Open instagram.com and the feed, Reels,
+Explore, posts, stories, and profile pages simply don't load. You land in
+your NAME inbox instead. Your DMs still work. Login still works. Links
+people send you still work. The only thing that stops working is the part
+you were trying to quit.
 
-No data is collected, read, or transmitted. The extension contains only
-static redirect rules (Chrome's declarativeNetRequest) and runs no code on
-any page.
+It collects nothing and reads nothing. It's a static list of redirect
+rules — no code runs on any page, and no data ever leaves your browser.
 
 **Category:** Productivity → Workflow & Planning
 **Language:** English
