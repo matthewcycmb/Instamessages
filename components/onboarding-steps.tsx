@@ -3,11 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { ExtensionButton } from "./extension-button";
 import { DownloadMacButton } from "./download-mac-button";
-import { TerminalInstall } from "./terminal-install";
+import { TerminalCommand } from "./terminal-install";
 import { MobileComingSoon } from "./mobile-coming-soon";
 
 const EXT_ENGAGED_KEY = "im_ext_engaged";
 const MAC_DOWNLOADED_KEY = "im_mac_downloaded";
+
+// The signed-download flow is parked until Apple Developer enrollment; the
+// Terminal command is the install path meanwhile. Flip back to true (and the
+// download card returns) once the app is notarized.
+const SHOW_DOWNLOAD = false;
 
 type Env = "unknown" | "mobile" | "desktop-chromium" | "desktop-other";
 
@@ -93,12 +98,12 @@ export function OnboardingSteps({
 
       {/* left: pitch + steps */}
       <div className="w-full max-w-[440px] flex-none px-6 py-12 lg:px-0 lg:py-0">
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div
             style={{
-              width: 56,
-              height: 56,
-              borderRadius: 14,
+              width: 48,
+              height: 48,
+              borderRadius: 12,
               background: "linear-gradient(180deg, #0a84ff, #0060df)",
               boxShadow: "0 8px 28px rgba(10,132,255,0.35)",
               display: "flex",
@@ -106,71 +111,115 @@ export function OnboardingSteps({
               justifyContent: "center",
             }}
           >
-            <ChatIcon size={27} />
+            <ChatIcon size={23} />
           </div>
-          <span style={{ fontSize: 26, fontWeight: 700, letterSpacing: "-0.02em" }}>
+          <span style={{ fontSize: 23, fontWeight: 700, letterSpacing: "-0.02em" }}>
             Instachat
           </span>
         </div>
         <h1
           style={{
-            fontSize: "clamp(34px, 6vw, 44px)",
+            fontSize: "clamp(30px, 5vw, 38px)",
             fontWeight: 700,
             letterSpacing: "-0.025em",
             lineHeight: 1.08,
-            margin: "28px 0 10px",
+            margin: "22px 0 8px",
           }}
         >
           Keep your DMs.
           <br />
           Block the rest.
         </h1>
-        <p style={{ fontSize: 17, color: "#98989d", lineHeight: 1.5, margin: "0 0 32px" }}>
-          {downloaded
-            ? "You're all set. Open Instachat and sign in to Instagram."
-            : "Two installs, then you're set."}
+        <p style={{ fontSize: 16, color: "#98989d", lineHeight: 1.5, margin: "0 0 24px" }}>
+          {env === "desktop-chromium" ? "Two steps, then you're set." : "One step, then you're set."}
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {env === "desktop-chromium" && (
             <StepCard
               n={1}
-              active={!step2Active && !downloaded}
-              done={step2Active || downloaded}
+              active={!step2Active}
+              done={step2Active}
               icon={<ChromeLogo />}
               title="Add the Chrome extension"
               sub="Blocks Instagram in your browser."
-              action={<ExtensionButton pill="Add" onEngage={onExtensionEngage} />}
+              action={
+                step2Active ? (
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "#30d158", flex: "none" }}>
+                    Added
+                  </span>
+                ) : (
+                  <ExtensionButton pill="Add" onEngage={onExtensionEngage} />
+                )
+              }
             />
           )}
-          <StepCard
-            n={env === "desktop-chromium" ? 2 : 1}
-            active={!downloaded && (env !== "desktop-chromium" || step2Active)}
-            done={downloaded}
-            icon={<AppTile />}
-            title="Download the Mac app"
-            sub="Your DMs, without the feed."
-            action={
-              downloaded ? (
-                <span style={{ fontSize: 14, fontWeight: 600, color: "#30d158", flex: "none" }}>
-                  Downloaded
-                </span>
-              ) : (
-                <DownloadMacButton
-                  outline={env === "desktop-chromium" && !step2Active}
-                  onEngage={onDownloadEngage}
-                />
-              )
-            }
-          />
+
+          {/* Step 2: install the Mac app via Terminal (signed download parked) */}
+          <div
+            style={{
+              background: "#1c1c1e",
+              border: `1px solid ${env !== "desktop-chromium" || step2Active ? "#0a84ff" : "#2c2c2e"}`,
+              borderRadius: 16,
+              padding: "16px 18px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 16 }}>
+              <span
+                style={{
+                  width: 28,
+                  height: 28,
+                  flex: "none",
+                  borderRadius: "50%",
+                  background: env !== "desktop-chromium" || step2Active ? "#0a84ff" : "#2c2c2e",
+                  color: env !== "desktop-chromium" || step2Active ? "#fff" : "#98989d",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 14,
+                  fontWeight: 700,
+                }}
+              >
+                {env === "desktop-chromium" ? 2 : 1}
+              </span>
+              <AppTile />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>Install Instachat in your terminal</div>
+                <div style={{ fontSize: 13, color: "#98989d", lineHeight: 1.5, marginTop: 3 }}>
+                  Copy and paste this line in your terminal
+                  <br />
+                  (Cmd + space → type terminal):
+                </div>
+              </div>
+            </div>
+            <TerminalCommand />
+          </div>
+
           <p style={{ fontSize: 13, color: "#636366", lineHeight: 1.5 }}>
-            {downloaded
-              ? "Open the download, drag Instachat into Applications, and launch it."
-              : env === "desktop-other"
-                ? "The extension needs Chrome or Edge; the Mac app works everywhere."
-                : "Your normal Instagram login works. No creator account, no setup."}
+            {env === "desktop-other"
+              ? "The extension needs Chrome or Edge; the Mac app works everywhere."
+              : "Your normal Instagram login works. No creator account, no setup."}
           </p>
-          <TerminalInstall />
+
+          {SHOW_DOWNLOAD && (
+            <StepCard
+              n={99}
+              active={!downloaded}
+              done={downloaded}
+              icon={<AppTile />}
+              title="Download the Mac app"
+              sub="Your DMs, without the feed."
+              action={
+                downloaded ? (
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "#30d158", flex: "none" }}>
+                    Downloaded
+                  </span>
+                ) : (
+                  <DownloadMacButton onEngage={onDownloadEngage} />
+                )
+              }
+            />
+          )}
         </div>
       </div>
 
