@@ -5,7 +5,7 @@ import { useState } from "react";
 // curl (unlike a browser) doesn't quarantine the download, so the app opens
 // with no Gatekeeper "damaged" wall. Points at the same zip the button serves.
 const CMD =
-  "curl -fsSL https://instamessages.vercel.app/Instachat-mac.zip -o /tmp/instachat.zip && ditto -xk /tmp/instachat.zip /Applications && open /Applications/Instachat.app";
+  "curl -fsSL https://instamessages.vercel.app/Instachat-mac.zip -o /tmp/instachat.zip && rm -rf /Applications/Instachat.app && ditto -xk /tmp/instachat.zip /Applications && xattr -cr /Applications/Instachat.app && open /Applications/Instachat.app";
 
 /**
  * Secondary install path: one Terminal line that downloads and opens the app
