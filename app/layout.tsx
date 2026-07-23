@@ -1,18 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import "./globals.css";
-import { PwaRegister } from "@/components/pwa-register";
 import { PostHogProvider } from "@/components/posthog-provider";
 
 export const metadata: Metadata = {
   title: "Instachat",
-  description: "Your Instagram DMs. Without Instagram.",
-  manifest: "/manifest.webmanifest",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Instachat",
-  },
+  description: "Keep your DMs. Block the rest.",
   icons: {
     icon: "/icon.svg",
     apple: "/apple-touch-icon.png",
@@ -20,10 +13,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
-  ],
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -40,7 +30,6 @@ export default function RootLayout({
         <Suspense>
           <PostHogProvider>{children}</PostHogProvider>
         </Suspense>
-        <PwaRegister />
       </body>
     </html>
   );

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { currentAccount } from "@/lib/account";
 
 export const metadata: Metadata = {
   title: "Instagram is blocked | Instachat",
@@ -7,11 +6,10 @@ export const metadata: Metadata = {
 
 /**
  * Where the browser extension sends every instagram.com attempt (design 4a).
- * Desktop browsers share the installed app's session, so connected users go
- * straight to their inbox; everyone else gets an honest setup label.
+ * The button deep-links into the native Mac app via its custom protocol;
+ * the fallback line covers people who haven't downloaded it yet.
  */
-export default async function BlockedPage() {
-  const account = await currentAccount();
+export default function BlockedPage() {
   return (
     <main
       style={{
@@ -76,12 +74,10 @@ export default async function BlockedPage() {
           But your DMs aren&rsquo;t.
         </h1>
         <p style={{ fontSize: 17, color: "#98989d", margin: "0 0 36px", textAlign: "center" }}>
-          {account
-            ? "Check your messages in Instachat."
-            : "Set up Instachat to read and reply."}
+          Check your messages in Instachat.
         </p>
         <a
-          href="/"
+          href="instamessages://open"
           className="transition-opacity hover:opacity-85"
           style={{
             display: "inline-flex",
@@ -96,7 +92,14 @@ export default async function BlockedPage() {
             fontWeight: 600,
           }}
         >
-          {account ? "Open Instachat" : "Set up Instachat"}
+          Open Instachat
+        </a>
+        <a
+          href="/"
+          style={{ fontSize: 14, color: "#636366", marginTop: 18 }}
+          className="transition-colors hover:text-white"
+        >
+          Don&rsquo;t have the app? Get it here
         </a>
       </div>
       <div

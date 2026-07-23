@@ -1,23 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { InstallButton } from "./install-button";
 import { ExtensionButton } from "./extension-button";
+import { DownloadMacButton } from "./download-mac-button";
+import { TerminalInstall } from "./terminal-install";
 import { MobileComingSoon } from "./mobile-coming-soon";
 
 const EXT_ENGAGED_KEY = "im_ext_engaged";
-const INSTALLED_KEY = "im_app_installed";
-const INSTALLED_DISMISSED_KEY = "im_installed_dismissed";
+const MAC_DOWNLOADED_KEY = "im_mac_downloaded";
 
-type Env = "unknown" | "standalone" | "mobile-browser" | "desktop-chromium" | "desktop-other";
-
-const LOGIN_HREF = "/api/auth/instagram/login";
+type Env = "unknown" | "mobile" | "desktop-chromium" | "desktop-other";
 
 /**
  * Landing screen (design 5a): dark, pitch + numbered install step cards on
- * the left, product mock on the right. Install is mandatory everywhere —
- * the login button exists only inside the installed app; desktop Chromium
- * gets the extension as step 1.
+ * the left, product mock on the right. The product is the native Mac
+ * wrapper (caged instagram.com, normal login, no creator account); the
+ * Chrome extension blocks Instagram in the browser.
  */
 export function OnboardingSteps({
   error,
@@ -28,58 +26,33 @@ export function OnboardingSteps({
   initialEnv?: Env;
 }) {
   const [env, setEnv] = useState<Env>(initialEnv ?? "unknown");
-  const [isMobile, setIsMobile] = useState(initialEnv === "mobile-browser");
   // Step 2 lights up once the user has gone off to install the extension
-  // and come back (tab-visibility/focus), so they know what to press next.
+  // and come back; it turns green once they grab the Mac download.
   const [step2Active, setStep2Active] = useState(false);
-  // Step 2 goes green the moment the browser reports a completed install.
-  const [appDone, setAppDone] = useState(false);
+  const [downloaded, setDownloaded] = useState(false);
   const engaged = useRef(false);
 
   useEffect(() => {
-    // display-mode is a LIVE query: when Chrome installs the app it converts
-    // the open tab into the app window without reloading, so we must
-    // re-evaluate on change or the app window keeps showing the tab UI.
-    const mq = window.matchMedia("(display-mode: standalone)");
-    const compute = () => {
-      const standalone =
-        mq.matches ||
-        (navigator as Navigator & { standalone?: boolean }).standalone === true;
-      const ua = navigator.userAgent;
-      const mobile = /iphone|ipad|ipod|android/i.test(ua);
-      const chromium = /chrome|chromium|crios|edg|arc/i.test(ua);
-      setIsMobile(mobile);
-      setEnv(
-        standalone
-          ? "standalone"
-          : mobile
-            ? "mobile-browser"
-            : chromium
-              ? "desktop-chromium"
-              : "desktop-other"
-      );
-    };
-    compute();
-    mq.addEventListener?.("change", compute);
+    const ua = navigator.userAgent;
+    const mobile = /iphone|ipad|ipod|android/i.test(ua);
+    const chromium = /chrome|chromium|crios|edg|arc/i.test(ua);
+    setEnv(mobile ? "mobile" : chromium ? "desktop-chromium" : "desktop-other");
 
     if (localStorage.getItem(EXT_ENGAGED_KEY)) {
       engaged.current = true;
       setStep2Active(true);
     }
+    if (localStorage.getItem(MAC_DOWNLOADED_KEY)) setDownloaded(true);
     const onReturn = () => {
       if (document.visibilityState === "visible" && engaged.current) {
         setStep2Active(true);
       }
     };
-    const onAppInstalled = () => setAppDone(true);
     document.addEventListener("visibilitychange", onReturn);
     window.addEventListener("focus", onReturn);
-    window.addEventListener("appinstalled", onAppInstalled);
     return () => {
-      mq.removeEventListener?.("change", compute);
       document.removeEventListener("visibilitychange", onReturn);
       window.removeEventListener("focus", onReturn);
-      window.removeEventListener("appinstalled", onAppInstalled);
     };
   }, []);
 
@@ -92,48 +65,16 @@ export function OnboardingSteps({
     }
   }
 
-  // Already-installed detection: the appinstalled flag is definitive; on
-  // Chromium desktop the absence of beforeinstallprompt (which Chrome fires
-  // on every visit when the app is NOT installed) is a strong heuristic for
-  // pre-existing installs. A firing beforeinstallprompt proves not-installed
-  // and self-heals a stale flag. "Start over" suppresses the heuristic.
-  const [installedScreen, setInstalledScreen] = useState(false);
-  useEffect(() => {
-    if (env !== "desktop-chromium") return;
-    if (localStorage.getItem(INSTALLED_KEY)) setInstalledScreen(true);
-    if (localStorage.getItem(INSTALLED_DISMISSED_KEY)) return;
-    let notInstalled = false;
-    const onBip = () => {
-      notInstalled = true;
-      localStorage.removeItem(INSTALLED_KEY);
-      setInstalledScreen(false);
-    };
-    window.addEventListener("beforeinstallprompt", onBip);
-    const t = setTimeout(() => {
-      if (!notInstalled) setInstalledScreen(true);
-    }, 2500);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBip);
-      clearTimeout(t);
-    };
-  }, [env]);
-
-  function startOver() {
+  function onDownloadEngage() {
+    setDownloaded(true);
     try {
-      localStorage.removeItem(INSTALLED_KEY);
-      localStorage.setItem(INSTALLED_DISMISSED_KEY, "1");
+      localStorage.setItem(MAC_DOWNLOADED_KEY, "1");
     } catch {}
-    setInstalledScreen(false);
   }
 
-  // Desktop-only for now: every mobile visit gets the handoff screen,
-  // installed-app or not.
-  if (env === "mobile-browser" || (env === "standalone" && isMobile)) {
+  // Desktop-only for now: every mobile visit gets the handoff screen.
+  if (env === "mobile") {
     return <MobileComingSoon />;
-  }
-
-  if (installedScreen && env === "desktop-chromium") {
-    return <AlreadyInstalled onStartOver={startOver} />;
   }
 
   return (
@@ -185,79 +126,52 @@ export function OnboardingSteps({
           Block the rest.
         </h1>
         <p style={{ fontSize: 17, color: "#98989d", lineHeight: 1.5, margin: "0 0 32px" }}>
-          {env === "standalone"
-            ? "Connect your Instagram and you're set."
-            : appDone
-              ? "You're all set. Open the app to get started."
-              : "Two installs, then you're set."}
+          {downloaded
+            ? "You're all set. Open Instachat and sign in to Instagram."
+            : "Two installs, then you're set."}
         </p>
 
-        {env === "standalone" ? (
-          <>
-            <a
-              href={LOGIN_HREF}
-              className="transition-opacity hover:opacity-85"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: 54,
-                padding: "0 36px",
-                borderRadius: 999,
-                background: "#0a84ff",
-                color: "#fff",
-                fontSize: 17,
-                fontWeight: 600,
-              }}
-            >
-              Get started
-            </a>
-            <p style={{ fontSize: 13, color: "#636366", marginTop: 14, lineHeight: 1.5 }}>
-              You&rsquo;ll sign in on instagram.com &mdash; if it asks about a professional
-              account, tap Change. You&rsquo;ll land right back here.
-            </p>
-          </>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {env === "desktop-chromium" && (
-              <StepCard
-                n={1}
-                active={!step2Active}
-                done={step2Active}
-                icon={<ChromeLogo />}
-                title="Add the Chrome extension"
-                sub="Blocks Instagram in your browser."
-                action={<ExtensionButton pill="Add" onEngage={onExtensionEngage} />}
-              />
-            )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {env === "desktop-chromium" && (
             <StepCard
-              n={env === "desktop-chromium" ? 2 : 1}
-              active={!appDone && (env !== "desktop-chromium" || step2Active)}
-              done={appDone}
-              icon={<AppTile />}
-              title="Install the app"
-              sub="Where your DMs live from now on."
-              action={
-                appDone ? (
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "#30d158", flex: "none" }}>
-                    Installed
-                  </span>
-                ) : (
-                  <InstallButton
-                    pill="Install"
-                    pillOutline={env === "desktop-chromium" && !step2Active}
-                  />
-                )
-              }
+              n={1}
+              active={!step2Active && !downloaded}
+              done={step2Active || downloaded}
+              icon={<ChromeLogo />}
+              title="Add the Chrome extension"
+              sub="Blocks Instagram in your browser."
+              action={<ExtensionButton pill="Add" onEngage={onExtensionEngage} />}
             />
-            {env === "desktop-other" && (
-              <p style={{ fontSize: 13, color: "#636366", lineHeight: 1.5 }}>
-                Instachat installs as an app from Chrome or Edge &mdash; open this
-                page there to set up.
-              </p>
-            )}
-          </div>
-        )}
+          )}
+          <StepCard
+            n={env === "desktop-chromium" ? 2 : 1}
+            active={!downloaded && (env !== "desktop-chromium" || step2Active)}
+            done={downloaded}
+            icon={<AppTile />}
+            title="Download the Mac app"
+            sub="Your DMs, without the feed."
+            action={
+              downloaded ? (
+                <span style={{ fontSize: 14, fontWeight: 600, color: "#30d158", flex: "none" }}>
+                  Downloaded
+                </span>
+              ) : (
+                <DownloadMacButton
+                  outline={env === "desktop-chromium" && !step2Active}
+                  onEngage={onDownloadEngage}
+                />
+              )
+            }
+          />
+          <p style={{ fontSize: 13, color: "#636366", lineHeight: 1.5 }}>
+            {downloaded
+              ? "Open the download, drag Instachat into Applications, and launch it."
+              : env === "desktop-other"
+                ? "The extension needs Chrome or Edge; the Mac app works everywhere."
+                : "Your normal Instagram login works. No creator account, no setup."}
+          </p>
+          <TerminalInstall />
+        </div>
       </div>
 
       {/* right: product shot */}
@@ -266,100 +180,6 @@ export function OnboardingSteps({
         style={{ flex: "none", height: "100vh", alignItems: "center", overflow: "hidden" }}
       >
         <ProductMock />
-      </div>
-    </main>
-  );
-}
-
-/* Design 8a: the app is on this machine already — point at it, don't re-sell. */
-function AlreadyInstalled({ onStartOver }: { onStartOver: () => void }) {
-  return (
-    <main
-      style={{
-        width: "100%",
-        minHeight: "100dvh",
-        background: "#000",
-        color: "#f5f5f7",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          maxWidth: 460,
-          padding: "0 24px",
-        }}
-      >
-        <div
-          style={{
-            width: 72,
-            height: 72,
-            borderRadius: 18,
-            background: "linear-gradient(180deg, #0a84ff, #0060df)",
-            boxShadow: "0 8px 28px rgba(10,132,255,0.35)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-          }}
-        >
-          <ChatIcon size={34} />
-          <span
-            style={{
-              position: "absolute",
-              right: -6,
-              bottom: -6,
-              width: 26,
-              height: 26,
-              borderRadius: "50%",
-              background: "#30d158",
-              border: "3px solid #000",
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M20 6 9 17l-5-5" />
-            </svg>
-          </span>
-        </div>
-        <h1
-          style={{
-            fontSize: "clamp(30px, 6vw, 40px)",
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
-            lineHeight: 1.12,
-            margin: "28px 0 10px",
-            textAlign: "center",
-          }}
-        >
-          Instachat is
-          <br />
-          already installed
-        </h1>
-        <p style={{ fontSize: 17, color: "#98989d", margin: 0, textAlign: "center" }}>
-          Open the app to check your DMs.
-        </p>
-        <button
-          onClick={onStartOver}
-          className="cursor-pointer transition-colors hover:text-white"
-          style={{
-            minHeight: 44,
-            marginTop: 28,
-            border: 0,
-            background: "none",
-            color: "#636366",
-            fontSize: 14,
-          }}
-        >
-          Not set up yet? Start over
-        </button>
       </div>
     </main>
   );
