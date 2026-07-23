@@ -67,8 +67,9 @@ export function MobileComingSoon() {
           textAlign: "center",
         }}
       >
-        Instachat mobile support is{" "}
-        <span style={{ textDecoration: "underline", textUnderlineOffset: 4 }}>coming soon</span>.
+        Instachat mobile
+        <br />
+        is <span style={{ textDecoration: "underline", textUnderlineOffset: 4 }}>coming soon</span>.
       </h2>
       <p
         style={{
