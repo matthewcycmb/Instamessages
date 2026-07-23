@@ -32,6 +32,8 @@ export function OnboardingSteps({
   // Step 2 lights up once the user has gone off to install the extension
   // and come back (tab-visibility/focus), so they know what to press next.
   const [step2Active, setStep2Active] = useState(false);
+  // Step 2 goes green the moment the browser reports a completed install.
+  const [appDone, setAppDone] = useState(false);
   const engaged = useRef(false);
 
   useEffect(() => {
@@ -61,11 +63,14 @@ export function OnboardingSteps({
         setStep2Active(true);
       }
     };
+    const onAppInstalled = () => setAppDone(true);
     document.addEventListener("visibilitychange", onReturn);
     window.addEventListener("focus", onReturn);
+    window.addEventListener("appinstalled", onAppInstalled);
     return () => {
       document.removeEventListener("visibilitychange", onReturn);
       window.removeEventListener("focus", onReturn);
+      window.removeEventListener("appinstalled", onAppInstalled);
     };
   }, []);
 
@@ -171,7 +176,11 @@ export function OnboardingSteps({
           Block the rest.
         </h1>
         <p style={{ fontSize: 17, color: "#98989d", lineHeight: 1.5, margin: "0 0 32px" }}>
-          {env === "standalone" ? "Connect your Instagram and you're set." : "Two installs, then you're set."}
+          {env === "standalone"
+            ? "Connect your Instagram and you're set."
+            : appDone
+              ? "You're all set. Open the app to get started."
+              : "Two installs, then you're set."}
         </p>
 
         {env === "standalone" ? (
@@ -214,15 +223,22 @@ export function OnboardingSteps({
             )}
             <StepCard
               n={env === "desktop-chromium" ? 2 : 1}
-              active={env !== "desktop-chromium" || step2Active}
+              active={!appDone && (env !== "desktop-chromium" || step2Active)}
+              done={appDone}
               icon={<AppTile />}
               title="Install the app"
               sub="Where your DMs live from now on."
               action={
-                <InstallButton
-                  pill="Install"
-                  pillOutline={env === "desktop-chromium" && !step2Active}
-                />
+                appDone ? (
+                  <span style={{ fontSize: 14, fontWeight: 600, color: "#30d158", flex: "none" }}>
+                    Installed
+                  </span>
+                ) : (
+                  <InstallButton
+                    pill="Install"
+                    pillOutline={env === "desktop-chromium" && !step2Active}
+                  />
+                )
               }
             />
             {env === "desktop-other" && (
