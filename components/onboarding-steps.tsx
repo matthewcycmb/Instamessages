@@ -5,6 +5,7 @@ import { ExtensionButton } from "./extension-button";
 import { DownloadMacButton } from "./download-mac-button";
 import { TerminalCommand } from "./terminal-install";
 import { MobileComingSoon } from "./mobile-coming-soon";
+import { MacOnly } from "./mac-only";
 
 const EXT_ENGAGED_KEY = "im_ext_engaged";
 const MAC_DOWNLOADED_KEY = "im_mac_downloaded";
@@ -14,7 +15,7 @@ const MAC_DOWNLOADED_KEY = "im_mac_downloaded";
 // download card returns) once the app is notarized.
 const SHOW_DOWNLOAD = false;
 
-type Env = "unknown" | "mobile" | "desktop-chromium" | "desktop-other";
+type Env = "unknown" | "mobile" | "notmac" | "desktop-chromium" | "desktop-other";
 
 /**
  * Landing screen (design 5a): dark, pitch + numbered install step cards on
@@ -40,8 +41,17 @@ export function OnboardingSteps({
   useEffect(() => {
     const ua = navigator.userAgent;
     const mobile = /iphone|ipad|ipod|android/i.test(ua);
+    const mac = /macintosh|mac os x/i.test(ua) && !/iphone|ipad|ipod/i.test(ua);
     const chromium = /chrome|chromium|crios|edg|arc/i.test(ua);
-    setEnv(mobile ? "mobile" : chromium ? "desktop-chromium" : "desktop-other");
+    setEnv(
+      mobile
+        ? "mobile"
+        : !mac
+          ? "notmac"
+          : chromium
+            ? "desktop-chromium"
+            : "desktop-other"
+    );
 
     if (localStorage.getItem(EXT_ENGAGED_KEY)) {
       engaged.current = true;
@@ -80,6 +90,10 @@ export function OnboardingSteps({
   // Desktop-only for now: every mobile visit gets the handoff screen.
   if (env === "mobile") {
     return <MobileComingSoon />;
+  }
+  // The app is a macOS build; non-Mac desktops get a Mac-only notice.
+  if (env === "notmac") {
+    return <MacOnly />;
   }
 
   return (
