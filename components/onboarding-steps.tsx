@@ -37,22 +37,30 @@ export function OnboardingSteps({
   const engaged = useRef(false);
 
   useEffect(() => {
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true;
-    const ua = navigator.userAgent;
-    const mobile = /iphone|ipad|ipod|android/i.test(ua);
-    const chromium = /chrome|chromium|crios|edg|arc/i.test(ua);
-    setIsMobile(mobile);
-    setEnv(
-      standalone
-        ? "standalone"
-        : mobile
-          ? "mobile-browser"
-          : chromium
-            ? "desktop-chromium"
-            : "desktop-other"
-    );
+    // display-mode is a LIVE query: when Chrome installs the app it converts
+    // the open tab into the app window without reloading, so we must
+    // re-evaluate on change or the app window keeps showing the tab UI.
+    const mq = window.matchMedia("(display-mode: standalone)");
+    const compute = () => {
+      const standalone =
+        mq.matches ||
+        (navigator as Navigator & { standalone?: boolean }).standalone === true;
+      const ua = navigator.userAgent;
+      const mobile = /iphone|ipad|ipod|android/i.test(ua);
+      const chromium = /chrome|chromium|crios|edg|arc/i.test(ua);
+      setIsMobile(mobile);
+      setEnv(
+        standalone
+          ? "standalone"
+          : mobile
+            ? "mobile-browser"
+            : chromium
+              ? "desktop-chromium"
+              : "desktop-other"
+      );
+    };
+    compute();
+    mq.addEventListener?.("change", compute);
 
     if (localStorage.getItem(EXT_ENGAGED_KEY)) {
       engaged.current = true;
@@ -68,6 +76,7 @@ export function OnboardingSteps({
     window.addEventListener("focus", onReturn);
     window.addEventListener("appinstalled", onAppInstalled);
     return () => {
+      mq.removeEventListener?.("change", compute);
       document.removeEventListener("visibilitychange", onReturn);
       window.removeEventListener("focus", onReturn);
       window.removeEventListener("appinstalled", onAppInstalled);
