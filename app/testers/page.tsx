@@ -53,34 +53,10 @@ export default function TestersPage() {
           Pick your device below. Each takes about a minute.
         </p>
 
-        {/* Mac */}
-        <Card badge="🍎" title="On a Mac">
-          <Step n={1}>
-            Open <B>Terminal</B> (press <B>⌘ + Space</B>, type &ldquo;Terminal&rdquo;, hit Return).
-          </Step>
-          <Step n={2}>Paste this line and press Return:</Step>
-          <TerminalCommand />
-          <Note>The app installs and opens itself. Sign in to Instagram normally.</Note>
-        </Card>
-
-        {/* Windows */}
-        <Card badge="🪟" title="On Windows">
-          <Step n={1}>
-            <Button href={WIN_EXE}>Download for Windows</Button>
-          </Step>
-          <Step n={2}>Open the downloaded file.</Step>
-          <Step n={3}>
-            If Windows shows a blue warning, click <B>More info</B> → <B>Run anyway</B>{" "}
-            (it&rsquo;s a test build, so this is expected).
-          </Step>
-          <Note>Then it installs and opens. Sign in to Instagram normally.</Note>
-        </Card>
-
-        {/* Extension */}
+        {/* Chrome extension (any computer) */}
         <Card badge="🧩" title="Chrome extension (any computer)">
-          <Step n={1}>
-            <Button href={EXT_ZIP}>Download the extension</Button> and unzip it.
-          </Step>
+          <FullButton href={EXT_ZIP}>Download the extension</FullButton>
+          <Step n={1}>Unzip the downloaded file.</Step>
           <Step n={2}>
             Open <B>chrome://extensions</B> in Chrome (or Edge / Brave).
           </Step>
@@ -90,7 +66,28 @@ export default function TestersPage() {
           <Step n={4}>
             Click <B>Load unpacked</B> and choose the unzipped folder.
           </Step>
-          <Note>Now open instagram.com &mdash; it blocks the feed and sends you to Instachat.</Note>
+          <Note>Now open instagram.com and it sends you to Instachat instead of the feed.</Note>
+        </Card>
+
+        {/* Mac */}
+        <Card badge="🍎" title="On a MacBook">
+          <Step n={1}>
+            Open <B>Terminal</B> (press <B>⌘ + Space</B>, type &ldquo;Terminal&rdquo;, hit Return).
+          </Step>
+          <Step n={2}>Paste this line and press Return:</Step>
+          <TerminalCommand />
+          <Note>The app installs and opens itself. Sign in to Instagram normally.</Note>
+        </Card>
+
+        {/* Windows */}
+        <Card badge="🪟" title="On a Windows computer">
+          <FullButton href={WIN_EXE}>Download for Windows</FullButton>
+          <Step n={1}>Open the downloaded file.</Step>
+          <Step n={2}>
+            If Windows shows a blue warning, click <B>More info</B>, then <B>Run anyway</B>.{" "}
+            (It&rsquo;s a test build, so this is expected.)
+          </Step>
+          <Note>Then it installs and opens. Sign in to Instagram normally.</Note>
         </Card>
 
         <p style={{ fontSize: 13, color: "#48484a", textAlign: "center", marginTop: 28 }}>
@@ -120,7 +117,7 @@ function Card({
         marginBottom: 16,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
         <span style={{ fontSize: 20 }} aria-hidden>
           {badge}
         </span>
@@ -128,6 +125,30 @@ function Card({
       </div>
       {children}
     </section>
+  );
+}
+
+function FullButton({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      className="transition-opacity hover:opacity-85"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+        minHeight: 48,
+        borderRadius: 12,
+        background: "#0a84ff",
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: 600,
+        marginBottom: 16,
+      }}
+    >
+      {children}
+    </a>
   );
 }
 
@@ -154,29 +175,6 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
       </span>
       <div style={{ fontSize: 15, color: "#e5e5e7", lineHeight: 1.5 }}>{children}</div>
     </div>
-  );
-}
-
-function Button({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a
-      href={href}
-      className="transition-opacity hover:opacity-85"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: 40,
-        padding: "0 20px",
-        borderRadius: 999,
-        background: "#0a84ff",
-        color: "#fff",
-        fontSize: 14,
-        fontWeight: 600,
-      }}
-    >
-      {children}
-    </a>
   );
 }
 
