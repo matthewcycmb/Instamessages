@@ -18,6 +18,13 @@ const HOME: &str = "https://www.instagram.com/direct/inbox/";
 /// at parse time) to avoid blanking.
 const CAGE_SCRIPT: &str = r#"
 (function () {
+  // Only cage the main Instagram web app. Auth / new-device verification
+  // surfaces (accountscenter.instagram.com, and Meta's own login pages on
+  // meta.com / facebook.com) must load completely untouched — running the
+  // cage there called window.stop() and blanked the login flow.
+  var H = location.hostname;
+  if (H !== "instagram.com" && H !== "www.instagram.com") return;
+
   // Feed + any standalone media viewer: a reel/post/story shared in a DM
   // opens a viewer whose URL becomes /reel|/p|/tv|/stories — bounce it, so
   // shared media can't be watched. The DM preview thumbnail still shows.
@@ -163,29 +170,13 @@ const CAGE_SCRIPT: &str = r#"
 })();
 "#;
 
-/// Host-level gate: allow the whole Meta domain family so login, two-factor,
-/// Accounts Center, CDNs, and API subdomains all work. The *feed* cage is
-/// enforced by CAGE_SCRIPT on the instagram.com path, not here — blocking by
-/// host was breaking the login redirect chain.
+/// Navigation gate: allow all web navigation so Meta's login / new-device
+/// verification chain (which bounces across Meta domains and can hop to
+/// external verification like reCAPTCHA) is never cancelled. The *feed* cage
+/// is enforced by CAGE_SCRIPT on the main Instagram host, not here — a host
+/// allow-list was stranding the login flow on a blank page.
 fn allowed(url: &Url) -> bool {
-    let scheme = url.scheme();
-    if scheme == "about" || scheme == "data" || scheme == "blob" {
-        return true;
-    }
-    match url.host_str() {
-        Some(host) => {
-            host == "instagram.com"
-                || host.ends_with(".instagram.com")
-                || host == "facebook.com"
-                || host.ends_with(".facebook.com")
-                || host == "ig.me"
-                || host.ends_with(".cdninstagram.com")
-                || host.ends_with(".fbcdn.net")
-                || host == "meta.com"
-                || host.ends_with(".meta.com")
-        }
-        None => false,
-    }
+    matches!(url.scheme(), "http" | "https" | "about" | "data" | "blob")
 }
 
 // Present as Safari for the platform so Instagram's login isn't rejected as
