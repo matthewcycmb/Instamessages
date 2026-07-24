@@ -1,0 +1,71 @@
+name: Windows build
+
+# Builds the Instachat Windows installer on a real Windows runner (Tauri
+# can't reliably cross-compile Windows from macOS). Publishes it as a
+# rolling "windows-preview" prerelease so testers always have a download link.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "wrapper/**"
+      - ".github/workflows/windows-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: wrapper
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: wrapper/src-tauri
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Tauri CLI dep
+        run: npm install
+
+      - name: Build Windows installer (NSIS)
+        run: npm run tauri -- build --bundles nsis
+
+      - name: Find installer
+        id: find
+        shell: bash
+        run: |
+          exe=$(ls src-tauri/target/release/bundle/nsis/*-setup.exe | head -1)
+          echo "path=$exe" >> "$GITHUB_OUTPUT"
+          echo "Built: $exe"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: instachat-windows-setup
+          path: wrapper/src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+
+      - name: Publish rolling preview release
+        if: github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete windows-preview --yes --cleanup-tag 2>/dev/null || true
+          gh release create windows-preview "${{ steps.find.outputs.path }}" \
+            --prerelease \
+            --title "Instachat for Windows (preview)" \
+            --notes "Unsigned preview build. On first launch Windows may show a SmartScreen warning — click **More info -> Run anyway**. This is expected for unsigned test builds."
