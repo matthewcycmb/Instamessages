@@ -105,7 +105,10 @@ const CAGE_SCRIPT: &str = r#"
     // arrow (same label) must survive, hence the route-scoped class.
     'html.im-inbox a:has(svg[aria-label="Back"])',
     'html.im-inbox div[role="button"]:has(svg[aria-label="Back"])',
-    'html.im-inbox [role="button"]:has(svg[aria-label="Back"])'
+    'html.im-inbox [role="button"]:has(svg[aria-label="Back"])',
+    // Message Requests tab in the inbox header
+    'a[href="/direct/requests/"]',
+    'a[href^="/direct/requests"]'
   ].join(',') + '{display:none !important;}';
   var style = document.createElement("style");
   style.textContent = css;
@@ -132,7 +135,31 @@ const CAGE_SCRIPT: &str = r#"
       }
     }
   }
-  new MutationObserver(hideTray).observe(document.documentElement, { childList: true, subtree: true });
+  // "Requests" tab: often a link/button with no stable href attribute, so
+  // anchor on the exact text and hide its clickable ancestor.
+  function hideRequests() {
+    var leaves = document.querySelectorAll("span,div,a");
+    for (var i = 0; i < leaves.length; i++) {
+      var el = leaves[i];
+      if (el.childElementCount === 0 && el.textContent.trim() === "Requests") {
+        var node = el, hops = 0;
+        while (node && hops < 5) {
+          if (node.tagName === "A" || node.getAttribute("role") === "button" ||
+              node.getAttribute("role") === "link") {
+            node.style.setProperty("display", "none", "important");
+            return;
+          }
+          node = node.parentElement;
+          hops++;
+        }
+        el.style.setProperty("display", "none", "important");
+        return;
+      }
+    }
+  }
+  function sweep() { hideTray(); hideRequests(); }
+  new MutationObserver(sweep).observe(document.documentElement, { childList: true, subtree: true });
+  sweep();
 })();
 "#;
 
