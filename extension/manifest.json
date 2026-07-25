@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Instachat: Instagram DMs Only",
-  "version": "0.1.5",
-  "description": "Blocks Instagram's feed, reels, and profiles in your browser. Your DMs and login still work.",
+  "name": "Instachat: DMs Only",
+  "version": "0.1.6",
+  "description": "Blocks instagram.com in your browser and sends you to Instachat for your DMs. Signing in still works.",
   "permissions": ["declarativeNetRequest"],
   "host_permissions": ["*://*.instagram.com/*"],
   "declarative_net_request": {
