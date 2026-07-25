@@ -1,0 +1,99 @@
+name: Mac build
+
+# Builds the Instachat Mac app and publishes it as a rolling "mac-preview"
+# prerelease, so public/install.sh always downloads the current source.
+#
+# This exists because the Mac zip used to be built by hand and committed to the
+# repo. Source and binary drifted silently: a deep-link fix landed in the source
+# but the committed zip stayed on the older build, and the first tester hit a bug
+# that had already been fixed. CI cannot forget to rebuild.
+#
+# The runner is Apple Silicon, so this produces an arm64-only build, matching
+# what was shipped by hand. Intel Macs are refused by install.sh with an
+# explanation. To support them instead, add both rust targets and build with
+# --target universal-apple-darwin.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "wrapper/**"
+      - ".github/workflows/mac-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: wrapper
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: wrapper/src-tauri
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Tauri CLI dep
+        run: npm install
+
+      - name: Build the app bundle
+        run: npm run tauri -- build --bundles app
+
+      - name: Zip the bundle
+        run: |
+          app="src-tauri/target/release/bundle/macos/Instachat.app"
+          test -d "$app" || { echo "No app bundle at $app"; exit 1; }
+          # ditto, not zip: it preserves the bundle's symlinks and resource
+          # forks, and install.sh extracts with `ditto -xk`.
+          ditto -c -k --keepParent "$app" Instachat-mac.zip
+          ls -la Instachat-mac.zip
+
+      - name: Verify the build is arm64 and launchable
+        run: |
+          bin="src-tauri/target/release/bundle/macos/Instachat.app/Contents/MacOS/instamessages-wrapper"
+          arch=$(lipo -archs "$bin")
+          echo "architecture: $arch"
+          test "$arch" = "arm64" || { echo "Unexpected architecture"; exit 1; }
+          # The identifier must never be a probe/debug value.
+          id=$(defaults read "$PWD/src-tauri/target/release/bundle/macos/Instachat.app/Contents/Info.plist" CFBundleIdentifier)
+          echo "identifier: $id"
+          test "$id" = "com.instamessages.wrapper" || { echo "Wrong bundle id"; exit 1; }
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: instachat-mac
+          path: wrapper/Instachat-mac.zip
+          if-no-files-found: error
+
+      - name: Publish rolling preview release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete mac-preview --yes --cleanup-tag 2>/dev/null || true
+          gh release create mac-preview Instachat-mac.zip \
+            --prerelease \
+            --title "Instachat for Mac (preview)" \
+            --notes "Unsigned preview build for Apple Silicon Macs.
+
+          Install with:
+
+              curl -fsSL https://instamessages.vercel.app/install.sh | bash
+
+          The build is not notarised yet, so downloading the zip in a browser and
+          opening it directly will be blocked by Gatekeeper. The install command
+          above avoids that."
