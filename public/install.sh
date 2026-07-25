@@ -11,7 +11,9 @@
 set -euo pipefail
 
 APP="/Applications/Instachat.app"
-ZIP_URL="https://instamessages.vercel.app/Instachat-mac.zip"
+# Published by .github/workflows/mac-build.yml on every wrapper change, so this
+# cannot lag the source the way the hand-built, repo-committed zip did.
+ZIP_URL="https://github.com/matthewcycmb/instamessages/releases/download/mac-preview/Instachat-mac.zip"
 
 if [ "$(uname -s)" != "Darwin" ]; then
   echo "This installer is for macOS. On Windows, grab the installer from" >&2
