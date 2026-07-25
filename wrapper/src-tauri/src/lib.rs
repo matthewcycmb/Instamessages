@@ -182,14 +182,60 @@ fn allowed(url: &Url) -> bool {
 // Present as Safari for the platform so Instagram's login isn't rejected as
 // an unsupported in-app browser. iOS gets the iPhone UA so Instagram serves
 // its mobile web layout.
-#[cfg(not(target_os = "ios"))]
-const USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) \
-     AppleWebKit/605.1.15 (KHTML, like Gecko) \
-     Version/17.4 Safari/605.1.15";
+//
+// The Version/ token is derived at runtime so it matches the WebKit actually
+// rendering the page; the hardcoded 17.4 it replaced was nine major versions
+// behind on macOS 26 and would go stale again every release. The Macintosh/
+// 10_15_7 and AppleWebKit/605.1.15 tokens are frozen in real Safari too, so
+// those stay literal.
+//
+// NOTE for anyone debugging a login loop here: an `e=1348020` redirect loop
+// out of /auth_platform/ is NOT a wrapper problem, and the UA is not the
+// lever. It was chased at length on 2026-07-25 and traced to a single stuck
+// Instagram account, which failed identically in Safari and in a clean Chrome
+// profile on the same machine. A healthy account completes the whole
+// new-device flow in this wrapper — reCAPTCHA image challenge, WhatsApp/SMS
+// two-factor, "trust this device" — and lands in the inbox. Check the account
+// against another browser before touching this code.
+
+/// Version to claim when the installed Safari can't be read.
+#[cfg(target_os = "macos")]
+const FALLBACK_SAFARI_VERSION: &str = "26.5";
+
+#[cfg(target_os = "macos")]
+fn user_agent() -> String {
+    let version = std::process::Command::new("defaults")
+        .args([
+            "read",
+            "/Applications/Safari.app/Contents/Info.plist",
+            "CFBundleShortVersionString",
+        ])
+        .output()
+        .ok()
+        .filter(|out| out.status.success())
+        .and_then(|out| String::from_utf8(out.stdout).ok())
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty() && v.chars().all(|c| c.is_ascii_digit() || c == '.'))
+        .unwrap_or_else(|| FALLBACK_SAFARI_VERSION.to_string());
+    format!(
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 \
+         (KHTML, like Gecko) Version/{version} Safari/605.1.15"
+    )
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+fn user_agent() -> String {
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 \
+     (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
+        .to_string()
+}
+
 #[cfg(target_os = "ios")]
-const USER_AGENT: &str = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) \
-     AppleWebKit/605.1.15 (KHTML, like Gecko) \
-     Version/17.5 Mobile/15E148 Safari/604.1";
+fn user_agent() -> String {
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 \
+     (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1"
+        .to_string()
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -202,7 +248,7 @@ pub fn run() {
                 WebviewUrl::External(HOME.parse().unwrap()),
             )
             .initialization_script(CAGE_SCRIPT)
-            .user_agent(USER_AGENT)
+            .user_agent(&user_agent())
             .on_navigation(|url| allowed(url));
 
             #[cfg(desktop)]
@@ -228,29 +274,32 @@ pub fn run() {
             #[cfg(all(debug_assertions, desktop))]
             window.open_devtools();
 
-            // instamessages://dm/<username> → jump straight to that DM composer.
+            // instamessages://open           → just bring the app forward.
+            // instamessages://dm/<username>  → and jump to that DM composer.
+            // In `scheme://host/path`, the first segment is the *host*, not the
+            // path — so branch on it. Anything unrecognized surfaces the window
+            // where it was rather than being read as a username.
             app.deep_link().on_open_url(move |event| {
                 for url in event.urls() {
                     if url.scheme() != "instamessages" {
                         continue;
                     }
-                    let user = url
-                        .path()
-                        .trim_start_matches('/')
-                        .trim_start_matches("dm/")
-                        .to_string();
-                    let user = if user.is_empty() {
-                        url.host_str().filter(|h| *h != "dm").unwrap_or("").to_string()
-                    } else {
-                        user
+                    let user = match url.host_str().unwrap_or("") {
+                        "dm" => url.path().trim_start_matches('/').to_string(),
+                        _ => String::new(),
                     };
+                    // Restore first: the macOS close button only hides the
+                    // window, so "running but invisible" is the steady state
+                    // and set_focus alone can't be relied on to reveal it.
+                    #[cfg(desktop)]
+                    let _ = window.show();
                     if !user.is_empty() && user.chars().all(|c| c.is_alphanumeric() || c == '.' || c == '_') {
                         let _ = window.eval(&format!(
                             "location.href='https://www.instagram.com/m/{}'",
                             user
                         ));
-                        let _ = window.set_focus();
                     }
+                    let _ = window.set_focus();
                 }
             });
             Ok(())
