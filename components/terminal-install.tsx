@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 
-// curl (unlike a browser) doesn't quarantine the download, and the command
-// removes any old copy + strips quarantine, so the app opens with no
-// Gatekeeper "damaged" wall. Retired once the app is notarized.
-const CMD =
-  "curl -fsSL https://instamessages.vercel.app/Instachat-mac.zip -o /tmp/instachat.zip && rm -rf /Applications/Instachat.app && ditto -xk /tmp/instachat.zip /Applications && xattr -cr /Applications/Instachat.app && open /Applications/Instachat.app";
+// See public/install.sh. curl (unlike a browser) doesn't quarantine the
+// download, and the script strips quarantine off any older copy, so the app
+// opens with no Gatekeeper "damaged" wall. The script also refuses to install
+// on Intel Macs, which the arm64 build can't run, and pins the app to the
+// Dock. Retired once the app is notarized.
+const CMD = "curl -fsSL https://instamessages.vercel.app/install.sh | bash";
 
 /** Always-visible command box: the primary install path while unsigned. */
 export function TerminalCommand() {
@@ -46,7 +47,6 @@ export function TerminalCommand() {
             fontFamily: "ui-monospace, monospace",
             whiteSpace: "nowrap",
             overflowX: "auto",
-            WebkitMaskImage: "linear-gradient(to right, #000 88%, transparent)",
           }}
         >
           {CMD}
