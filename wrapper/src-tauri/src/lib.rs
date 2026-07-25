@@ -223,13 +223,6 @@ fn user_agent() -> String {
     )
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "ios")))]
-fn user_agent() -> String {
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 \
-     (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
-        .to_string()
-}
-
 #[cfg(target_os = "ios")]
 fn user_agent() -> String {
     "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 \
@@ -248,8 +241,13 @@ pub fn run() {
                 WebviewUrl::External(HOME.parse().unwrap()),
             )
             .initialization_script(CAGE_SCRIPT)
-            .user_agent(&user_agent())
             .on_navigation(|url| allowed(url));
+
+            // Only Apple platforms get an override. WebView2 on Windows
+            // already reports a genuine Edge-on-Windows UA, so the old shared
+            // constant had the Windows build claiming to be Safari on a Mac.
+            #[cfg(any(target_os = "macos", target_os = "ios"))]
+            let builder = builder.user_agent(&user_agent());
 
             #[cfg(desktop)]
             let builder = builder
