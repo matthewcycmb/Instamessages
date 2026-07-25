@@ -90,6 +90,29 @@ export default function TestersPage() {
           <Note>Then it installs and opens. Sign in to Instagram normally.</Note>
         </Card>
 
+        <section
+          style={{
+            background: "#1c1c1e",
+            border: "1px solid #2c2c2e",
+            borderRadius: 18,
+            padding: "18px 20px",
+            marginTop: 8,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <span style={{ fontSize: 18 }} aria-hidden>
+              💬
+            </span>
+            <h2 style={{ fontSize: 16, fontWeight: 700 }}>If it asks for a security code</h2>
+          </div>
+          <p style={{ fontSize: 14, color: "#e5e5e7", lineHeight: 1.55 }}>
+            Signing in on a new device can ask you to confirm it&rsquo;s you. Instagram often
+            sends that code on <B>WhatsApp</B>, even if you don&rsquo;t use it. If no code
+            arrives, click <B>Try another way</B> and pick text message instead.
+          </p>
+          <Note>Tick &ldquo;Trust this device&rdquo; so it stops asking every time.</Note>
+        </section>
+
         <p style={{ fontSize: 13, color: "#48484a", textAlign: "center", marginTop: 28 }}>
           Something not working? Just reply and let me know.
         </p>
