@@ -47,17 +47,29 @@ ditto -xk "$TMP/instachat.zip" /Applications
 # Gatekeeper then refuses to open the app at all.
 xattr -cr "$APP" 2>/dev/null || true
 
+# Pin to the Dock so the app survives being quit, instead of vanishing from the
+# Dock and taking the habit it is meant to replace with it.
+#
+# Applying this needs "killall Dock", which as a side effect restores every
+# minimised window. There is no way to refresh the Dock without that, and
+# writing the pref without refreshing is worse than not writing it: the running
+# Dock holds its own copy and overwrites ours the next time it saves, so the
+# tile can silently never appear. The guard below means this happens once per
+# machine, on first install, so warn and carry on rather than surprise anyone.
+if ! defaults read com.apple.dock persistent-apps 2>/dev/null | grep -q "Instachat.app"; then
+  echo "Adding Instachat to your Dock..."
+  echo "  (this restarts the Dock, so minimised windows will reopen)"
+  {
+    defaults write com.apple.dock persistent-apps -array-add \
+      '<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>/Applications/Instachat.app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>' \
+      && killall Dock
+  } >/dev/null 2>&1 || {
+    echo "  (could not update the Dock. To pin it yourself, right-click the"
+    echo "   Instachat icon and choose Options > Keep in Dock.)"
+  }
+fi
+
 echo "Opening Instachat..."
 open "$APP"
-
-# Deliberately not pinning to the Dock here. Writing persistent-apps only takes
-# effect once the Dock restarts, and "killall Dock" restores every minimised
-# window on the machine, which turns a one-line install into a screen full of
-# windows the user had put away. Writing the pref without the restart is worse:
-# the running Dock keeps its own copy and overwrites ours the next time it
-# saves, so the tile may simply never appear. The app is in the Dock while it
-# runs anyway, so we point at the one-click way to make that permanent.
 echo ""
 echo "Done. Sign in to Instagram as normal."
-echo "Tip: to keep Instachat in your Dock, right-click its icon there"
-echo "     and choose Options > Keep in Dock."
