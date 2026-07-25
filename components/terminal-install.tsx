@@ -5,8 +5,8 @@ import { useState } from "react";
 // See public/install.sh. curl (unlike a browser) doesn't quarantine the
 // download, and the script strips quarantine off any older copy, so the app
 // opens with no Gatekeeper "damaged" wall. The script also refuses to install
-// on Intel Macs, which the arm64 build can't run, and pins the app to the
-// Dock. Retired once the app is notarized.
+// on Intel Macs, which the arm64 build can't run. Retired once the app is
+// notarized.
 const CMD = "curl -fsSL https://instamessages.vercel.app/install.sh | bash";
 
 /** Always-visible command box: the primary install path while unsigned. */

@@ -47,17 +47,17 @@ ditto -xk "$TMP/instachat.zip" /Applications
 # Gatekeeper then refuses to open the app at all.
 xattr -cr "$APP" 2>/dev/null || true
 
-# Pin to the Dock so it survives quitting. Guarded so a second run does not add
-# a duplicate tile, and never allowed to fail the install.
-if ! defaults read com.apple.dock persistent-apps 2>/dev/null | grep -q "Instachat.app"; then
-  echo "Adding Instachat to your Dock..."
-  {
-    defaults write com.apple.dock persistent-apps -array-add \
-      '<dict><key>tile-data</key><dict><key>file-data</key><dict><key>_CFURLString</key><string>/Applications/Instachat.app</string><key>_CFURLStringType</key><integer>0</integer></dict></dict></dict>' \
-      && killall Dock
-  } >/dev/null 2>&1 || echo "  (could not update the Dock, skipping)"
-fi
-
 echo "Opening Instachat..."
 open "$APP"
+
+# Deliberately not pinning to the Dock here. Writing persistent-apps only takes
+# effect once the Dock restarts, and "killall Dock" restores every minimised
+# window on the machine, which turns a one-line install into a screen full of
+# windows the user had put away. Writing the pref without the restart is worse:
+# the running Dock keeps its own copy and overwrites ours the next time it
+# saves, so the tile may simply never appear. The app is in the Dock while it
+# runs anyway, so we point at the one-click way to make that permanent.
+echo ""
 echo "Done. Sign in to Instagram as normal."
+echo "Tip: to keep Instachat in your Dock, right-click its icon there"
+echo "     and choose Options > Keep in Dock."
