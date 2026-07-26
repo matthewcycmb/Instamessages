@@ -55,6 +55,6 @@ fixed list of redirect rules.
   the inbox (can be produced with Playwright when submitting).
 
 ## After approval
-Set `CHROME_STORE_URL` in `lib/extension.ts` to the listing URL and redeploy.
-`components/extension-button.tsx` then switches from the load-unpacked steps
-to a direct store link automatically.
+Set `CHROME_STORE_URL` at the top of `components/extension-button.tsx` to the
+listing URL and redeploy. The button then switches from the load-unpacked
+steps to a direct store link automatically.

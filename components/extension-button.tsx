@@ -1,8 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CHROME_STORE_URL } from "@/lib/extension";
 import { track } from "@/lib/analytics";
+
+/**
+ * Chrome Web Store listing. Null until the listing is approved — the button
+ * then falls back to the load-unpacked steps with the zip from /extension.zip.
+ */
+const CHROME_STORE_URL: string | null = null;
 
 /**
  * Landing CTA: install the Instagram-blocking extension. Chromium desktop

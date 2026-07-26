@@ -8,9 +8,3 @@ export function track(event: string, props?: Record<string, unknown>): void {
   if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
   posthog.capture(event, props);
 }
-
-/** Tie this browser to a stable person (the Instagram username) for retention. */
-export function identify(username: string): void {
-  if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
-  posthog.identify(username, { username });
-}

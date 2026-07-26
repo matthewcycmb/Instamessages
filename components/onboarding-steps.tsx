@@ -2,18 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ExtensionButton } from "./extension-button";
-import { DownloadMacButton } from "./download-mac-button";
 import { TerminalCommand } from "./terminal-install";
 import { MobileComingSoon } from "./mobile-coming-soon";
 import { MacOnly } from "./mac-only";
 
 const EXT_ENGAGED_KEY = "im_ext_engaged";
-const MAC_DOWNLOADED_KEY = "im_mac_downloaded";
-
-// The signed-download flow is parked until Apple Developer enrollment; the
-// Terminal command is the install path meanwhile. Flip back to true (and the
-// download card returns) once the app is notarized.
-const SHOW_DOWNLOAD = false;
 
 type Env = "unknown" | "mobile" | "notmac" | "desktop-chromium" | "desktop-other";
 
@@ -23,19 +16,11 @@ type Env = "unknown" | "mobile" | "notmac" | "desktop-chromium" | "desktop-other
  * wrapper (caged instagram.com, normal login, no creator account); the
  * Chrome extension blocks Instagram in the browser.
  */
-export function OnboardingSteps({
-  error,
-  initialEnv,
-}: {
-  error?: string;
-  initialStep?: number;
-  initialEnv?: Env;
-}) {
+export function OnboardingSteps({ initialEnv }: { initialEnv?: Env }) {
   const [env, setEnv] = useState<Env>(initialEnv ?? "unknown");
   // Step 2 lights up once the user has gone off to install the extension
-  // and come back; it turns green once they grab the Mac download.
+  // and come back.
   const [step2Active, setStep2Active] = useState(false);
-  const [downloaded, setDownloaded] = useState(false);
   const engaged = useRef(false);
 
   useEffect(() => {
@@ -57,7 +42,6 @@ export function OnboardingSteps({
       engaged.current = true;
       setStep2Active(true);
     }
-    if (localStorage.getItem(MAC_DOWNLOADED_KEY)) setDownloaded(true);
     const onReturn = () => {
       if (document.visibilityState === "visible" && engaged.current) {
         setStep2Active(true);
@@ -80,13 +64,6 @@ export function OnboardingSteps({
     }
   }
 
-  function onDownloadEngage() {
-    setDownloaded(true);
-    try {
-      localStorage.setItem(MAC_DOWNLOADED_KEY, "1");
-    } catch {}
-  }
-
   // Desktop-only for now: every mobile visit gets the handoff screen.
   if (env === "mobile") {
     return <MobileComingSoon />;
@@ -101,15 +78,6 @@ export function OnboardingSteps({
       className="flex w-full flex-1 flex-col items-center justify-center lg:flex-row lg:items-center lg:gap-8"
       style={{ background: "#000", color: "#f5f5f7", minHeight: "100dvh", overflow: "hidden", position: "relative" }}
     >
-      {error && (
-        <div
-          className="absolute left-1/2 top-6 z-10 w-[min(92vw,480px)] -translate-x-1/2 rounded-2xl px-4 py-3 text-sm font-semibold"
-          style={{ background: "rgba(255,69,58,0.15)", color: "#ff453a" }}
-        >
-          {error}
-        </div>
-      )}
-
       {/* left: pitch + steps */}
       <div className="w-full max-w-[440px] flex-none px-6 py-12 lg:px-0 lg:py-0">
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -215,25 +183,6 @@ export function OnboardingSteps({
               : "Your normal Instagram login works. No creator account, no setup."}
           </p>
 
-          {SHOW_DOWNLOAD && (
-            <StepCard
-              n={99}
-              active={!downloaded}
-              done={downloaded}
-              icon={<AppTile />}
-              title="Download the Mac app"
-              sub="Your DMs, without the feed."
-              action={
-                downloaded ? (
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "#30d158", flex: "none" }}>
-                    Downloaded
-                  </span>
-                ) : (
-                  <DownloadMacButton onEngage={onDownloadEngage} />
-                )
-              }
-            />
-          )}
         </div>
       </div>
 
