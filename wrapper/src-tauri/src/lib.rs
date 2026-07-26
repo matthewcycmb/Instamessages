@@ -35,10 +35,23 @@ const CAGE_SCRIPT: &str = r#"
     var b = document.createElement("div");
     b.id = "im-boot";
     b.style.cssText = "position:fixed;inset:0;z-index:2147483646;background:#000;" +
-      "display:flex;align-items:center;justify-content:center";
-    b.innerHTML = '<div style="width:26px;height:26px;border:3px solid #2c2c2e;' +
-      'border-top-color:#0a84ff;border-radius:50%;animation:im-spin .8s linear infinite"></div>' +
-      '<style>@keyframes im-spin{to{transform:rotate(360deg)}}</style>';
+      "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px";
+    // Icon + wordmark, not a bare spinner. The wait is Instagram's bundle over
+    // the network and is not ours to shorten, but a logo reads as an app
+    // starting where a lone spinner on black reads as a page that has hung.
+    // SVG attributes use single quotes on purpose: a double quote immediately
+    // followed by a hash closes the Rust raw string this whole script lives in.
+    b.innerHTML =
+      "<svg width='62' height='62' viewBox='0 0 512 512' aria-hidden='true'>" +
+        "<rect width='512' height='512' rx='116' fill='#0a84ff'/>" +
+        "<g transform='translate(70,70) scale(15.5)' fill='none' stroke='#fff'" +
+        " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
+        "<path d='M7.9 20A9 9 0 1 0 4 16.1L2 22Z'/></g></svg>" +
+      "<div style='font:600 17px -apple-system,system-ui,sans-serif;color:#f5f5f7;" +
+        "letter-spacing:-0.01em'>Konvo</div>" +
+      "<div style='width:20px;height:20px;border:2px solid #2c2c2e;" +
+        "border-top-color:#0a84ff;border-radius:50%;animation:im-spin .8s linear infinite'></div>" +
+      "<style>@keyframes im-spin{to{transform:rotate(360deg)}}</style>";
     (document.body || document.documentElement).appendChild(b);
     function clear() {
       var el = document.getElementById("im-boot");
