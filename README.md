@@ -1,4 +1,4 @@
-# Instachat
+# Konvo
 
 Your Instagram DMs, without the feed. Three pieces, no backend:
 

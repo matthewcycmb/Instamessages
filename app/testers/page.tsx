@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { TerminalCommand } from "@/components/terminal-install";
 
 export const metadata: Metadata = {
-  title: "Test Instachat",
+  title: "Test Konvo",
 };
 
 const WIN_EXE =
-  "https://github.com/matthewcycmb/instamessages/releases/download/windows-preview/Instachat_0.1.0_x64-setup.exe";
+  "https://github.com/matthewcycmb/instamessages/releases/download/windows-preview/Konvo_0.1.0_x64-setup.exe";
 const EXT_ZIP =
   "https://github.com/matthewcycmb/instachat-extension/releases/latest/download/instachat-extension.zip";
 
@@ -43,11 +43,11 @@ export default function TestersPage() {
               <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
             </svg>
           </div>
-          <span style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.02em" }}>Instachat</span>
+          <span style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.02em" }}>Konvo</span>
         </div>
 
         <h1 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.025em", margin: "24px 0 6px" }}>
-          Test Instachat
+          Test Konvo
         </h1>
         <p style={{ fontSize: 16, color: "#98989d", margin: "0 0 32px" }}>
           Pick your device below. Each takes about a minute.
@@ -66,7 +66,7 @@ export default function TestersPage() {
           <Step n={4}>
             Click <B>Load unpacked</B> and choose the unzipped folder.
           </Step>
-          <Note>Now open instagram.com and it sends you to Instachat instead of the feed.</Note>
+          <Note>Now open instagram.com and it sends you to Konvo instead of the feed.</Note>
         </Card>
 
         {/* Mac */}

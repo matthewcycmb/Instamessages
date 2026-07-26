@@ -40,6 +40,7 @@
 		C7740352F1FBB08F13A802A3 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		CDBA0A83D3429C96EF9809F5 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		D7BA748251ED6F705D73AA2A /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		F0537448B6DF47CC3C5820D9 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,6 +65,7 @@
 		1CA1A22555EB1ABFEC3CFE6B /* Externals */ = {
 			isa = PBXGroup;
 			children = (
+				C9DD15E849AF2F523E6C612E /* arm64 */,
 			);
 			path = Externals;
 			sourceTree = "<group>";
@@ -100,6 +102,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		99D92C3887249E59D8C00311 /* release */ = {
+			isa = PBXGroup;
+			children = (
+				F0537448B6DF47CC3C5820D9 /* libapp.a */,
+			);
+			path = release;
+			sourceTree = "<group>";
+		};
 		B57AB083899B828789B0E5C1 /* instamessages-wrapper_iOS */ = {
 			isa = PBXGroup;
 			children = (
@@ -127,6 +137,14 @@
 			path = bindings;
 			sourceTree = "<group>";
 		};
+		C9DD15E849AF2F523E6C612E /* arm64 */ = {
+			isa = PBXGroup;
+			children = (
+				99D92C3887249E59D8C00311 /* release */,
+			);
+			path = arm64;
+			sourceTree = "<group>";
+		};
 		F005A38DC8BE828C23119EC3 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
@@ -148,6 +166,13 @@
 				212B99CAB10543911E48B6EB /* Frameworks */,
 				949797467AA9EB2A3C4A84C3 /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		"TEMP_A33F2B29-3A9D-4E0D-9953-945A7C0C1BB8" /* x86_64 */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = x86_64;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -275,8 +300,8 @@
 				);
 				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.instamessages.wrapper;
-				PRODUCT_NAME = "Instachat";
+				PRODUCT_BUNDLE_IDENTIFIER = com.matthewchan.konvo;
+				PRODUCT_NAME = "Konvo";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
@@ -426,8 +451,8 @@
 				);
 				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
-				PRODUCT_BUNDLE_IDENTIFIER = com.instamessages.wrapper;
-				PRODUCT_NAME = "Instachat";
+				PRODUCT_BUNDLE_IDENTIFIER = com.matthewchan.konvo;
+				PRODUCT_NAME = "Konvo";
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;

@@ -65,7 +65,7 @@ export function MacOnly() {
           textAlign: "center",
         }}
       >
-        Instachat is Mac-only
+        Konvo is Mac-only
         <br />
         for <span style={{ textDecoration: "underline", textUnderlineOffset: 4 }}>now</span>.
       </h2>

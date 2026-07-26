@@ -4,7 +4,7 @@ import "./globals.css";
 import { PostHogProvider } from "@/components/posthog-provider";
 
 export const metadata: Metadata = {
-  title: "Instachat",
+  title: "Konvo",
   description: "Keep your DMs. Block the rest.",
   icons: {
     icon: "/icon.svg",

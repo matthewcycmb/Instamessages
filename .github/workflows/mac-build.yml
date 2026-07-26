@@ -1,6 +1,6 @@
 name: Mac build
 
-# Builds the Instachat Mac app and publishes it as a rolling "mac-preview"
+# Builds the Konvo Mac app and publishes it as a rolling "mac-preview"
 # prerelease, so public/install.sh always downloads the current source.
 #
 # This exists because the Mac zip used to be built by hand and committed to the
@@ -54,29 +54,33 @@ jobs:
 
       - name: Zip the bundle
         run: |
-          app="src-tauri/target/release/bundle/macos/Instachat.app"
+          app="src-tauri/target/release/bundle/macos/Konvo.app"
           test -d "$app" || { echo "No app bundle at $app"; exit 1; }
           # ditto, not zip: it preserves the bundle's symlinks and resource
           # forks, and install.sh extracts with `ditto -xk`.
-          ditto -c -k --keepParent "$app" Instachat-mac.zip
-          ls -la Instachat-mac.zip
+          ditto -c -k --keepParent "$app" Konvo-mac.zip
+          ls -la Konvo-mac.zip
 
       - name: Verify the build is arm64 and launchable
         run: |
-          bin="src-tauri/target/release/bundle/macos/Instachat.app/Contents/MacOS/instamessages-wrapper"
+          # Glob the executable instead of hardcoding its name. On macOS Tauri
+          # names it after the Cargo package, on iOS after productName, and a
+          # rename only moves one of those — so the literal path is a trap.
+          bin=$(ls "src-tauri/target/release/bundle/macos/Konvo.app/Contents/MacOS/"* | head -1)
+          echo "binary: $bin"
           arch=$(lipo -archs "$bin")
           echo "architecture: $arch"
           test "$arch" = "arm64" || { echo "Unexpected architecture"; exit 1; }
           # The identifier must never be a probe/debug value.
-          id=$(defaults read "$PWD/src-tauri/target/release/bundle/macos/Instachat.app/Contents/Info.plist" CFBundleIdentifier)
+          id=$(defaults read "$PWD/src-tauri/target/release/bundle/macos/Konvo.app/Contents/Info.plist" CFBundleIdentifier)
           echo "identifier: $id"
-          test "$id" = "com.instamessages.wrapper" || { echo "Wrong bundle id"; exit 1; }
+          test "$id" = "com.matthewchan.konvo" || { echo "Wrong bundle id"; exit 1; }
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: instachat-mac
-          path: wrapper/Instachat-mac.zip
+          name: konvo-mac
+          path: wrapper/Konvo-mac.zip
           if-no-files-found: error
 
       - name: Publish rolling preview release
@@ -85,9 +89,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete mac-preview --yes --cleanup-tag 2>/dev/null || true
-          gh release create mac-preview Instachat-mac.zip \
+          gh release create mac-preview Konvo-mac.zip \
             --prerelease \
-            --title "Instachat for Mac (preview)" \
+            --title "Konvo for Mac (preview)" \
             --notes "Unsigned preview build for Apple Silicon Macs.
 
           Install with:

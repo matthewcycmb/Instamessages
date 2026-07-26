@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Instachat",
+  "productName": "Konvo",
   "version": "0.1.0",
-  "identifier": "com.instamessages.wrapper",
+  "identifier": "com.matthewchan.konvo",
   "build": {
     "frontendDist": "../dist"
   },
@@ -31,7 +31,7 @@
     ],
     "iOS": {
       "developmentTeam": "JBTFJ7JD4R",
-      "bundleVersion": "2"
+      "bundleVersion": "1"
     }
   }
 }

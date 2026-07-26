@@ -1,6 +1,6 @@
 name: Windows build
 
-# Builds the Instachat Windows installer on a real Windows runner (Tauri
+# Builds the Konvo Windows installer on a real Windows runner (Tauri
 # can't reliably cross-compile Windows from macOS). Publishes it as a
 # rolling "windows-preview" prerelease so testers always have a download link.
 
@@ -54,7 +54,7 @@ jobs:
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: instachat-windows-setup
+          name: konvo-windows-setup
           path: wrapper/src-tauri/target/release/bundle/nsis/*-setup.exe
           if-no-files-found: error
 
@@ -67,5 +67,5 @@ jobs:
           gh release delete windows-preview --yes --cleanup-tag 2>/dev/null || true
           gh release create windows-preview "${{ steps.find.outputs.path }}" \
             --prerelease \
-            --title "Instachat for Windows (preview)" \
+            --title "Konvo for Windows (preview)" \
             --notes "Unsigned preview build. On first launch Windows may show a SmartScreen warning — click **More info -> Run anyway**. This is expected for unsigned test builds."

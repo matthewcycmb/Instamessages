@@ -1,6 +1,6 @@
 name: instamessages-wrapper
 options:
-  bundleIdPrefix: com.instamessages.wrapper
+  bundleIdPrefix: com.matthewchan.konvo
   deploymentTarget:
     iOS: 14.0
 fileGroups: [../../src]
@@ -11,7 +11,7 @@ settingGroups:
   app:
     base:
       PRODUCT_NAME: Instamessages Wrapper
-      PRODUCT_BUNDLE_IDENTIFIER: com.instamessages.wrapper
+      PRODUCT_BUNDLE_IDENTIFIER: com.matthewchan.konvo
 targetTemplates:
   app:
     type: application
@@ -30,7 +30,13 @@ targets:
     sources:
       - path: Sources
       - path: Assets.xcassets
+      # buildPhase: none, or xcodegen classifies whatever libapp.a happens to
+      # be sitting in Externals at generation time as a *resource* and copies
+      # it into the .app — a 132MB static library inside a 2.8MB app. The
+      # target links it properly via the libapp.a dependency below; this path
+      # exists only so the group shows up in Xcode.
       - path: Externals
+        buildPhase: none
       - path: instamessages-wrapper_iOS
       - path: assets
         buildPhase: resources

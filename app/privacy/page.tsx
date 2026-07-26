@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Instachat",
+  title: "Privacy Policy | Konvo",
 };
 
 const CONTACT_EMAIL = "jchanh@gmail.com";
@@ -13,25 +13,25 @@ export default function PrivacyPage() {
     <div className="mx-auto w-full max-w-2xl flex-1 px-5 pb-16 pt-[max(2rem,env(safe-area-inset-top))]">
       <header className="mb-8">
         <Link href="/" className="text-sm text-muted transition-colors hover:text-ink">
-          ← instachat
+          ← konvo
         </Link>
         <h1 className="mt-4 text-4xl font-bold tracking-tight">Privacy Policy</h1>
         <p className="mt-2 text-sm text-faint">Effective {EFFECTIVE_DATE}</p>
       </header>
 
       <div className="space-y-8 text-[15px] leading-relaxed text-muted">
-        <Section title="What Instachat is">
+        <Section title="What Konvo is">
           <p>
-            Instachat is a desktop app that opens Instagram&rsquo;s own website in a focused
+            Konvo is a desktop app that opens Instagram&rsquo;s own website in a focused
             window showing only direct messages, plus a browser extension that redirects
             instagram.com&rsquo;s feed, reels, and profile pages to this site. You sign in to
-            Instagram directly with Instagram; Instachat is not affiliated with Meta.
+            Instagram directly with Instagram; Konvo is not affiliated with Meta.
           </p>
         </Section>
 
         <Section title="What we collect">
           <p>
-            <span className="text-ink">Nothing.</span> Instachat has no accounts, no server-side
+            <span className="text-ink">Nothing.</span> Konvo has no accounts, no server-side
             storage, and no database. Your Instagram login happens directly between you and
             instagram.com inside the app; your credentials and messages never pass through or
             get stored on our servers. The browser extension contains only static redirect

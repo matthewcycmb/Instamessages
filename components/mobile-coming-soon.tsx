@@ -67,7 +67,7 @@ export function MobileComingSoon() {
           textAlign: "center",
         }}
       >
-        Instachat mobile
+        Konvo mobile
         <br />
         is <span style={{ textDecoration: "underline", textUnderlineOffset: 4 }}>coming soon</span>.
       </h2>

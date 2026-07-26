@@ -3,10 +3,10 @@
 <plist version="1.0">
 <dict>
 	<!-- Tauri already sets PRODUCT_NAME to the productName at build time, so
-	     CFBundleName resolves to Instachat. This is belt-and-braces: it pins
+	     CFBundleName resolves to Konvo. This is belt-and-braces: it pins
 	     the home screen label even if the generated project changes. -->
 	<key>CFBundleDisplayName</key>
-	<string>Instachat</string>
+	<string>Konvo</string>
 
 	<!-- The app only speaks HTTPS to instagram.com and ships no custom
 	     cryptography, which is exempt. Declaring it here stops every build

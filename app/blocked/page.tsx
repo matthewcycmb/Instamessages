@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Instagram is blocked | Instachat",
+  title: "Instagram is blocked | Konvo",
 };
 
 /**
@@ -74,7 +74,7 @@ export default function BlockedPage() {
           But your DMs aren&rsquo;t.
         </h1>
         <p style={{ fontSize: 17, color: "#98989d", margin: "0 0 36px", textAlign: "center" }}>
-          Check your messages in Instachat.
+          Check your messages in Konvo.
         </p>
         <a
           href="instamessages://open"
@@ -92,7 +92,7 @@ export default function BlockedPage() {
             fontWeight: 600,
           }}
         >
-          Open Instachat
+          Open Konvo
         </a>
         <a
           href="/"
@@ -112,7 +112,7 @@ export default function BlockedPage() {
           justifyContent: "center",
         }}
       >
-        <span style={{ fontSize: 13, color: "#48484a" }}>Blocked by Instachat</span>
+        <span style={{ fontSize: 13, color: "#48484a" }}>Blocked by Konvo</span>
       </div>
     </main>
   );

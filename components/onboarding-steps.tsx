@@ -96,7 +96,7 @@ export function OnboardingSteps({ initialEnv }: { initialEnv?: Env }) {
             <ChatIcon size={23} />
           </div>
           <span style={{ fontSize: 23, fontWeight: 700, letterSpacing: "-0.02em" }}>
-            Instachat
+            Konvo
           </span>
         </div>
         <h1
@@ -166,7 +166,7 @@ export function OnboardingSteps({ initialEnv }: { initialEnv?: Env }) {
               </span>
               <AppTile />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 16, fontWeight: 600 }}>Install Instachat in your terminal</div>
+                <div style={{ fontSize: 16, fontWeight: 600 }}>Install Konvo in your terminal</div>
                 <div style={{ fontSize: 13, color: "#98989d", lineHeight: 1.5, marginTop: 3 }}>
                   Copy and paste this line in your terminal
                   <br />

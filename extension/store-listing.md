@@ -1,13 +1,13 @@
 # Chrome Web Store listing
 
 > Trademark note: Meta enforces "Insta", "IG", and "gram" in product names on
-> the Chrome Web Store. "Instagram" has been dropped from the extension's
-> name, since using a trademark in a product name is the part that gets
-> rejected; referring to Instagram in the description is ordinary descriptive
-> use and is fine. The residual risk is "Insta" inside "Instachat" itself.
-> That is a whole-product branding decision, not a listing one, and it is
-> currently accepted. If the submission is rejected on the name, the fix is a
-> rename across the app, site, and extension together.
+> the Chrome Web Store, and Apple rejects the same under App Store guideline
+> 5.2.1. The product was renamed from "Instachat" to "Konvo" precisely to
+> clear that, so the name now carries no Meta mark at all. Referring to
+> Instagram in the *description* is ordinary descriptive use and is fine —
+> the product name is the part that gets rejected. Keep it that way: no
+> "Insta", "IG", or "gram" in the name or summary, however tempting it is
+> for search.
 
 ## Registration
 1. https://chrome.google.com/webstore/devconsole — sign in with any Google
@@ -17,17 +17,17 @@
 
 ## Listing fields
 
-**Name:** Instachat: DMs Only
+**Name:** Konvo: DMs Only
 
 **Summary (132 chars max, comes from manifest.json "description" — edit
 there and rebuild the zip, not in the console):**
-Blocks instagram.com in your browser and sends you to Instachat for your
+Blocks instagram.com in your browser and sends you to Konvo for your
 DMs. Signing in still works.
 
 **Description:**
 This extension blocks Instagram in your browser. Open the feed, Reels,
 Explore, a post, a story, a profile, or even your DMs, and you are sent to
-the Instachat page instead, which opens your messages in the Instachat app.
+the Konvo page instead, which opens your messages in the Konvo app.
 
 Signing in to Instagram is left alone, so logging in, two-factor codes, and
 account recovery all work normally.
@@ -39,8 +39,8 @@ fixed list of redirect rules.
 **Language:** English
 
 ## Privacy tab
-- Single purpose: "Redirects instagram.com to the Instachat page, which hands
-  the user's messages to the Instachat app, to reduce doomscrolling. Sign-in
+- Single purpose: "Redirects instagram.com to the Konvo page, which hands
+  the user's messages to the Konvo app, to reduce doomscrolling. Sign-in
   and account-recovery URLs are excluded so login still works."
 - Permission justifications:
   - `declarativeNetRequest`: applies the static redirect rules; no code
