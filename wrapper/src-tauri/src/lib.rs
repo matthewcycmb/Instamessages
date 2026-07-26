@@ -3,6 +3,7 @@
 // DMs for private accounts. Cage rules: DM inbox + login flows only. No
 // feed, no reels, no explore, no profiles, no stories.
 
+use tauri::utils::config::Color;
 use tauri::{Url, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_deep_link::DeepLinkExt;
 #[cfg(target_os = "macos")]
@@ -121,6 +122,7 @@ const CAGE_SCRIPT: &str = r#"
   style.textContent = css;
   (document.head || document.documentElement).appendChild(style);
 
+
   // Notes/stories tray in the mobile inbox: the hard wall is the URL cage
   // (tapping a story ring lands on /stories/... and bounces), this hides the
   // temptation row itself. Anchored on the "Your note" leaf because
@@ -129,26 +131,41 @@ const CAGE_SCRIPT: &str = r#"
     var leaves = document.querySelectorAll("span,div");
     for (var i = 0; i < leaves.length; i++) {
       var el = leaves[i];
-      if (el.childElementCount === 0 && /^Your note$/.test(el.textContent.trim())) {
-        var node = el, hops = 0;
-        while (node.parentElement && hops < 8) {
-          node = node.parentElement;
-          hops++;
-          if (node.querySelectorAll("img").length >= 2) {
-            node.style.setProperty("display", "none", "important");
-            return;
-          }
+      if (el.childElementCount !== 0 || el.textContent.trim() !== "Your note") continue;
+      // Walk out to the outermost ancestor that is still one row: the tray
+      // spans the viewport but stays short, while the conversation list around
+      // it is tall. The original anchor required >= 2 images in an ancestor and
+      // missed the common case where yours is the only note; the replacement
+      // then capped the walk at 8 hops, and the row measured on a real inbox
+      // sits at hop 9-10 (140x357 against a 390 viewport), so it was never
+      // reached. 14 leaves headroom without running into the tall scroller,
+      // which the height test rejects anyway.
+      // ponytail: geometric heuristic, swap for a stable selector if Instagram
+      // ever ships one.
+      var node = el, row = null, hops = 0;
+      while (node.parentElement && hops < 14) {
+        node = node.parentElement;
+        hops++;
+        var r = node.getBoundingClientRect();
+        if (r.height > 0 && r.height <= 200 && r.width >= window.innerWidth * 0.8) {
+          row = node;
         }
+      }
+      if (row) {
+        row.style.setProperty("display", "none", "important");
+        return;
       }
     }
   }
   // "Requests" tab: often a link/button with no stable href attribute, so
-  // anchor on the exact text and hide its clickable ancestor.
+  // anchor on the text and hide its clickable ancestor. Matched as a prefix,
+  // not an equality: the live tab renders a pending count ("Requests (2)"),
+  // which an exact match missed entirely.
   function hideRequests() {
     var leaves = document.querySelectorAll("span,div,a");
     for (var i = 0; i < leaves.length; i++) {
       var el = leaves[i];
-      if (el.childElementCount === 0 && el.textContent.trim() === "Requests") {
+      if (el.childElementCount === 0 && /^Requests\b/.test(el.textContent.trim())) {
         var node = el, hops = 0;
         while (node && hops < 5) {
           if (node.tagName === "A" || node.getAttribute("role") === "button" ||
@@ -164,6 +181,9 @@ const CAGE_SCRIPT: &str = r#"
       }
     }
   }
+  // NB: only attribute writes belong in here. This runs from a MutationObserver
+  // watching childList, so anything that adds or removes nodes (textContent
+  // included) retriggers it and spins until the page hangs.
   function sweep() { hideTray(); hideRequests(); }
   new MutationObserver(sweep).observe(document.documentElement, { childList: true, subtree: true });
   sweep();
@@ -241,6 +261,10 @@ pub fn run() {
                 WebviewUrl::External(HOME.parse().unwrap()),
             )
             .initialization_script(CAGE_SCRIPT)
+            // Without this the webview paints white until Instagram's first
+            // frame arrives, so launch flashed white -> black. Sets both the
+            // window and the webview.
+            .background_color(Color(0, 0, 0, 255))
             .on_navigation(|url| allowed(url));
 
             // Only Apple platforms get an override. WebView2 on Windows
@@ -255,6 +279,46 @@ pub fn run() {
                 .inner_size(1100.0, 760.0);
 
             let window = builder.build()?;
+
+            // iOS: wry builds the WKWebView at the parent view's full frame, so
+            // the layout viewport spans the status bar and the home indicator —
+            // Instagram's header paints under the clock, where the system owns
+            // the pixels and the back arrow can't be tapped.
+            //
+            // This has to be fixed here rather than in CAGE_SCRIPT. Instagram
+            // sizes its shell in vh, which always resolves to the full screen,
+            // so no padding or height we set on an ancestor can reclaim the
+            // space; the webview itself has to be smaller. Constraints against
+            // the safe-area guide resolve at layout time, unlike safeAreaInsets,
+            // which still reads zero this early in setup.
+            #[cfg(target_os = "ios")]
+            {
+                use objc2::runtime::{AnyObject, Bool};
+                use objc2::msg_send;
+
+                let _ = window.with_webview(|webview| unsafe {
+                    let wk: *mut AnyObject = webview.inner().cast();
+                    let vc: *mut AnyObject = webview.view_controller().cast();
+                    let root: *mut AnyObject = msg_send![vc, view];
+                    let guide: *mut AnyObject = msg_send![root, safeAreaLayoutGuide];
+
+                    // Hand sizing to Auto Layout; wry set a flexible
+                    // autoresizing mask that would otherwise fight these.
+                    let _: () = msg_send![
+                        wk,
+                        setTranslatesAutoresizingMaskIntoConstraints: Bool::NO
+                    ];
+
+                    let pin = |a: *mut AnyObject, b: *mut AnyObject| {
+                        let c: *mut AnyObject = msg_send![a, constraintEqualToAnchor: b];
+                        let _: () = msg_send![c, setActive: Bool::YES];
+                    };
+                    pin(msg_send![wk, topAnchor], msg_send![guide, topAnchor]);
+                    pin(msg_send![wk, bottomAnchor], msg_send![guide, bottomAnchor]);
+                    pin(msg_send![wk, leadingAnchor], msg_send![guide, leadingAnchor]);
+                    pin(msg_send![wk, trailingAnchor], msg_send![guide, trailingAnchor]);
+                });
+            }
 
             // macOS: the red × hides the window instead of quitting, so the
             // app stays in the Dock and reopens instantly (⌘Q still quits).

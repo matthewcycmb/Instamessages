@@ -1511,6 +1511,7 @@ dependencies = [
 name = "instamessages-wrapper"
 version = "0.1.0"
 dependencies = [
+ "objc2",
  "serde_json",
  "tauri",
  "tauri-build",
