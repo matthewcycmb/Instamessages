@@ -26,6 +26,30 @@ const CAGE_SCRIPT: &str = r#"
   var H = location.hostname;
   if (H !== "instagram.com" && H !== "www.instagram.com") return;
 
+  // First launch on a fresh install has no cache and no session, so
+  // instagram.com takes 10-15s to paint and the window sits empty the whole
+  // time. Warm launches are instant, but the cold one is the first thing a
+  // new tester ever sees, and a blank window reads as a broken app. Show a
+  // spinner until the page paints over it.
+  (function boot() {
+    var b = document.createElement("div");
+    b.id = "im-boot";
+    b.style.cssText = "position:fixed;inset:0;z-index:2147483646;background:#000;" +
+      "display:flex;align-items:center;justify-content:center";
+    b.innerHTML = '<div style="width:26px;height:26px;border:3px solid #2c2c2e;' +
+      'border-top-color:#0a84ff;border-radius:50%;animation:im-spin .8s linear infinite"></div>' +
+      '<style>@keyframes im-spin{to{transform:rotate(360deg)}}</style>';
+    (document.body || document.documentElement).appendChild(b);
+    function clear() {
+      var el = document.getElementById("im-boot");
+      if (el && el.parentNode) el.parentNode.removeChild(el);
+    }
+    window.addEventListener("load", clear);
+    // Never let the overlay trap someone if load never fires (offline, a
+    // redirect chain, a stalled request).
+    setTimeout(clear, 20000);
+  })();
+
   // Feed + any standalone media viewer: a reel/post/story shared in a DM
   // opens a viewer whose URL becomes /reel|/p|/tv|/stories — bounce it, so
   // shared media can't be watched. The DM preview thumbnail still shows.

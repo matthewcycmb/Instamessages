@@ -52,11 +52,6 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        UISupportedInterfaceOrientations~ipad:
-          - UIInterfaceOrientationPortrait
-          - UIInterfaceOrientationPortraitUpsideDown
-          - UIInterfaceOrientationLandscapeLeft
-          - UIInterfaceOrientationLandscapeRight
         CFBundleShortVersionString: 0.1.0
         CFBundleVersion: "0.1.0"
     entitlements:
@@ -67,6 +62,12 @@ targets:
         RUST_LOG: info
     settings:
       base:
+        # iPhone only. The cage rules target Instagram's *mobile web* layout;
+        # at iPad width Instagram serves a wider layout whose nav lives in
+        # different containers, so the selectors miss and the cage leaks.
+        # Shipping "1,2" means App Review runs it on an iPad and sees exactly
+        # that.
+        TARGETED_DEVICE_FAMILY: "1"
         ENABLE_BITCODE: false
         ARCHS: [arm64]
         VALID_ARCHS: arm64 
