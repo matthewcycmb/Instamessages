@@ -1,1 +1,1 @@
-{}
+{"instagram-notify":{"identifier":"instagram-notify","description":"The caged instagram.com page may post native unread-DM notifications. macOS only, and only the single notify command - remote pages get nothing else.","remote":{"urls":["https://www.instagram.com/*"]},"local":false,"windows":["main"],"permissions":["notification:allow-notify"],"platforms":["macOS"]}}

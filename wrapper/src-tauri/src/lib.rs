@@ -9,8 +9,6 @@ use tauri_plugin_deep_link::DeepLinkExt;
 #[cfg(target_os = "macos")]
 use tauri::Manager;
 
-const HOME: &str = "https://www.instagram.com/direct/inbox/";
-
 /// Runs at document-start on every page. Block-list, not allow-list: only the
 /// actual feed surfaces (home, reels, explore, media viewers, profiles)
 /// redirect to the inbox. Login, two-factor, onetap, accounts, and every
@@ -120,6 +118,36 @@ const CAGE_SCRIPT: &str = r#"
       var now = Date.now();
       if (now - tick > 300000) location.reload(); // 5 min of missing ticks
       tick = now;
+    }, 30000);
+
+    // Real-time unread notifications. The Mac app keeps running while hidden,
+    // so this keeps ticking after the window is closed. Polls the same badge
+    // endpoint Instagram's own web client polls for its tab badge - same
+    // origin, same session, same fingerprint, so nothing about it looks
+    // foreign. Notify only on an increase and only while the window is not
+    // being looked at; reading threads lowers the count and resets the
+    // baseline by itself. The invoke is a no-op unless the notification
+    // capability granted it (macOS only), and any failure stays silent.
+    // ponytail: a 30s poll, not Instagram's realtime socket - worst case a
+    // message is 30s late. Driving their minified MQTT code is not worth it.
+    var lastBadge = null;
+    setInterval(function () {
+      fetch("/api/v1/direct_v2/get_badge_count/", {
+        headers: { "X-IG-App-ID": "936619743392459" }
+      }).then(function (r) { return r.json(); }).then(function (d) {
+        var n = d && typeof d.badge_count === "number" ? d.badge_count : null;
+        if (n === null) return;
+        if (lastBadge !== null && n > lastBadge && window.__TAURI_INTERNALS__ &&
+            (document.hidden || !document.hasFocus())) {
+          window.__TAURI_INTERNALS__.invoke("plugin:notification|notify", {
+            options: {
+              title: "Konvo",
+              body: n === 1 ? "1 unread conversation" : n + " unread conversations"
+            }
+          }).catch(function () {});
+        }
+        lastBadge = n;
+      }).catch(function () {});
     }, 30000);
   }
 
@@ -254,8 +282,9 @@ const CAGE_SCRIPT: &str = r#"
 /// external verification like reCAPTCHA) is never cancelled. The *feed* cage
 /// is enforced by CAGE_SCRIPT on the main Instagram host, not here — a host
 /// allow-list was stranding the login flow on a blank page.
+/// "tauri" is the bundled splash page the webview starts on.
 fn allowed(url: &Url) -> bool {
-    matches!(url.scheme(), "http" | "https" | "about" | "data" | "blob")
+    matches!(url.scheme(), "http" | "https" | "about" | "data" | "blob" | "tauri")
 }
 
 // Present as Safari for the platform so Instagram's login isn't rejected as
@@ -311,13 +340,25 @@ fn user_agent() -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_deep_link::init())
+    let tauri_builder = tauri::Builder::default().plugin(tauri_plugin_deep_link::init());
+    // Native notifications are macOS-only: the Mac app keeps running while
+    // hidden, so its webview can watch for unread DMs. iOS suspends the
+    // webview on background, so there is nothing there to register.
+    #[cfg(target_os = "macos")]
+    let tauri_builder = tauri_builder.plugin(tauri_plugin_notification::init());
+    tauri_builder
         .setup(|app| {
+            // Start on the bundled splash, not on instagram.com directly.
+            // instagram.com begins with a network round-trip, and until its
+            // response arrives there is no document for CAGE_SCRIPT to paint
+            // into — which showed as a dead black window on every cold
+            // launch. The splash paints from disk on the first frame, then
+            // navigates; the in-page boot overlay takes over seamlessly at
+            // instagram's document-start.
             let builder = WebviewWindowBuilder::new(
                 app,
                 "main",
-                WebviewUrl::External(HOME.parse().unwrap()),
+                WebviewUrl::App("index.html".into()),
             )
             .initialization_script(CAGE_SCRIPT)
             // Without this the webview paints white until Instagram's first
