@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- macOS half of the same bug that crashed iOS on "take photo". A webview
+	     touching the camera or mic without a purpose string is terminated by the
+	     OS, not denied. Instagram's composer can reach both, so both are needed
+	     on every platform that ships this webview, not just iOS.
+	     Tauri merges this file for macOS; Info.ios.plist covers iOS. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Konvo uses the camera so you can take a photo and send it in a conversation.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Konvo uses the microphone so you can record and send a voice note.</string>
+</dict>
+</plist>

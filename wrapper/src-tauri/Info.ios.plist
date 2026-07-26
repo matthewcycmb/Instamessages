@@ -14,5 +14,18 @@
 	     testers from installing until someone answered the prompt by hand. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+
+	<!-- Without these, iOS does not deny the request - it kills the process the
+	     instant the webview touches the camera, mic or library. That is the
+	     "take photo crashes back to the home screen" bug. All three are reachable
+	     from the message composer, so all three need a purpose string. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Konvo uses the camera so you can take a photo and send it in a conversation.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Konvo uses the microphone so you can record and send a voice note.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Konvo uses your photo library so you can send an existing photo in a conversation.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Konvo saves photos from a conversation to your photo library when you download them.</string>
 </dict>
 </plist>
