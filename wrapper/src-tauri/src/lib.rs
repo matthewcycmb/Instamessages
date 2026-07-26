@@ -88,19 +88,27 @@ const CAGE_SCRIPT: &str = r#"
   document.addEventListener("DOMContentLoaded", enforce);
   setInterval(enforce, 800); // SPA belt-and-braces: some route changes skip history APIs
 
-  // Sleep/wake: after the machine sleeps, Instagram's live connection is dead
-  // but the page still looks fine, so the inbox silently stops updating and the
-  // app feels hung. Timers do not fire while asleep, so a gap between ticks is
-  // the signal - more reliable than visibilitychange, which does not fire
-  // consistently across sleep on macOS.
+  // Sleep/wake, desktop only: after the machine sleeps, Instagram's live
+  // connection is dead but the page still looks fine, so the inbox silently
+  // stops updating and the app feels hung. Timers do not fire while asleep, so
+  // a gap between ticks is the signal - more reliable than visibilitychange,
+  // which does not fire consistently across sleep on macOS.
+  //
+  // Must NOT run on iOS. iOS suspends timers every time the app is
+  // backgrounded, so the same check fires on any return after five minutes and
+  // reloads instagram.com from scratch - a 5-10s wait every single time you
+  // open the app. iOS already evicts and reloads the webview on its own when it
+  // needs to, so there is nothing here for us to fix.
   // ponytail: full reload, which drops an unsent draft. Reconnecting instead
   // would mean driving Instagram's own minified socket code.
-  var tick = Date.now();
-  setInterval(function () {
-    var now = Date.now();
-    if (now - tick > 300000) location.reload(); // 5 min of missing ticks
-    tick = now;
-  }, 30000);
+  if (!/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    var tick = Date.now();
+    setInterval(function () {
+      var now = Date.now();
+      if (now - tick > 300000) location.reload(); // 5 min of missing ticks
+      tick = now;
+    }, 30000);
+  }
 
   // Hide every navigation doorway. Desktop: the left rail. Mobile web: the
   // bottom tab bar (same aria-labels, different containers) plus the
