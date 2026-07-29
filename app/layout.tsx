@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
 import "./globals.css";
 import { PostHogProvider } from "@/components/posthog-provider";
 
@@ -27,9 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
-        <Suspense>
-          <PostHogProvider>{children}</PostHogProvider>
-        </Suspense>
+        <PostHogProvider>{children}</PostHogProvider>
       </body>
     </html>
   );

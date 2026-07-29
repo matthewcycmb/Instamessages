@@ -67,9 +67,9 @@ export function MobileComingSoon() {
           textAlign: "center",
         }}
       >
-        Konvo mobile
+        Konvo starts
         <br />
-        is <span style={{ textDecoration: "underline", textUnderlineOffset: 4 }}>coming soon</span>.
+        on your <span style={{ textDecoration: "underline", textUnderlineOffset: 4 }}>laptop</span>.
       </h2>
       <p
         style={{
@@ -80,7 +80,8 @@ export function MobileComingSoon() {
           textAlign: "center",
         }}
       >
-        So copy the link and open it on your laptop.
+        You need a Mac to set it up, plus a Chrome extension. Copy the link and
+        open it there.
       </p>
       <button
         onClick={copy}

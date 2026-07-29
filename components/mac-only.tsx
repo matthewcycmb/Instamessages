@@ -78,7 +78,7 @@ export function MacOnly() {
           textAlign: "center",
         }}
       >
-        Windows and more are coming. Open this on a Mac to get set up.
+        Windows is next. Copy the link and open it on a Mac to get set up.
       </p>
       <button
         onClick={copy}

@@ -1,0 +1,431 @@
+"use client";
+
+import { useState } from "react";
+import { ChromeLogo, DownloadModal } from "./download-modal";
+
+/**
+ * Landing page (design 10a). The mock was drawn on a 1200px canvas with bare
+ * 148px side padding; rendered full-bleed on a 1440+ display it shouted. Every
+ * band is capped to SHELL and centred, and the hero type is scaled to match.
+ */
+const SHELL = 1200;
+
+
+export function Landing() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div style={{ width: "100%", background: "#fff", display: "flex", flexDirection: "column", overflow: "hidden", color: "#0f1b33" }}>
+      {/* hero band (10b): fixed-height split — copy left, app shot right. */}
+      <div
+        style={{
+          width: "100%",
+          height: 620,
+          // No scrim: the backdrop is a pale, even gradient, so the dark type
+          // already has contrast. The washes here were only ever compensating
+          // for photographic backgrounds.
+          backgroundImage: "url('/hero-bg.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          display: "flex",
+          flexDirection: "column",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 200,
+            background: "linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.85) 62%, #fff 100%)",
+            pointerEvents: "none",
+          }}
+        />
+
+        {/* nav */}
+        <div style={{ width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 24px", maxWidth: SHELL, margin: "0 auto", position: "relative" }}>
+          <Wordmark />
+          <div style={{ display: "flex", alignItems: "center", gap: 38, fontSize: 16, fontWeight: 500, color: "#2c3444" }}>
+            <span style={{ cursor: "pointer" }}>How it works</span>
+            <span style={{ cursor: "pointer" }}>What&apos;s blocked</span>
+            <span style={{ cursor: "pointer" }}>FAQ</span>
+            <span style={{ cursor: "pointer" }}>Blog</span>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, background: "rgba(255,255,255,0.6)", border: "1px solid rgba(20,40,80,0.1)", borderRadius: 999, padding: "8px 16px", fontSize: 14, fontWeight: 500, color: "#2c3444" }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#30a14e" }} />
+            Free while in beta
+          </div>
+        </div>
+
+        {/* hero row */}
+        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 60, padding: "0 24px 16px 56px", maxWidth: SHELL, margin: "0 auto", width: "100%", boxSizing: "border-box", position: "relative" }}>
+          <div style={{ width: 600, flex: "none" }}>
+            <h1 style={{ fontSize: 52, fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.05, margin: 0, color: "#0f1b33" }}>
+              DM on Instagram
+              <br />
+              without the feed and reels.
+            </h1>
+            <p style={{ fontSize: 20, lineHeight: 1.45, color: "#33405c", margin: "32px 0 40px" }}>
+              Konvo blocks everything on Instagram except your messages.
+              <br />
+              No feed, no stories, no reels, no explore.
+            </p>
+            <DownloadButton onClick={() => setOpen(true)} big glow />
+          </div>
+          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+            <img
+              src="/app.png"
+              alt="Konvo app"
+              style={{ width: "100%", maxWidth: 560, display: "block", borderRadius: 14, boxShadow: "0 30px 80px rgba(20,50,110,0.3)" }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* setup steps */}
+      <Section eyebrow="GETTING STARTED" title="Setup takes about two minutes." sub="You do it once and that's it.">
+        <div style={{ display: "flex", gap: 24, width: "100%", alignItems: "stretch" }}>
+          <StepCard n={1} title="Download the app" body="Konvo is a Mac app. It signs into the Instagram account you already have and shows your messages.">
+            <Chip>
+              <span style={{ width: 17, height: 17, borderRadius: 5, background: "#0a5cf0", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <ChatGlyph size={10} stroke="#fff" width="2.8" />
+              </span>
+              Konvo for Mac
+            </Chip>
+          </StepCard>
+          <StepCard n={2} title="Add the extension" body="The app can't block instagram.com in your browser. The extension can.">
+            <Chip>
+              <ChromeLogo size={17} />
+              Add to Chrome
+            </Chip>
+          </StepCard>
+          <StepCard n={3} title="Sign in with Instagram" body="Konvo only asks for your messages. It can't post, follow, or see your feed.">
+            <Chip>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f1b33" strokeWidth="1.8">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.5" cy="6.5" r="1" fill="#0f1b33" stroke="none" />
+              </svg>
+              Continue with Instagram
+            </Chip>
+          </StepCard>
+        </div>
+      </Section>
+
+      {/* what changes */}
+      <Section
+        eyebrow="WHAT CHANGES"
+        title="Everything goes except your messages."
+        sub="Instagram puts your friends in the same app as the feed on purpose. That's how they keep you there. Konvo splits them up."
+        subWidth="56ch"
+      >
+        <div style={{ display: "flex", gap: 24, width: "100%", alignItems: "flex-start" }}>
+          <ListCard dot="#d64541" heading="Blocked" items={["Feed", "Stories", "Reels", "Explore", "Suggested posts"]} kind="x" />
+          <ListCard
+            dot="#30a14e"
+            heading="Still works"
+            items={["Direct messages", "Message requests", "Replies to your stories", "Photos and links people send you"]}
+            kind="check"
+          />
+        </div>
+      </Section>
+
+      {/* after setup */}
+      <Section eyebrow="AFTER SETUP" title="Two things change." titleMargin="12px 0 40px">
+        <div style={{ display: "flex", gap: 24, width: "100%" }}>
+          <div style={CARD}>
+            <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.025em", color: "#0f1b33" }}>You open Konvo to talk</div>
+            <div style={{ fontSize: 15, lineHeight: 1.55, color: "#5a6478", margin: "8px 0 22px" }}>
+              Same people, same conversations. Nothing else to look at.
+            </div>
+            <img src="/app.png" alt="Konvo messages" style={{ width: "100%", display: "block", borderRadius: 12, border: "1px solid rgba(20,40,80,0.15)" }} />
+          </div>
+          <div style={CARD}>
+            <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.025em", color: "#0f1b33" }}>Instagram does not open</div>
+            <div style={{ fontSize: 15, lineHeight: 1.55, color: "#5a6478", margin: "8px 0 22px" }}>
+              You&apos;ll type the address out of habit. This is what shows up.
+            </div>
+            <div style={{ background: "#000", borderRadius: 12, overflow: "hidden", height: 300, border: "1px solid rgba(20,40,80,0.15)", display: "flex", flexDirection: "column" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "10px 12px", background: "#16191f" }}>
+                <Dot /><Dot /><Dot />
+                <span style={{ marginLeft: 10, flex: 1, background: "#22262d", borderRadius: 6, padding: "4px 9px", fontSize: 10, color: "#6b7280" }}>
+                  instagram.com
+                </span>
+              </div>
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 16px", position: "relative" }}>
+                <span style={{ width: 44, height: 44, borderRadius: 12, background: "linear-gradient(180deg, #3d8bff, #0a5cf0)", display: "inline-flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 34px rgba(38,120,255,0.5)" }}>
+                  <ChatGlyph size={22} stroke="#fff" width="2.4" />
+                </span>
+                <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: "-0.03em", lineHeight: 1.2, color: "#fff", textAlign: "center", margin: "16px 0 0" }}>
+                  Instagram is blocked.
+                  <br />
+                  But your DMs aren&apos;t.
+                </div>
+                <div style={{ fontSize: 12, color: "#8b93a1", marginTop: 8 }}>Check your messages in Konvo.</div>
+                <div style={{ marginTop: 16, background: "#3d8bff", color: "#fff", fontSize: 12, fontWeight: 600, borderRadius: 999, padding: "8px 20px" }}>
+                  Open Konvo
+                </div>
+                <div style={{ fontSize: 10, color: "#5c6472", marginTop: 12 }}>Don&apos;t have the app? Get it here</div>
+                <div style={{ position: "absolute", bottom: 10, fontSize: 9, color: "#3a3f47" }}>Blocked by Konvo</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* faq */}
+      <div style={{ width: "100%", boxSizing: "border-box", padding: "84px 24px 0", maxWidth: SHELL, margin: "0 auto" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#98a1b0" }}>QUESTIONS</div>
+        <h2 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33", margin: "12px 0 24px" }}>
+          Frequently asked questions
+        </h2>
+        <div style={{ borderTop: "1px solid #e9ecf2" }}>
+          {FAQ.map((q) => (
+            <Faq key={q.q} q={q.q} a={q.a} />
+          ))}
+        </div>
+      </div>
+
+      {/* closing cta */}
+      <div style={{ width: "100%", boxSizing: "border-box", padding: "104px 24px", maxWidth: SHELL, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div>
+          <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33" }}>Message your friends.</div>
+          <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0a5cf0" }}>Skip the rest of Instagram.</div>
+        </div>
+        <DownloadButton onClick={() => setOpen(true)} />
+      </div>
+
+      {/* footer */}
+      <div style={{ width: "100%", boxSizing: "border-box", borderTop: "1px solid #e9ecf2", padding: "48px 24px 24px", maxWidth: SHELL, margin: "0 auto", display: "flex", justifyContent: "space-between" }}>
+        <Wordmark small />
+        <div style={{ display: "flex", gap: 72 }}>
+          <FooterCol title="Product" items={["Download", "How it works", "What's blocked"]} />
+          <FooterCol title="Resources" items={["Blog", "FAQ", "Changelog"]} />
+          <FooterCol title="Support" items={["Contact", "Privacy", "Terms"]} />
+        </div>
+      </div>
+      <div style={{ width: "100%", boxSizing: "border-box", padding: "0 24px 40px", maxWidth: SHELL, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13, color: "#98a1b0" }}>
+        <span>© 2026 Konvo</span>
+        <span>Not affiliated with Instagram.</span>
+      </div>
+
+      {open && <DownloadModal onClose={() => setOpen(false)} />}
+    </div>
+  );
+}
+
+const CARD: React.CSSProperties = {
+  flex: 1,
+  background: "#fff",
+  border: "1px solid #e6e9ef",
+  borderRadius: 20,
+  boxShadow: "0 2px 10px rgba(20,50,110,0.04)",
+  padding: 28,
+};
+
+const FAQ = [
+  {
+    q: "Why do I need an extension?",
+    a: "The app can only block Instagram inside the app. Most people open instagram.com in a browser without thinking about it, so the extension blocks it there too.",
+  },
+  {
+    q: "Do I lose my account?",
+    a: "No. Konvo signs into the account you already have and shows the same messages. Nothing gets moved or deleted.",
+  },
+  {
+    q: "Can I turn it off?",
+    a: "Yes, in a few seconds. Quit the app or switch off the extension and Instagram works like it did before.",
+  },
+  {
+    q: "Will people know I'm using it?",
+    a: "No. Your messages send and read from your account, same as always.",
+  },
+  {
+    q: "Does Konvo work on Windows?",
+    a: "Not yet. Mac today, Windows and iPhone next. The extension works in any Chrome, on any operating system.",
+  },
+];
+
+function Faq({ q, a }: { q: string; a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderBottom: "1px solid #e9ecf2" }}>
+      <div onClick={() => setOpen(!open)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 0", cursor: "pointer" }}>
+        <span style={{ fontSize: 18, fontWeight: 500, color: "#0f1b33" }}>{q}</span>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#5a6478"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.15s" }}
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </div>
+      {open && <p style={{ fontSize: 16, lineHeight: 1.6, color: "#5a6478", margin: "0 0 20px", maxWidth: "70ch" }}>{a}</p>}
+    </div>
+  );
+}
+
+function Section({
+  eyebrow,
+  title,
+  sub,
+  subWidth,
+  titleMargin,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  sub?: string;
+  subWidth?: string;
+  titleMargin?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ width: "100%", boxSizing: "border-box", padding: "84px 24px 0", maxWidth: SHELL, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#98a1b0" }}>{eyebrow}</div>
+      <h2 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33", margin: titleMargin ?? "12px 0 10px", textAlign: "center" }}>
+        {title}
+      </h2>
+      {sub && (
+        <p style={{ fontSize: 17, lineHeight: 1.55, color: "#5a6478", margin: "0 0 40px", textAlign: "center", maxWidth: subWidth }}>{sub}</p>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function StepCard({ n, title, body, children }: { n: number; title: string; body: string; children: React.ReactNode }) {
+  return (
+    <div style={{ ...CARD, padding: "30px 28px", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ width: 30, height: 30, borderRadius: "50%", background: "#0a5cf0", color: "#fff", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700 }}>
+          {n}
+        </span>
+        <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#98a1b0" }}>STEP {n}</span>
+      </div>
+      <div style={{ fontSize: 23, fontWeight: 700, letterSpacing: "-0.03em", color: "#0f1b33", margin: "20px 0 8px" }}>{title}</div>
+      <div style={{ fontSize: 16, lineHeight: 1.55, color: "#5a6478" }}>{body}</div>
+      <div style={{ marginTop: 22 }}>{children}</div>
+    </div>
+  );
+}
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: "inline-flex", alignItems: "center", gap: 9, background: "#f4f7fc", border: "1px solid #e9ecf2", borderRadius: 10, padding: "10px 14px", fontSize: 14, fontWeight: 600, color: "#0f1b33" }}>
+      {children}
+    </div>
+  );
+}
+
+function ListCard({ dot, heading, items, kind }: { dot: string; heading: string; items: string[]; kind: "x" | "check" }) {
+  return (
+    <div style={{ ...CARD, padding: "26px 28px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, paddingBottom: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: dot }} />
+        <span style={{ fontSize: 16, fontWeight: 700, color: "#0f1b33" }}>{heading}</span>
+      </div>
+      {items.map((label) => (
+        <div key={label} style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 0", borderBottom: "1px solid #e9ecf2" }}>
+          <span style={{ width: 19, height: 19, flex: "none", borderRadius: "50%", background: kind === "x" ? "#fdeceb" : "#e7f6ec", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+            {kind === "x" ? (
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#d64541" strokeWidth="3.4" strokeLinecap="round">
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#1f8a44" strokeWidth="3.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            )}
+          </span>
+          <span style={{ fontSize: 16, color: "#0f1b33" }}>{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DownloadButton({ onClick, big, glow }: { onClick: () => void; big?: boolean; glow?: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 12,
+        minHeight: big ? 62 : 58,
+        padding: big ? "0 36px" : "0 32px",
+        marginTop: 0,
+        border: 0,
+        borderRadius: 14,
+        background: "linear-gradient(180deg, #3d8bff 0%, #0a5cf0 100%)",
+        color: "#fff",
+        fontFamily: "inherit",
+        fontSize: big ? 20 : 18,
+        fontWeight: 600,
+        letterSpacing: big ? "-0.01em" : undefined,
+        cursor: "pointer",
+        boxShadow: glow
+          ? "0 0 50px rgba(38,120,255,0.45), 0 12px 30px rgba(20,60,150,0.35), inset 0 1px 0 rgba(255,255,255,0.4)"
+          : "0 8px 20px rgba(20,60,150,0.22), inset 0 1px 0 rgba(255,255,255,0.28)",
+      }}
+    >
+      Download Konvo
+      <svg width={big ? 19 : 18} height={big ? 19 : 18} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </svg>
+    </button>
+  );
+}
+
+function Wordmark({ small }: { small?: boolean }) {
+  const box = small ? 22 : 26;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+      <span style={{ width: box, height: box, borderRadius: small ? 6 : 7, background: "#0a5cf0", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <ChatGlyph size={small ? 12 : 14} stroke="#fff" width="2.6" />
+      </span>
+      <span style={{ fontSize: small ? 17 : 22, fontWeight: 700, letterSpacing: small ? "-0.03em" : "-0.035em", color: small ? "#0f1b33" : "#101828" }}>
+        Konvo
+      </span>
+    </div>
+  );
+}
+
+function ChatGlyph({ size, stroke, width }: { size: number; stroke: string; width: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+    </svg>
+  );
+}
+
+function Dot() {
+  return <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3a3f47" }} />;
+}
+
+function FooterCol({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <div style={{ fontSize: 13, fontWeight: 700, color: "#0f1b33", marginBottom: 12 }}>{title}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 9, fontSize: 14, color: "#5a6478" }}>
+        {items.map((i) => (
+          <span key={i} style={{ cursor: "pointer" }}>
+            {i}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { TerminalCommand } from "@/components/terminal-install";
+import { CHROME_STORE_URL } from "@/lib/links";
 
 export const metadata: Metadata = {
   title: "Test Konvo",
@@ -7,8 +8,9 @@ export const metadata: Metadata = {
 
 const WIN_EXE =
   "https://github.com/matthewcycmb/instamessages/releases/download/windows-preview/Konvo_0.1.0_x64-setup.exe";
-const EXT_ZIP =
-  "https://github.com/matthewcycmb/instachat-extension/releases/latest/download/instachat-extension.zip";
+// The listing is live, so testers install it like anyone else - no
+// load-unpacked, no zip from a GitHub release under the old repo name.
+const EXT_LINK = CHROME_STORE_URL ?? "/extension.zip";
 
 export default function TestersPage() {
   return (
@@ -55,7 +57,7 @@ export default function TestersPage() {
 
         {/* Chrome extension (any computer) */}
         <Card badge="🧩" title="Chrome extension (any computer)">
-          <FullButton href={EXT_ZIP}>Download the extension</FullButton>
+          <FullButton href={EXT_LINK}>Add the extension</FullButton>
           <Step n={1}>Unzip the downloaded file.</Step>
           <Step n={2}>
             Open <B>chrome://extensions</B> in Chrome (or Edge / Brave).

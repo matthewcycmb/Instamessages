@@ -122,3 +122,6 @@ details > summary::-webkit-details-marker {
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
 }
+
+/* Download modal step 2 spinner. */
+@keyframes spin { to { transform: rotate(360deg); } }
