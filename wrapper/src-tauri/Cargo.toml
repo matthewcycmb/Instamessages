@@ -14,6 +14,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["devtools", "macos-private-api"] }
 tauri-plugin-deep-link = "2"
+tauri-plugin-opener = "2"
 serde_json = "1"
 
 # Pinning the webview to the safe area needs a handful of UIKit message sends.

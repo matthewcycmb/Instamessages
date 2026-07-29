@@ -1,0 +1,10 @@
+{
+  "identifier": "instagram-open-link",
+  "description": "The caged instagram.com page may hand a link someone sent in a DM to the real browser. Links are marked target=_blank by Instagram, and a webview has no tabs, so without this they open nowhere. Only the single open-url command - remote pages get nothing else.",
+  "local": false,
+  "remote": {
+    "urls": ["https://www.instagram.com/*"]
+  },
+  "windows": ["main"],
+  "permissions": ["opener:allow-open-url"]
+}
