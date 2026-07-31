@@ -48,11 +48,12 @@ const settle = ms => new Promise(r => setTimeout(r, ms || 1000));
 process.on('exit', () => open.forEach(d => d.window.close()));
 
 (async () => {
-  // 1. Everything watchable stays caged, with no exemptions at all. Home is in
-  //    the list now: in-app posting is gone, so nothing needs "/" to be
-  //    reachable, and the feed can no longer render even behind CSS.
-  const leaks = ['/', '/?variant=following', '/reels/', '/explore/', '/stories/bob/',
-    '/p/abc/', '/someuser/reels/', '/someuser/tagged/'].map(p => [p, boot(p, '')]);
+  // 1. Everything feed-shaped stays caged. Home is in the list: in-app posting
+  //    is gone, so nothing needs "/" to be reachable, and the feed can no
+  //    longer render even behind CSS. The two exemptions — a sent reel (7) and
+  //    stories (8) — are each asserted in both directions below.
+  const leaks = ['/', '/?variant=following', '/reels/', '/explore/',
+    '/someuser/reels/', '/someuser/tagged/'].map(p => [p, boot(p, '')]);
   await settle();
   for (const [p, d] of leaks) {
     assert(d.went.includes('/direct/inbox/'), `${p} must be caged`);
@@ -66,8 +67,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the notifications heart must stay visible on the phone');
   const deskSheets = [...boot('/direct/inbox/', '', { ua: DESKTOP })
     .window.document.querySelectorAll('style')].map(s => s.textContent).join('');
-  assert(/aria-label="Notifications"/.test(deskSheets),
-    'the heart is phone-only - the Mac app is a DM window, not a way back in');
+  assert(!/aria-label="Notifications"/.test(deskSheets),
+    'the desktop heart stays - flip-flopped twice, re-added by request 2026-07-31');
   assert(/a:has\(img\[alt\$='profile picture'\]\)\{pointer-events:none/.test(sheets),
     'avatars must be inert, not hidden - display:none left a hole in the profile header');
   assert(!/a:has\(svg\[aria-label="Messages"\]\)/.test(sheets),
@@ -86,8 +87,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
 
   // 4. Profiles themselves are open now: you cannot message someone you just
   //     met without first reaching their profile.
-  const profiles = ['/someuser/', '/some.user_1', '/accounts/edit/'].map(p =>
-    [p, boot(p, '')]);
+  const profiles = ['/someuser/', '/some.user_1', '/accounts/edit/',
+    '/p/abc/', '/tv/xyz/'].map(p => [p, boot(p, '')]);
   await settle();
   for (const [p, d] of profiles) {
     assert(!d.went.includes('/direct/inbox/'), `${p} must not be caged`);
@@ -243,6 +244,39 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const scroll = new thread.window.Event('touchmove', { bubbles: true, cancelable: true });
   thread.window.document.body.dispatchEvent(scroll);
   assert(!scroll.defaultPrevented, 'a thread must still scroll');
+
+  // 8. Stories are watchable: viewer and highlights URLs survive on both
+  //    platforms. The way out needs no lock of its own — the viewer only walks
+  //    people you follow, and its exit lands on "/", which test 1 cages.
+  const stories = ['/stories/bob/3141/', '/stories/highlights/17/'].flatMap(p =>
+    [[p, boot(p, '', { ua: DESKTOP })], [p, boot(p, '')]]);
+  await settle();
+  for (const [p, d] of stories) {
+    assert(!d.went.includes('/direct/inbox/'), `${p} must be watchable`);
+  }
+
+  // 8b. A post page is not the reel player: a tall video post must not trip
+  //     the gesture lock, or comments stop scrolling and the desktop's
+  //     next/prev arrows through a profile's grid die.
+  const post = boot('/p/abc123/', '<video src="v.mp4"></video>', { ua: DESKTOP });
+  post.window.document.querySelector('video').getBoundingClientRect =
+    () => ({ height: post.window.innerHeight });
+  const postWheel = new post.window.Event('wheel', { bubbles: true, cancelable: true });
+  post.window.document.body.dispatchEvent(postWheel);
+  assert(!postWheel.defaultPrevented, 'a post page must scroll even with a tall video');
+
+  // 9. The phone's notifications doorway. The mobile inbox renders no tab bar
+  //    (confirmed by screenshot on device), so the cage injects its own heart
+  //    linking to Instagram's activity page - phone-only.
+  const heartPhone = boot('/direct/inbox/', '');
+  const h = heartPhone.window.document.getElementById('im-heart');
+  assert(h && h.getAttribute('href') === '/accounts/activity/',
+    'the phone inbox must carry the injected heart');
+  assert(!boot('/direct/inbox/', '', { ua: DESKTOP }).window.document.getElementById('im-heart'),
+    'no heart on the Mac - tried in build 25, reverted same-day');
+  const activity = boot('/accounts/activity/', '');
+  await settle();
+  assert(!activity.went.includes('/direct/inbox/'), 'the activity page must stay reachable');
 
   console.log('ALL CAGE TESTS PASS');
   process.exit(0);

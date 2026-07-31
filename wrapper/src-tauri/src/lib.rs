@@ -1,7 +1,8 @@
 // Konvo Wrapper: a caged instagram.com for the things the official
 // API can never do — starting new conversations, group chats, and (on iOS)
-// DMs for private accounts. Cage rules: DM inbox + login flows only. No
-// feed, no reels, no explore, no profiles, no stories.
+// DMs for private accounts. Cage rules: no feed, no reels feed, no explore.
+// Profiles, stories, and single posts stay reachable — people-shaped
+// surfaces, not the algorithm's.
 
 use tauri::utils::config::Color;
 use tauri::{Url, WebviewUrl, WebviewWindowBuilder};
@@ -61,9 +62,11 @@ const CAGE_SCRIPT: &str = r#"
     setTimeout(clear, 20000);
   })();
 
-  // Feed + any standalone media viewer: a post/story shared in a DM opens a
-  // viewer whose URL becomes /p|/tv|/stories — bounce it. The DM preview
-  // thumbnail still shows.
+  // Only the algorithm's surfaces bounce. Single-media permalinks — /p/, /tv/,
+  // /reel/<code> — are conversation material: a post opened from a profile
+  // grid or shared in a DM is one person's post, and there is no /p/ feed to
+  // leak into. The desktop's next/prev arrows on a post walk that same
+  // person's grid, which is browsing a friend, not a feed.
   // Profiles themselves are deliberately open: finding someone you just met
   // and hitting Message is the whole point of a DM app. What stays shut is
   // everything you can watch - including a profile's own reels tab, which the
@@ -75,9 +78,12 @@ const CAGE_SCRIPT: &str = r#"
   // letter, so the pattern below is plural ON PURPOSE - restoring the old
   // "reels?" re-cages shared reels, and dropping to "reel" opens the feed.
   // Swiping out of that one reel into the next is shut off separately, below.
+  //
+  // /stories/ is deliberately absent: a story is a friend's post, not the
+  // algorithm's — the viewer only walks people you follow and exits to "/",
+  // which bounces. Restoring the pattern re-cages story viewing everywhere.
   var FEED = [
     /^\/$/, /^\/reels(\/|$)/, /^\/reel\/?$/, /^\/explore(\/|$)/,
-    /^\/p\//, /^\/tv\//, /^\/stories\//,
     /^\/[A-Za-z0-9._]+\/(reels|tagged|saved)(\/|$)/
   ];
   // No exemptions. Posting a story used to open "/" behind a CSS blanket, and
@@ -213,16 +219,11 @@ const CAGE_SCRIPT: &str = r#"
     'a:has(svg[aria-label="New post"])',
     'div[role="button"]:has(svg[aria-label="Create"])'
   ];
-  // The heart is a phone affordance: on a phone this app replaces Instagram
-  // outright, so a follow request has nowhere else to surface. The Mac app is
-  // a desk-side DM window sitting next to a browser, and there the heart is
-  // just a doorway back into the engagement loop.
-  if (!/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-    css.push(
-      '[role="link"]:has(svg[aria-label="Notifications"])',
-      'a:has(svg[aria-label="Notifications"])'
-    );
-  }
+  // The Notifications heart stays on both platforms. This flip-flopped:
+  // shipped on desktop 2026-07-30 (build 25), reverted the same afternoon
+  // ("it's triggering smth in me"), re-added by explicit request 2026-07-31.
+  // The wall behind it holds either way — likes tapped in the drawer land on
+  // /p/, follows land on profiles, both deliberately open now.
   var style = document.createElement("style");
   // Avatars are never a doorway, but they are also not clutter: hiding the
   // link took the picture with it and left a hole in the profile header. Inert
@@ -232,41 +233,38 @@ const CAGE_SCRIPT: &str = r#"
     "a:has(img[alt$='profile picture']){pointer-events:none !important;}";
   (document.head || document.documentElement).appendChild(style);
 
-
-  // Notes/stories tray in the mobile inbox: the hard wall is the URL cage
-  // (tapping a story ring lands on /stories/... and bounces), this hides the
-  // temptation row itself. Anchored on the "Your note" leaf because
-  // Instagram's class names are minified and unstable.
-  function hideTray() {
-    var leaves = document.querySelectorAll("span,div");
-    for (var i = 0; i < leaves.length; i++) {
-      var el = leaves[i];
-      if (el.childElementCount !== 0 || el.textContent.trim() !== "Your note") continue;
-      // Walk out to the outermost ancestor that is still one row: the tray
-      // spans the viewport but stays short, while the conversation list around
-      // it is tall. The original anchor required >= 2 images in an ancestor and
-      // missed the common case where yours is the only note; the replacement
-      // then capped the walk at 8 hops, and the row measured on a real inbox
-      // sits at hop 9-10 (140x357 against a 390 viewport), so it was never
-      // reached. 14 leaves headroom without running into the tall scroller,
-      // which the height test rejects anyway.
-      // ponytail: geometric heuristic, swap for a stable selector if Instagram
-      // ever ships one.
-      var node = el, row = null, hops = 0;
-      while (node.parentElement && hops < 14) {
-        node = node.parentElement;
-        hops++;
-        var r = node.getBoundingClientRect();
-        if (r.height > 0 && r.height <= 200 && r.width >= window.innerWidth * 0.8) {
-          row = node;
-        }
-      }
-      if (row) {
-        row.style.setProperty("display", "none", "important");
-        return;
-      }
-    }
+  // The phone inbox has no tab bar at all - Instagram's mobile-web DM layout
+  // ships without one, so there was never a heart to keep. The only
+  // notifications doorway on a phone is one we add ourselves: a floating
+  // heart on the inbox, straight to Instagram's own activity page. Gated to
+  // the inbox route (im-inbox) so it never floats over a conversation, and to
+  // phones - the Mac tried a heart in build 25 and it came back out same-day.
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    // Single-quoted on purpose: starting a double-quoted string with a hash
+    // would put quote-then-hash in the source, which closes the Rust raw
+    // string this script lives in.
+    style.textContent +=
+      '#im-heart{display:none;position:fixed;right:16px;bottom:24px;width:44px;height:44px;' +
+      'border-radius:50%;background:rgba(38,38,38,.92);color:#f5f5f7;z-index:2147483000;' +
+      'align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.4)}' +
+      'html.im-inbox #im-heart{display:flex}';
+    var heart = document.createElement("a");
+    heart.id = "im-heart";
+    heart.href = "/accounts/activity/";
+    heart.setAttribute("aria-label", "Notifications");
+    heart.innerHTML =
+      "<svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
+      " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
+      "<path d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0" +
+      "-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'/></svg>";
+    (document.body || document.documentElement).appendChild(heart);
   }
+
+
+  // The notes/stories tray in the inbox is deliberately visible now: with
+  // home caged it is the only doorway into a friend's story on either
+  // platform. The hideTray() that removed it died with the /stories/ bounce.
+  //
   // "Requests" tab: often a link/button with no stable href attribute, so
   // anchor on the text and hide its clickable ancestor. Matched as a prefix,
   // not an equality: the live tab renders a pending count ("Requests (2)"),
@@ -354,6 +352,10 @@ const CAGE_SCRIPT: &str = r#"
   // touchstart if a thread full of clips ever feels sticky.
   function watchingReel() {
     if (/^\/reel\//.test(location.pathname)) return true;
+    // A post page is not the reel player, however tall its video renders:
+    // locking gestures there kills comment scrolling and the desktop's
+    // next/prev arrows through a profile's grid.
+    if (/^\/p\//.test(location.pathname)) return false;
     var v = document.querySelectorAll("video");
     for (var i = 0; i < v.length; i++) {
       if (v[i].getBoundingClientRect().height > innerHeight * 0.8) return true;
@@ -409,7 +411,7 @@ const CAGE_SCRIPT: &str = r#"
     document.addEventListener(t, unmute, true);
   });
 
-  function sweep() { hideTray(); hideRequests(); hideProfileLink(); }
+  function sweep() { hideRequests(); hideProfileLink(); }
   new MutationObserver(sweep).observe(document.documentElement, { childList: true, subtree: true });
   sweep();
 })();
@@ -574,6 +576,27 @@ pub fn run() {
                         let _ = hide_target.hide();
                     }
                 });
+
+                // Menu bar icon: one click brings the hidden window back, the
+                // same job as the Dock icon but always on screen. No menu —
+                // the only action Konvo has is "show me my messages".
+                // tray.png is a template image (black + alpha, generated
+                // monochrome bubble): macOS recolors it to match the menu bar
+                // theme, like every system icon. The colored app icon was
+                // tried first and read as noise next to the monochrome row.
+                let tray_target = window.clone();
+                tauri::tray::TrayIconBuilder::new()
+                    .icon(tauri::image::Image::from_bytes(include_bytes!(
+                        "../icons/tray.png"
+                    ))?)
+                    .icon_as_template(true)
+                    .on_tray_icon_event(move |_, event| {
+                        if let tauri::tray::TrayIconEvent::Click { .. } = event {
+                            let _ = tray_target.show();
+                            let _ = tray_target.set_focus();
+                        }
+                    })
+                    .build(app)?;
             }
 
             #[cfg(all(debug_assertions, desktop))]
