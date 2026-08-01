@@ -143,6 +143,39 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(!own.defaultPrevented, "Instagram's own links must stay in the app");
   assert.strictEqual(opened.length, 1, 'only external links go to the browser');
 
+  // 5c. Mobile DM bubbles and story link stickers use window.open, a silent
+  //     no-op in a webview - the tap died there, on device, twice. It must
+  //     route out like a click, with Meta's l.instagram.com linkshim
+  //     unwrapped so the browser gets the real destination, and identical
+  //     back-to-back opens (anchor handler + Instagram's own window.open on
+  //     one tap) must collapse into one Safari tab.
+  const sticker = boot('/stories/bob/314/', '');
+  const stickerOpened = [];
+  sticker.window.__TAURI_INTERNALS__ =
+    { invoke: (cmd, args) => { stickerOpened.push(args.url); return Promise.resolve(); } };
+  sticker.window.open('https://l.instagram.com/?u=https%3A%2F%2Fshop.example%2Fx&e=ATO');
+  assert.deepStrictEqual(stickerOpened, ['https://shop.example/x'],
+    'a story link sticker must reach the real browser, unwrapped');
+  sticker.window.open('https://l.instagram.com/?u=https%3A%2F%2Fshop.example%2Fx&e=ATO');
+  assert.strictEqual(stickerOpened.length, 1, 'one tap must not open Safari twice');
+  sticker.window.open('https://www.instagram.com/p/abc/');
+  assert.strictEqual(stickerOpened.length, 1, "Instagram's own new-tab opens stay in the app");
+  assert.strictEqual(sticker.window.__loc.href, 'https://www.instagram.com/p/abc/',
+    'an in-app new-tab open must navigate in place instead');
+
+  //     ...and a linkshim-wrapped <a> in a DM goes out unwrapped, not into
+  //     the cage as an instagram.com navigation.
+  const shim = boot('/direct/t/123/',
+    '<a href="https://l.instagram.com/?u=https%3A%2F%2Fnews.example%2Fa" target="_blank">news</a>');
+  const shimOpened = [];
+  shim.window.__TAURI_INTERNALS__ =
+    { invoke: (cmd, args) => { shimOpened.push(args.url); return Promise.resolve(); } };
+  const sev = new shim.window.MouseEvent('click', { bubbles: true, cancelable: true });
+  shim.window.document.querySelector('a').dispatchEvent(sev);
+  assert(sev.defaultPrevented, 'a linkshim anchor must not navigate the webview');
+  assert.deepStrictEqual(shimOpened, ['https://news.example/a'],
+    'the linkshim must unwrap to the real URL');
+
   // 6. Regression guard: inbox rows use avatar images as their tap target, so
   //    the media blocker must not reach the conversation list.
   const list = boot('/direct/inbox/', '<div id="row"><img src="avatar.jpg"><span>aliisa</span></div>');

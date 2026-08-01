@@ -306,17 +306,56 @@
   // chain hops across Meta domains and out to reCAPTCHA, and a host allow-list
   // there strands it on a blank page. A click on an anchor is the one signal
   // that separates "the user asked for this" from "Instagram is redirecting".
-  document.addEventListener("click", function (e) {
-    var a = e.target.closest && e.target.closest("a[href]");
-    if (!a || !/^https?:$/.test(a.protocol)) return;
-    if (/(^|\.)instagram\.com$/.test(a.hostname)) return;
-    e.preventDefault();
+  // What counts as "leaves the app": any http(s) URL that is not Instagram's.
+  // l.instagram.com is Meta's linkshim - every external link in a DM or a
+  // story sticker is wrapped in it - so it unwraps to its ?u= destination
+  // rather than being treated as Instagram's own.
+  function externalize(href) {
+    try {
+      var u = new URL(href, location.href);
+      if (!/^https?:$/.test(u.protocol)) return null;
+      if (u.hostname === "l.instagram.com") {
+        var real = u.searchParams.get("u");
+        if (real) return externalize(real) || real;
+      }
+      if (/(^|\.)instagram\.com$/.test(u.hostname)) return null;
+      return u.href;
+    } catch (e) { return null; }
+  }
+  // One tap can reach the browser twice - the anchor handler fires AND
+  // Instagram's own handler calls window.open on the same URL - so identical
+  // opens within a beat collapse to one Safari tab.
+  var lastOpen = "", lastOpenAt = 0;
+  function openExternal(url) {
+    var now = Date.now();
+    if (url === lastOpen && now - lastOpenAt < 1500) return;
+    lastOpen = url; lastOpenAt = now;
     if (window.__TAURI_INTERNALS__) {
       window.__TAURI_INTERNALS__
-        .invoke("plugin:opener|open_url", { url: a.href })
+        .invoke("plugin:opener|open_url", { url: url })
         .catch(function () {});
     }
+  }
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest("a[href]");
+    if (!a) return;
+    var ext = externalize(a.href);
+    if (!ext) return;
+    e.preventDefault();
+    openExternal(ext);
   }, true);
+  // The anchor handler only sees real <a> taps. Mobile DM bubbles and story
+  // link stickers open through window.open instead, which is a silent no-op
+  // in a webview - the tap just dies. Route it like a click: external to the
+  // real browser, Instagram's own "new tab" navigates in place (the cage
+  // rules on the destination still apply). Returning null is what a blocked
+  // popup returns, which every site already handles.
+  window.open = function (href) {
+    var ext = href && externalize(href);
+    if (ext) openExternal(ext);
+    else if (href) location.href = href;
+    return null;
+  };
 
   // The only reel you may watch is the one that was sent to you, so the way
   // out of it has to be shut: Instagram advances to the next reel on a vertical
