@@ -10,6 +10,8 @@ import { ChromeLogo, DownloadModal } from "./download-modal";
  */
 const SHELL = 1200;
 
+const NAVLINK: React.CSSProperties = { color: "inherit", textDecoration: "none", cursor: "pointer" };
+
 
 export function Landing() {
   const [open, setOpen] = useState(false);
@@ -18,9 +20,9 @@ export function Landing() {
     <div style={{ width: "100%", background: "#fff", display: "flex", flexDirection: "column", overflow: "hidden", color: "#0f1b33" }}>
       {/* hero band (10b): fixed-height split — copy left, app shot right. */}
       <div
+        className="lp-hero-band"
         style={{
           width: "100%",
-          height: 620,
           // No scrim: the backdrop is a pale, even gradient, so the dark type
           // already has contrast. The washes here were only ever compensating
           // for photographic backgrounds.
@@ -48,11 +50,10 @@ export function Landing() {
         {/* nav */}
         <div style={{ width: "100%", boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 24px", maxWidth: SHELL, margin: "0 auto", position: "relative" }}>
           <Wordmark />
-          <div style={{ display: "flex", alignItems: "center", gap: 38, fontSize: 16, fontWeight: 500, color: "#2c3444" }}>
-            <span style={{ cursor: "pointer" }}>How it works</span>
-            <span style={{ cursor: "pointer" }}>What&apos;s blocked</span>
-            <span style={{ cursor: "pointer" }}>FAQ</span>
-            <span style={{ cursor: "pointer" }}>Blog</span>
+          <div className="lp-nav" style={{ fontSize: 16, fontWeight: 500, color: "#2c3444" }}>
+            <a href="#how" style={NAVLINK}>How it works</a>
+            <a href="#blocked" style={NAVLINK}>What&apos;s blocked</a>
+            <a href="#faq" style={NAVLINK}>FAQ</a>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 9, background: "rgba(255,255,255,0.6)", border: "1px solid rgba(20,40,80,0.1)", borderRadius: 999, padding: "8px 16px", fontSize: 14, fontWeight: 500, color: "#2c3444" }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#30a14e" }} />
@@ -61,9 +62,9 @@ export function Landing() {
         </div>
 
         {/* hero row */}
-        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 60, padding: "0 24px 16px 56px", maxWidth: SHELL, margin: "0 auto", width: "100%", boxSizing: "border-box", position: "relative" }}>
-          <div style={{ width: 600, flex: "none" }}>
-            <h1 style={{ fontSize: 52, fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.05, margin: 0, color: "#0f1b33" }}>
+        <div className="lp-hero-row" style={{ flex: 1, maxWidth: SHELL, margin: "0 auto", width: "100%", boxSizing: "border-box", position: "relative" }}>
+          <div className="lp-hero-copy">
+            <h1 className="lp-h1" style={{ fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.05, margin: 0, color: "#0f1b33" }}>
               DM on Instagram
               <br />
               without the feed and reels.
@@ -86,8 +87,8 @@ export function Landing() {
       </div>
 
       {/* setup steps */}
-      <Section eyebrow="GETTING STARTED" title="Setup takes about two minutes." sub="You do it once and that's it.">
-        <div style={{ display: "flex", gap: 24, width: "100%", alignItems: "stretch" }}>
+      <Section id="how" eyebrow="GETTING STARTED" title="Setup takes about two minutes." sub="You do it once and that's it.">
+        <div className="lp-row" style={{ alignItems: "stretch" }}>
           <StepCard n={1} title="Download the app" body="Konvo is a Mac app. It signs into the Instagram account you already have and shows your messages.">
             <Chip>
               <span style={{ width: 17, height: 17, borderRadius: 5, background: "#0a5cf0", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
@@ -117,12 +118,13 @@ export function Landing() {
 
       {/* what changes */}
       <Section
+        id="blocked"
         eyebrow="WHAT CHANGES"
         title="Everything goes except your messages."
         sub="Instagram puts your friends in the same app as the feed on purpose. That's how they keep you there. Konvo splits them up."
         subWidth="56ch"
       >
-        <div style={{ display: "flex", gap: 24, width: "100%", alignItems: "flex-start" }}>
+        <div className="lp-row" style={{ alignItems: "flex-start" }}>
           <ListCard dot="#d64541" heading="Blocked" items={["Feed", "Stories", "Reels", "Explore", "Suggested posts"]} kind="x" />
           <ListCard
             dot="#30a14e"
@@ -135,7 +137,7 @@ export function Landing() {
 
       {/* after setup */}
       <Section eyebrow="AFTER SETUP" title="Two things change." titleMargin="12px 0 40px">
-        <div style={{ display: "flex", gap: 24, width: "100%" }}>
+        <div className="lp-row">
           <div style={CARD}>
             <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.025em", color: "#0f1b33" }}>You open Konvo to talk</div>
             <div style={{ fontSize: 15, lineHeight: 1.55, color: "#5a6478", margin: "8px 0 22px" }}>
@@ -177,7 +179,7 @@ export function Landing() {
       </Section>
 
       {/* faq */}
-      <div style={{ width: "100%", boxSizing: "border-box", padding: "84px 24px 0", maxWidth: SHELL, margin: "0 auto" }}>
+      <div id="faq" style={{ width: "100%", boxSizing: "border-box", padding: "84px 24px 0", maxWidth: SHELL, margin: "0 auto" }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#98a1b0" }}>QUESTIONS</div>
         <h2 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33", margin: "12px 0 24px" }}>
           Frequently asked questions
@@ -190,7 +192,7 @@ export function Landing() {
       </div>
 
       {/* closing cta */}
-      <div style={{ width: "100%", boxSizing: "border-box", padding: "104px 24px", maxWidth: SHELL, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="lp-cta-row" style={{ width: "100%", boxSizing: "border-box", padding: "104px 24px", maxWidth: SHELL, margin: "0 auto" }}>
         <div>
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33" }}>Message your friends.</div>
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0a5cf0" }}>Skip the rest of Instagram.</div>
@@ -199,12 +201,25 @@ export function Landing() {
       </div>
 
       {/* footer */}
-      <div style={{ width: "100%", boxSizing: "border-box", borderTop: "1px solid #e9ecf2", padding: "48px 24px 24px", maxWidth: SHELL, margin: "0 auto", display: "flex", justifyContent: "space-between" }}>
+      <div className="lp-foot" style={{ width: "100%", boxSizing: "border-box", borderTop: "1px solid #e9ecf2", padding: "48px 24px 24px", maxWidth: SHELL, margin: "0 auto" }}>
         <Wordmark small />
-        <div style={{ display: "flex", gap: 72 }}>
-          <FooterCol title="Product" items={["Download", "How it works", "What's blocked"]} />
-          <FooterCol title="Resources" items={["Blog", "FAQ", "Changelog"]} />
-          <FooterCol title="Support" items={["Contact", "Privacy", "Terms"]} />
+        <div className="lp-foot-cols">
+          <FooterCol
+            title="Product"
+            items={[
+              { label: "How it works", href: "#how" },
+              { label: "What's blocked", href: "#blocked" },
+              { label: "FAQ", href: "#faq" },
+            ]}
+          />
+          <FooterCol
+            title="Support"
+            items={[
+              { label: "Contact", href: "mailto:jchanh@gmail.com" },
+              { label: "Privacy", href: "/privacy" },
+              { label: "Terms", href: "/terms" },
+            ]}
+          />
         </div>
       </div>
       <div style={{ width: "100%", boxSizing: "border-box", padding: "0 24px 40px", maxWidth: SHELL, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13, color: "#98a1b0" }}>
@@ -275,6 +290,7 @@ function Faq({ q, a }: { q: string; a: string }) {
 }
 
 function Section({
+  id,
   eyebrow,
   title,
   sub,
@@ -282,6 +298,7 @@ function Section({
   titleMargin,
   children,
 }: {
+  id?: string;
   eyebrow: string;
   title: string;
   sub?: string;
@@ -290,7 +307,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ width: "100%", boxSizing: "border-box", padding: "84px 24px 0", maxWidth: SHELL, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <div id={id} style={{ width: "100%", boxSizing: "border-box", padding: "84px 24px 0", maxWidth: SHELL, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#98a1b0" }}>{eyebrow}</div>
       <h2 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33", margin: titleMargin ?? "12px 0 10px", textAlign: "center" }}>
         {title}
@@ -415,15 +432,15 @@ function Dot() {
   return <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#3a3f47" }} />;
 }
 
-function FooterCol({ title, items }: { title: string; items: string[] }) {
+function FooterCol({ title, items }: { title: string; items: { label: string; href: string }[] }) {
   return (
     <div>
       <div style={{ fontSize: 13, fontWeight: 700, color: "#0f1b33", marginBottom: 12 }}>{title}</div>
       <div style={{ display: "flex", flexDirection: "column", gap: 9, fontSize: 14, color: "#5a6478" }}>
         {items.map((i) => (
-          <span key={i} style={{ cursor: "pointer" }}>
-            {i}
-          </span>
+          <a key={i.label} href={i.href} style={{ color: "inherit", textDecoration: "none", cursor: "pointer" }}>
+            {i.label}
+          </a>
         ))}
       </div>
     </div>

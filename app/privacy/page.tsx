@@ -8,9 +8,21 @@ export const metadata: Metadata = {
 const CONTACT_EMAIL = "jchanh@gmail.com";
 const EFFECTIVE_DATE = "August 1, 2026";
 
+// The landing page is hardcoded light (blue on white); this page follows it
+// rather than the app's dark-mode tokens, so tapping Privacy from the site
+// or the paywall never flips the palette.
+const LANDING_THEME = {
+  background: "#fff",
+  "--ink": "#0f1b33",
+  "--muted": "#5a6478",
+  "--faint": "#98a1b0",
+  "--amber": "#0a5cf0",
+} as React.CSSProperties;
+
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto w-full max-w-2xl flex-1 px-5 pb-16 pt-[max(2rem,env(safe-area-inset-top))]">
+    <div className="w-full flex-1" style={LANDING_THEME}>
+    <div className="mx-auto w-full max-w-2xl px-5 pb-16 pt-[max(2rem,env(safe-area-inset-top))]">
       <header className="mb-8">
         <Link href="/" className="text-sm text-muted transition-colors hover:text-ink">
           ← konvo
@@ -98,6 +110,7 @@ export default function PrivacyPage() {
           </p>
         </Section>
       </div>
+    </div>
     </div>
   );
 }

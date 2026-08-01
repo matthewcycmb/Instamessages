@@ -51,6 +51,32 @@
 
 html {
   background: var(--bg);
+  scroll-behavior: smooth;
+}
+
+/* ── Landing responsiveness. landing.tsx is inline-styled from the 1200px
+   design canvas; these classes carry only the properties that must change
+   with width, so the desktop render stays pixel-identical. */
+.lp-nav { display: flex; align-items: center; gap: 38px; }
+.lp-hero-band { height: 620px; }
+.lp-hero-row { display: flex; align-items: center; gap: 60px; padding: 0 24px 16px 56px; }
+.lp-hero-copy { width: 600px; flex: none; }
+.lp-h1 { font-size: 52px; }
+.lp-row { display: flex; gap: 24px; width: 100%; }
+.lp-cta-row { display: flex; align-items: center; justify-content: space-between; }
+.lp-foot { display: flex; justify-content: space-between; }
+.lp-foot-cols { display: flex; gap: 72px; }
+
+@media (max-width: 900px) {
+  .lp-nav { display: none; }
+  .lp-hero-band { height: auto; }
+  .lp-hero-row { flex-direction: column; align-items: stretch; padding: 24px 24px 40px; gap: 36px; }
+  .lp-hero-copy { width: 100%; }
+  .lp-h1 { font-size: 36px; }
+  .lp-row { flex-direction: column; }
+  .lp-cta-row { flex-direction: column; align-items: flex-start; gap: 28px; }
+  .lp-foot { flex-direction: column; gap: 32px; }
+  .lp-foot-cols { gap: 40px; }
 }
 
 body {

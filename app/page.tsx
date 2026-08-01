@@ -1,6 +1,5 @@
 import { headers } from "next/headers";
 import { Landing } from "@/components/landing";
-import { MobileComingSoon } from "@/components/mobile-coming-soon";
 import { MacOnly } from "@/components/mac-only";
 
 export default async function Home() {
@@ -9,9 +8,9 @@ export default async function Home() {
   const mobile = /iphone|ipad|ipod|android/i.test(ua);
   const mac = /macintosh|mac os x/i.test(ua) && !/iphone|ipad|ipod/i.test(ua);
 
-  // The redesign is desktop-only (min-width 1200px, as drawn); mobile and
-  // non-Mac keep the screens they already had.
-  if (mobile) return <MobileComingSoon />;
-  if (!mac) return <MacOnly />;
+  // Phones get the real landing page (it stacks below 900px); only non-Mac
+  // desktops still get the Mac-only screen, because the app they would
+  // download genuinely does not run there.
+  if (!mac && !mobile) return <MacOnly />;
   return <Landing />;
 }
