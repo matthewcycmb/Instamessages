@@ -6,7 +6,7 @@ export const metadata: Metadata = {
 };
 
 const CONTACT_EMAIL = "jchanh@gmail.com";
-const EFFECTIVE_DATE = "July 23, 2026";
+const EFFECTIVE_DATE = "August 1, 2026";
 
 export default function PrivacyPage() {
   return (
@@ -22,10 +22,12 @@ export default function PrivacyPage() {
       <div className="space-y-8 text-[15px] leading-relaxed text-muted">
         <Section title="What Konvo is">
           <p>
-            Konvo is a desktop app that opens Instagram&rsquo;s own website in a focused
-            window showing only direct messages, plus a browser extension that redirects
-            instagram.com&rsquo;s feed, reels, and profile pages to this site. You sign in to
-            Instagram directly with Instagram; Konvo is not affiliated with Meta.
+            Konvo is an app for iPhone and Mac that opens Instagram&rsquo;s own website in
+            a focused window showing your messages and friends&rsquo; stories, with the
+            feed, Reels, and Explore hidden. There is also a browser extension that
+            redirects instagram.com&rsquo;s feed, reels, and profile pages to this site.
+            You sign in to Instagram directly with Instagram; Konvo is not affiliated
+            with Meta.
           </p>
         </Section>
 
@@ -36,6 +38,16 @@ export default function PrivacyPage() {
             instagram.com inside the app; your credentials and messages never pass through or
             get stored on our servers. The browser extension contains only static redirect
             rules &mdash; it runs no code on any page, and reads and transmits no data.
+          </p>
+        </Section>
+
+        <Section title="Purchases">
+          <p>
+            Konvo on iPhone offers auto-renewable subscriptions. Purchases are made
+            through Apple and billed to your Apple ID; we never see your payment
+            details, and no purchase information reaches us. The app checks your
+            subscription status on your device through Apple&rsquo;s StoreKit and stores
+            that status only on the device.
           </p>
         </Section>
 
@@ -57,6 +69,17 @@ export default function PrivacyPage() {
                 className="text-amber underline underline-offset-2"
               >
                 Meta&rsquo;s privacy policy
+              </a>
+              .
+            </li>
+            <li>
+              <span className="text-ink">Apple</span>: processes subscription payments
+              under{" "}
+              <a
+                href="https://www.apple.com/legal/privacy/"
+                className="text-amber underline underline-offset-2"
+              >
+                Apple&rsquo;s privacy policy
               </a>
               .
             </li>
