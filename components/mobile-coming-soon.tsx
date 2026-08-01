@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const LINK = "https://instamessages.vercel.app";
+const LINK = "https://konvoinstall.com";
 
 /** Desktop-only for now: mobile visitors get a copy-the-link handoff (design 6a). */
 export function MobileComingSoon() {
@@ -120,7 +120,7 @@ export function MobileComingSoon() {
         )}
       </button>
       <p style={{ fontSize: 13, color: "#636366", margin: "14px 0 0" }}>
-        instamessages.vercel.app
+        konvoinstall.com
       </p>
     </main>
   );

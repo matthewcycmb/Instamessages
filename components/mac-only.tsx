@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-const LINK = "https://instamessages.vercel.app";
+const LINK = "https://konvoinstall.com";
 
 /** Non-Mac desktop visitors: the app is macOS-only for now (design mirrors 6a). */
 export function MacOnly() {
@@ -116,7 +116,7 @@ export function MacOnly() {
           </>
         )}
       </button>
-      <p style={{ fontSize: 13, color: "#636366", margin: "14px 0 0" }}>instamessages.vercel.app</p>
+      <p style={{ fontSize: 13, color: "#636366", margin: "14px 0 0" }}>konvoinstall.com</p>
     </main>
   );
 }

@@ -135,7 +135,7 @@
     "action": {
       "type": "redirect",
       "redirect": {
-        "url": "https://instamessages.vercel.app/blocked?utm_source=extension"
+        "url": "https://konvoinstall.com/blocked?utm_source=extension"
       }
     },
     "condition": {

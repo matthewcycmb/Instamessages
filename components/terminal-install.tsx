@@ -7,7 +7,7 @@ import { useState } from "react";
 // opens with no Gatekeeper "damaged" wall. The script also refuses to install
 // on Intel Macs, which the arm64 build can't run, and pins the app to the
 // Dock on first install. Retired once the app is notarized.
-const CMD = "curl -fsSL https://instamessages.vercel.app/install.sh | bash";
+const CMD = "curl -fsSL https://konvoinstall.com/install.sh | bash";
 
 /** Always-visible command box: the primary install path while unsigned. */
 export function TerminalCommand() {

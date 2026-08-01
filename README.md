@@ -41,7 +41,7 @@ testers.
 
 | Target | How |
 |---|---|
-| macOS | `curl -fsSL https://instamessages.vercel.app/install.sh \| bash` |
+| macOS | `curl -fsSL https://konvoinstall.com/install.sh \| bash` |
 | Windows | `windows-preview` prerelease, rebuilt on every `wrapper/**` push |
 | iOS | TestFlight internal group — App Store Connect app `6794553167` |
 | Extension | Release on `matthewcycmb/instachat-extension`, linked from `/testers` |

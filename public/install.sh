@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Konvo installer.
-#   curl -fsSL https://instamessages.vercel.app/install.sh | bash
+#   curl -fsSL https://konvoinstall.com/install.sh | bash
 #
 # Downloads the app, clears the quarantine flag that would otherwise stop an
 # unsigned build from opening, pins it to the Dock, and launches it.
@@ -17,7 +17,7 @@ ZIP_URL="https://github.com/matthewcycmb/instamessages/releases/download/mac-pre
 
 if [ "$(uname -s)" != "Darwin" ]; then
   echo "This installer is for macOS. On Windows, grab the installer from" >&2
-  echo "https://instamessages.vercel.app/testers" >&2
+  echo "https://konvoinstall.com/testers" >&2
   exit 1
 fi
 
@@ -30,7 +30,7 @@ if [ "$(uname -m)" != "arm64" ] && [ "$(sysctl -n hw.optional.arm64 2>/dev/null)
   echo "This Mac has an Intel chip, so the app will not run on it yet." >&2
   echo "" >&2
   echo "The Chrome extension works on any Mac. Get it at" >&2
-  echo "https://instamessages.vercel.app/testers" >&2
+  echo "https://konvoinstall.com/testers" >&2
   exit 1
 fi
 

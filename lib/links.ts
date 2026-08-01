@@ -10,4 +10,4 @@ export const CHROME_STORE_URL: string | null =
 // See public/install.sh. curl (unlike a browser) doesn't quarantine the
 // download, so the app opens with no Gatekeeper wall. Retired once notarized.
 export const INSTALL_CMD =
-  "curl -fsSL https://instamessages.vercel.app/install.sh | bash";
+  "curl -fsSL https://konvoinstall.com/install.sh | bash";
