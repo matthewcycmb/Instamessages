@@ -2,7 +2,8 @@ name: instamessages-wrapper
 options:
   bundleIdPrefix: com.matthewchan.konvo
   deploymentTarget:
-    iOS: 14.0
+    # 15.0 is the StoreKit 2 floor (KonvoStore.swift); was 14.0 pre-paywall.
+    iOS: 15.0
 fileGroups: [../../src]
 configs:
   debug: debug
@@ -10,8 +11,9 @@ configs:
 settingGroups:
   app:
     base:
-      PRODUCT_NAME: Instamessages Wrapper
+      PRODUCT_NAME: Konvo
       PRODUCT_BUNDLE_IDENTIFIER: com.matthewchan.konvo
+      DEVELOPMENT_TEAM: JBTFJ7JD4R
 targetTemplates:
   app:
     type: application
@@ -42,6 +44,10 @@ targets:
         buildPhase: resources
         type: folder
       - path: LaunchScreen.storyboard
+      # Simulated products for the dev inner loop (Xcode scheme > run uses it
+      # below); the final pass runs against the real App Store sandbox.
+      - path: Konvo.storekit
+        buildPhase: none
     info:
       path: instamessages-wrapper_iOS/Info.plist
       properties:
@@ -60,8 +66,10 @@ targets:
       environmentVariables:
         RUST_BACKTRACE: full
         RUST_LOG: info
+      storeKitConfiguration: Konvo.storekit
     settings:
       base:
+        SWIFT_VERSION: "5.0"
         # iPhone only. The cage rules target Instagram's *mobile web* layout;
         # at iPad width Instagram serves a wider layout whose nav lives in
         # different containers, so the selectors miss and the cage leaks.
@@ -84,6 +92,7 @@ targets:
       - sdk: MetalKit.framework
       - sdk: QuartzCore.framework
       - sdk: Security.framework
+      - sdk: StoreKit.framework
       - sdk: UIKit.framework
       - sdk: WebKit.framework
     preBuildScripts:

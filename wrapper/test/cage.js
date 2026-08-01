@@ -193,9 +193,13 @@
     // Message Requests tab in the inbox header
     'a[href="/direct/requests/"]',
     'a[href^="/direct/requests"]',
-    // Instagram's own "+". Its menu offers Post as well as Story, and posting
-    // to the grid is out of scope - the phone reaches stories through the
-    // "Your story" tray instead, so nothing needs this button on any platform.
+    // Instagram's own "+". Hidden everywhere, and this is SETTLED, not a
+    // default: builds 28-29 (2026-07-31) ran the story-posting experiment a
+    // tester asked for - the CSS unhide revealed nothing (the DM inbox
+    // renders no create entry) and a direct probe at /create/story/ was
+    // bounced through "/" by Instagram itself, on device. Web posting cannot
+    // work without exempting home, and home is where every 07-29 leak came
+    // from. Posting lives in the real Instagram app.
     '[role="link"]:has(svg[aria-label="New post"])',
     'div[role="button"]:has(svg[aria-label="New post"])',
     'a:has(svg[aria-label="New post"])',
@@ -431,6 +435,335 @@
   ["play", "playing", "loadedmetadata", "canplay"].forEach(function (t) {
     document.addEventListener(t, unmute, true);
   });
+
+  // The paywall, phone only. Konvo is a paid app on iOS: an iPhone at the
+  // inbox without an active subscription gets the two-page paywall (S11
+  // value -> S12 price), with the decline path (S13 counter-offer -> S14
+  // hard stop) behind the close button. The Mac stays free - S11 promises
+  // "the Mac app is included", so the gate must never appear there.
+  //
+  // Money truth lives in StoreKit (Transaction.currentEntitlements via
+  // KonvoStore.swift), not in this cache. localStorage.konvoPaid exists so a
+  // paying user coming back offline, or before the bridge answers, never
+  // sees a paywall flash; every launch re-verifies and the verdict wins,
+  // both directions. There is no "onboarded" flag on this origin on purpose:
+  // on iOS the bundled onboarding page gates every path to the inbox, so
+  // "at the inbox on an iPhone" already means onboarding is done.
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) (function () {
+    function cached() {
+      try { return !!localStorage.getItem("konvoPaid"); } catch (e) { return false; }
+    }
+    function setCache(v) {
+      try {
+        if (v) localStorage.setItem("konvoPaid", "1");
+        else localStorage.removeItem("konvoPaid");
+      } catch (e) {}
+    }
+
+    // Bridge to KonvoStore.swift. Fire-and-forget postMessage with a numbered
+    // callback; Swift replies through __konvoStoreReply. A build without the
+    // Swift class (or the tests) has no handler - the catch answers null and
+    // everything degrades to "no verdict, keep the cache".
+    var pending = {}, seq = 0;
+    window.__konvoStoreReply = function (id, res) {
+      var cb = pending[id];
+      delete pending[id];
+      if (cb) cb(res || null);
+    };
+    function storekit(cmd, productId, cb) {
+      seq++;
+      pending[seq] = cb;
+      try {
+        window.webkit.messageHandlers.konvoStore.postMessage(
+          { cmd: cmd, id: seq, productId: productId || "" });
+      } catch (e) { delete pending[seq]; cb(null); }
+    }
+
+    style.textContent +=
+      '#im-pay{position:fixed;inset:0;z-index:2147483645;background:#fff;color:#141d33;' +
+      'display:flex;flex-direction:column;font-family:-apple-system,system-ui,sans-serif;' +
+      '-webkit-font-smoothing:antialiased}' +
+      '#im-pay h2{margin:0;font-weight:700;letter-spacing:-0.035em;line-height:1.2}' +
+      '#im-pay p{margin:0}' +
+      '#im-pay .imp-mid{flex:1;display:flex;flex-direction:column;justify-content:center;' +
+      'padding:0 24px;overflow-y:auto}' +
+      '#im-pay .imp-foot{flex:none;padding:0 20px 34px}' +
+      '#im-pay .imp-btn{width:100%;min-height:54px;border:0;border-radius:13px;' +
+      'background:#0a5cf0;color:#fff;font-family:inherit;font-size:17px;font-weight:600;' +
+      'letter-spacing:-0.012em;box-shadow:0 8px 18px rgba(10,92,240,.24)}' +
+      '#im-pay .imp-btn[disabled]{opacity:.5}' +
+      '#im-pay .imp-ghost{text-align:center;font-size:15px;color:#5d6478;padding:16px 0 2px}' +
+      '#im-pay .imp-fine{text-align:center;font-size:12.5px;line-height:1.5;color:#5d6478;' +
+      'margin-top:12px}' +
+      '#im-pay .imp-links{display:flex;justify-content:center;gap:18px;margin-top:10px;' +
+      'font-size:13.5px;color:#5d6478}' +
+      '#im-pay .imp-links span{text-decoration:underline}' +
+      '#im-pay .imp-trust{display:flex;align-items:flex-start;gap:14px}' +
+      '#im-pay .imp-ic{width:34px;height:34px;flex:none;border-radius:10px;background:#eef3ff;' +
+      'display:inline-flex;align-items:center;justify-content:center}' +
+      '#im-pay .imp-trust b{display:block;font-size:17px;font-weight:600}' +
+      '#im-pay .imp-trust i{display:block;font-style:normal;font-size:15px;line-height:1.45;' +
+      'color:#5d6478;margin-top:3px}';
+
+    // Every word below is Matthew's, hand-tuned in the onboarding mockup -
+    // do not edit copy here. S15's "Seven days free" line is why monthly and
+    // weekly purchases and restores skip that page: only yearly has a trial.
+    var CHECK =
+      "<svg width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
+      " stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'>" +
+      "<path d='M20 6 9 17l-5-5'/></svg>";
+    var PAGES = {
+      value:
+        "<div class='imp-mid' style='padding:0 20px'>" +
+        "<h2 style='font-size:26px;margin-bottom:24px'>You're here for the messages.</h2>" +
+        "<div style='display:flex;gap:10px;margin-bottom:26px'>" +
+        "<div style='flex:1;height:132px;border-radius:16px;box-shadow:inset 0 0 0 1px #d9d9de;" +
+        "padding:12px;display:flex;flex-direction:column;gap:6px;overflow:hidden'>" +
+        "<span style='height:30px;border-radius:5px;background:#eeeae3'></span>" +
+        "<span style='height:14px;width:70%;border-radius:5px;background:#eeeae3'></span>" +
+        "<span style='height:26px;border-radius:5px;background:#eeeae3'></span>" +
+        "<span style='height:18px;width:45%;border-radius:5px;background:#eeeae3'></span>" +
+        "<span style='font-size:11px;font-weight:700;letter-spacing:0.07em;color:#5d6478;" +
+        "margin-top:2px'>BEFORE</span></div>" +
+        "<div style='flex:1;height:132px;border-radius:16px;box-shadow:inset 0 0 0 1.4px #0a5cf0;" +
+        "padding:12px;display:flex;flex-direction:column;gap:10px'>" +
+        "<span style='display:flex;align-items:center;gap:8px'><span style='width:20px;" +
+        "height:20px;border-radius:50%;background:#0a5cf0'></span><span style='flex:1;" +
+        "height:8px;border-radius:4px;background:#eeeae3'></span></span>" +
+        "<span style='display:flex;align-items:center;gap:8px'><span style='width:20px;" +
+        "height:20px;border-radius:50%;background:#d9d9de'></span><span style='flex:1;" +
+        "height:8px;border-radius:4px;background:#eeeae3'></span></span>" +
+        "<span style='display:flex;align-items:center;gap:8px'><span style='width:20px;" +
+        "height:20px;border-radius:50%;background:#d9d9de'></span><span style='flex:1;" +
+        "height:8px;border-radius:4px;background:#eeeae3'></span></span>" +
+        "<span style='flex:1'></span>" +
+        "<span style='font-size:11px;font-weight:700;letter-spacing:0.07em;color:#0a5cf0'>" +
+        "KONVO</span></div></div>" +
+        "<div style='display:flex;flex-direction:column;gap:18px'>" +
+        "<div class='imp-trust'><span class='imp-ic'><svg width='18' height='18'" +
+        " viewBox='0 0 24 24' fill='none' stroke='#0a5cf0' stroke-width='2.1'" +
+        " stroke-linejoin='round'><path d='M12 4c-4.4 0-8 3-8 6.8 0 2.1 1.1 4 2.9 " +
+        "5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z'/></svg></span>" +
+        "<span><b>All your messages</b><i>DMs, group chats, requests, new conversations." +
+        "</i></span></div>" +
+        "<div class='imp-trust'><span class='imp-ic'><svg width='18' height='18'" +
+        " viewBox='0 0 24 24' fill='none' stroke='#0a5cf0' stroke-width='2.2'" +
+        " stroke-linecap='round'><circle cx='12' cy='12' r='9'/>" +
+        "<path d='m5.8 5.8 12.4 12.4'/></svg></span>" +
+        "<span><b>No feed, no Reels, no Explore</b><i>Gone, not hidden. There is nothing " +
+        "to scroll.</i></span></div>" +
+        "<div class='imp-trust'><span class='imp-ic'><svg width='18' height='18'" +
+        " viewBox='0 0 24 24' fill='none' stroke='#0a5cf0' stroke-width='2.1'" +
+        " stroke-linecap='round'><circle cx='12' cy='12' r='9' stroke-dasharray='4 3'/>" +
+        "<circle cx='12' cy='12' r='4'/></svg></span>" +
+        "<span><b>Friends' stories stay</b><i>From people you follow, right in your inbox." +
+        "</i></span></div>" +
+        "<div class='imp-trust'><span class='imp-ic'><svg width='18' height='18'" +
+        " viewBox='0 0 24 24' fill='none' stroke='#0a5cf0' stroke-width='2'" +
+        " stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18'" +
+        " height='12' rx='2'/><path d='M2 19h20'/></svg></span>" +
+        "<span><b>iPhone and Mac</b><i>The Mac app is included.</i></span></div>" +
+        "</div></div>" +
+        "<div class='imp-foot'><button class='imp-btn' data-act='price'>Continue</button></div>",
+      counter:
+        "<div class='imp-mid' style='padding:0 20px'>" +
+        "<h2 style='font-size:30px;letter-spacing:-0.04em;line-height:1.16;" +
+        "margin-bottom:8px'>Not ready for a year?</h2>" +
+        "<p style='font-size:17px;line-height:1.5;color:#5d6478;margin-bottom:24px'>" +
+        "Try it a week at a time.</p>" +
+        "<div style='border-radius:16px;background:#f0f5ff;box-shadow:inset 0 0 0 2px #0a5cf0;" +
+        "padding:20px'>" +
+        "<div style='font-size:24px;font-weight:700;letter-spacing:-0.035em'>$1.99 a week" +
+        "</div><div style='font-size:15px;color:#5d6478;margin-top:6px'>Cancel anytime. " +
+        "No trial.</div></div></div>" +
+        "<div class='imp-foot'>" +
+        "<button class='imp-btn' data-act='weekly'>Try a week</button>" +
+        "<div class='imp-ghost' data-act='stop'>No thanks</div>" +
+        "<div class='imp-fine' style='margin-top:8px'>$1.99/week, auto-renews weekly until " +
+        "canceled in Settings &rsaquo; Subscriptions.</div>" +
+        "<div class='imp-links' style='margin-top:8px'>" +
+        "<span data-act='restore'>Restore Purchases</span>" +
+        "<span data-act='terms'>Terms of Use</span>" +
+        "<span data-act='privacy'>Privacy Policy</span></div></div>",
+      stop:
+        "<div class='imp-mid'>" +
+        "<div style='margin-bottom:28px'><svg width='52' height='52' viewBox='0 0 512 512'>" +
+        "<rect width='512' height='512' rx='116' fill='#0a5cf0'/>" +
+        "<path d='M256 146c-64 0-116 45-116 100 0 31 16 58 42 76v46l52-25c7 1 14 2 22 2 " +
+        "64 0 116-45 116-99s-52-100-116-100Z' fill='none' stroke='#fff' stroke-width='26'" +
+        " stroke-linejoin='round'/></svg></div>" +
+        "<h2 style='font-size:26px;margin-bottom:12px'>Konvo is a paid app.</h2>" +
+        "<p style='font-size:17px;line-height:1.5;color:#5d6478'>Instagram's free version " +
+        "is still there, with everything we just hid.</p></div>" +
+        "<div class='imp-foot'>" +
+        "<button class='imp-btn' data-act='price'>See plans</button>" +
+        "<div class='imp-ghost' data-act='restore'>Restore Purchase</div></div>",
+      unlocked:
+        "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
+        "<svg width='118' height='118' viewBox='0 0 24 24' fill='none' stroke='#0a5cf0'" +
+        " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'" +
+        " style='margin-bottom:42px'><path d='M20 6 9 17l-5-5'/></svg>" +
+        "<div style='font-size:44px;font-weight:700;letter-spacing:-0.05em;line-height:1;" +
+        "text-align:center'>You're in.</div>" +
+        "<p style='font-size:17px;line-height:1.5;color:#5d6478;margin-top:16px;" +
+        "text-align:center'>Seven days free. Your messages are waiting.</p></div>" +
+        "<div class='imp-foot' style='padding:0 28px 40px'>" +
+        "<button class='imp-btn' data-act='done'>Open my messages</button>" +
+        "<div class='imp-ghost' data-act='mac' style='font-size:16px;font-weight:600;" +
+        "color:#0a5cf0'>Get Konvo on your Mac too</div></div>"
+    };
+
+    // S12 is the one two-state page: the Yearly/Monthly toggle. Each state
+    // tells its own truth - the trial timeline and "8¢ a day" belong to
+    // yearly alone; monthly is $4.99 with no trial, so its headline says 16¢
+    // (same round-down arithmetic as the 8) and the timeline goes away
+    // rather than describe a trial that does not exist.
+    function seg(label, act, selected) {
+      return "<span data-act='" + act + "' style='flex:1;text-align:center;padding:9px 0;" +
+        "border-radius:9px;font-size:15px;font-weight:600;" +
+        (selected ? "background:#fff;box-shadow:0 1px 3px rgba(20,29,51,0.12);color:#141d33"
+                  : "color:#5d6478") + "'>" + label + "</span>";
+    }
+    var TIMELINE =
+      "<div style='display:flex;flex-direction:column'>" +
+      "<div style='display:flex;gap:15px'>" +
+      "<div style='flex:none;display:flex;flex-direction:column;align-items:center'>" +
+      "<span style='width:32px;height:32px;border-radius:50%;background:#0a5cf0;" +
+      "display:inline-flex;align-items:center;justify-content:center'>" +
+      "<svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
+      " stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" +
+      "<rect x='4' y='10.5' width='16' height='10.5' rx='3'/>" +
+      "<path d='M8.5 10.5V8a3.5 3.5 0 0 1 7 0'/></svg></span>" +
+      "<span style='flex:1;width:3px;border-radius:999px;background:rgba(10,92,240,.22);" +
+      "margin-top:5px'></span></div>" +
+      "<div style='padding-bottom:20px'><div style='font-size:16.5px;font-weight:700;" +
+      "letter-spacing:-0.02em'>Today</div><div style='font-size:15px;line-height:1.45;" +
+      "color:#5d6478;margin-top:2px'>Everything unlocks.</div></div></div>" +
+      "<div style='display:flex;gap:15px'>" +
+      "<div style='flex:none;display:flex;flex-direction:column;align-items:center'>" +
+      "<span style='width:32px;height:32px;border-radius:50%;background:#6f9de4;" +
+      "display:inline-flex;align-items:center;justify-content:center'>" +
+      "<svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
+      " stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" +
+      "<path d='M18 8.5a6 6 0 0 0-12 0c0 6-2 7-2 7h16s-2-1-2-7'/>" +
+      "<path d='M10.4 20.5a2 2 0 0 0 3.2 0'/></svg></span>" +
+      "<span style='flex:1;width:3px;border-radius:999px;background:rgba(10,92,240,.22);" +
+      "margin-top:5px'></span></div>" +
+      "<div style='padding-bottom:20px'><div style='font-size:16.5px;font-weight:700;" +
+      "letter-spacing:-0.02em'>Day 5</div><div style='font-size:15px;line-height:1.45;" +
+      "color:#5d6478;margin-top:2px'>We'll remind you the trial is ending.</div></div></div>" +
+      "<div style='display:flex;gap:15px'>" +
+      "<div style='flex:none;display:flex;flex-direction:column;align-items:center'>" +
+      "<span style='width:32px;height:32px;border-radius:50%;background:#a8bedd;" +
+      "display:inline-flex;align-items:center;justify-content:center'>" +
+      "<svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
+      " stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" +
+      "<path d='m12 3 2.9 5.9 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.9l1.2-6.5-4.8-4.6 " +
+      "6.6-.9Z'/></svg></span></div>" +
+      "<div><div style='font-size:16.5px;font-weight:700;letter-spacing:-0.02em'>Day 7" +
+      "</div><div style='font-size:15px;line-height:1.45;color:#5d6478;margin-top:2px'>" +
+      "You'll be charged $29.99, cancel anytime before.</div></div></div>" +
+      "</div>";
+    function pricePage(monthly) {
+      return "<div style='flex:none;padding:18px 28px 0;display:flex;" +
+        "justify-content:flex-end'>" +
+        "<button data-act='counter' aria-label='Close' style='background:none;border:0;" +
+        "padding:8px;margin:-8px'><svg width='15' height='15' viewBox='0 0 24 24'" +
+        " fill='none' stroke='#5d6478' stroke-width='2.8' stroke-linecap='round'>" +
+        "<path d='M18 6 6 18'/><path d='m6 6 12 12'/></svg></button></div>" +
+        "<div class='imp-mid' style='padding:0 28px'>" +
+        "<h2 style='font-size:29px;letter-spacing:-0.04em;line-height:1.14'>Cure your " +
+        "scrolling addiction for <span style='color:#0a5cf0'>" +
+        (monthly ? "16&cent;" : "8&cent;") + " a day</span>.</h2>" +
+        "<p style='font-size:16px;line-height:1.45;color:#5d6478;margin:8px 0 20px'>" +
+        (monthly ? "$4.99 a month. Cancel anytime."
+                 : "First 7 days free, then $29.99 a year.") + "</p>" +
+        "<div style='display:flex;background:#f2f4f7;border-radius:12px;padding:4px;" +
+        "margin-bottom:26px'>" +
+        seg("Yearly", "price", !monthly) + seg("Monthly", "price-m", monthly) +
+        "</div>" +
+        (monthly ? "" : TIMELINE) + "</div>" +
+        "<div class='imp-foot' style='padding:22px 28px 34px'>" +
+        "<button class='imp-btn' data-act='" + (monthly ? "monthly" : "yearly") + "'>" +
+        (monthly ? "Subscribe for $4.99 a month" : "Start my free week") + "</button>" +
+        "<div class='imp-fine'>" +
+        (monthly ? "$4.99/month, auto-renews monthly until "
+                 : "$29.99/year after the free trial. Auto-renews yearly until ") +
+        "canceled in Settings &rsaquo; Subscriptions.</div>" +
+        "<div class='imp-links'><span data-act='restore'>Restore Purchases</span>" +
+        "<span data-act='terms'>Terms of Use</span>" +
+        "<span data-act='privacy'>Privacy Policy</span></div></div>";
+    }
+
+    var wall = null;
+    function dismiss() {
+      if (wall && wall.parentNode) wall.parentNode.removeChild(wall);
+      wall = null;
+    }
+    function buy(btn, productId) {
+      btn.disabled = true;
+      storekit("purchase", productId, function (res) {
+        btn.disabled = false;
+        if (res && res.ok && res.entitled) {
+          setCache(true);
+          // Only the yearly plan has the trial S15 talks about.
+          if (productId === "konvo.pro.yearly") wall.innerHTML = PAGES.unlocked;
+          else dismiss();
+        }
+      });
+    }
+    function ensure() {
+      if (wall || cached() || !atInbox()) return;
+      wall = document.createElement("div");
+      wall.id = "im-pay";
+      wall.innerHTML = PAGES.value;
+      wall.addEventListener("click", function (e) {
+        var t = e.target.closest("[data-act]");
+        if (!t || !wall) return;
+        var act = t.getAttribute("data-act");
+        if (act === "price" || act === "price-m") {
+          wall.innerHTML = pricePage(act === "price-m");
+        } else if (act === "counter" || act === "stop") {
+          wall.innerHTML = PAGES[act];
+        } else if (act === "yearly") {
+          buy(t, "konvo.pro.yearly");
+        } else if (act === "monthly") {
+          buy(t, "konvo.pro.monthly");
+        } else if (act === "weekly") {
+          buy(t, "konvo.pro.weekly");
+        } else if (act === "restore") {
+          // AppStore.sync then re-read entitlements; unlocking straight to
+          // the inbox - a restorer is returning, not starting a trial.
+          storekit("restore", null, function (res) {
+            if (res && res.entitled) { setCache(true); dismiss(); }
+          });
+        } else if (act === "done") {
+          dismiss();
+        } else if (act === "mac") {
+          openExternal("https://konvoinstall.com");
+        } else if (act === "terms") {
+          openExternal("https://konvoinstall.com/terms");
+        } else if (act === "privacy") {
+          openExternal("https://konvoinstall.com/privacy");
+        }
+      });
+      (document.body || document.documentElement).appendChild(wall);
+    }
+
+    // Verify at every launch; the verdict beats the cache in both
+    // directions. No reply (bridge missing, StoreKit unreachable offline)
+    // changes nothing - the cache carries a paying user through airplane
+    // mode, and a fresh user has no cache to be wrongly unlocked by.
+    storekit("entitlements", null, function (res) {
+      if (!res) return;
+      setCache(!!res.entitled);
+      if (res.entitled) dismiss();
+    });
+    // Same belt-and-braces cadence as enforce(): the inbox is reached by SPA
+    // navigation after login, which fires no event this script can hook.
+    setInterval(ensure, 800);
+    ensure();
+  })();
 
   function sweep() { hideRequests(); hideProfileLink(); }
   new MutationObserver(sweep).observe(document.documentElement, { childList: true, subtree: true });
