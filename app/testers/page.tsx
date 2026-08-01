@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { TerminalCommand } from "@/components/terminal-install";
-import { CHROME_STORE_URL } from "@/lib/links";
+import { CHROME_STORE_URL, MAC_ZIP } from "@/lib/links";
 
 export const metadata: Metadata = {
   title: "Test Konvo",
@@ -73,12 +72,13 @@ export default function TestersPage() {
 
         {/* Mac */}
         <Card badge="🍎" title="On a MacBook">
-          <Step n={1}>
-            Open <B>Terminal</B> (press <B>⌘ + Space</B>, type &ldquo;Terminal&rdquo;, hit Return).
+          <FullButton href={MAC_ZIP}>Download for Mac</FullButton>
+          <Step n={1}>Unzip the download and drag Konvo into Applications.</Step>
+          <Step n={2}>
+            <B>Right-click</B> Konvo and choose <B>Open</B>, then <B>Open</B> again. (It&rsquo;s a
+            test build, so macOS double-checks the first time.)
           </Step>
-          <Step n={2}>Paste this line and press Return:</Step>
-          <TerminalCommand />
-          <Note>The app installs and opens itself. Sign in to Instagram normally.</Note>
+          <Note>After that it opens like any app. Sign in to Instagram normally.</Note>
         </Card>
 
         {/* Windows */}

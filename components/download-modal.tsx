@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { track } from "@/lib/analytics";
-import { CHROME_STORE_URL, INSTALL_CMD } from "@/lib/links";
+import { CHROME_STORE_URL, MAC_ZIP } from "@/lib/links";
 
 const CARD: React.CSSProperties = {
   position: "relative",
@@ -69,13 +69,10 @@ export function DownloadModal({ onClose }: { onClose: () => void }) {
     setStep("platform");
   }
 
-  async function copyCommand() {
-    try {
-      await navigator.clipboard.writeText(INSTALL_CMD);
-    } catch {}
-    track("install_command_copied");
+  function downloadMac() {
+    track("mac_zip_downloaded");
+    window.open(MAC_ZIP, "_blank", "noopener");
     setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
   }
 
   return (
@@ -179,13 +176,13 @@ export function DownloadModal({ onClose }: { onClose: () => void }) {
           <h2 style={H2}>Select your platform</h2>
           <p style={{ ...SUB, margin: "0 0 12px" }}>Choose your device to download Konvo.</p>
           <div style={{ borderTop: "1px solid #e6e9ef" }} />
-          <div style={ROW} onClick={copyCommand}>
+          <div style={ROW} onClick={downloadMac}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="#0f1b33" style={{ flex: "none" }}>
               <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
             </svg>
             <div style={{ flex: 1 }}>
               <div style={ROW_LABEL}>MACOS</div>
-              <div style={ROW_TITLE}>{copied ? "Copied — paste it into Terminal" : "Copy the install command"}</div>
+              <div style={ROW_TITLE}>{copied ? "Downloading — right-click the app and choose Open" : "Download for Mac"}</div>
             </div>
             <Arrow />
           </div>
@@ -199,8 +196,8 @@ export function DownloadModal({ onClose }: { onClose: () => void }) {
             </div>
           </div>
           <p style={{ fontSize: 12, color: "#98a1b0", margin: "18px 0 0" }}>
-            The Mac build isn&apos;t notarized yet, so it installs from Terminal
-            instead of a double click. We&apos;ll fix that before launch.
+            The Mac build isn&apos;t notarized yet: after unzipping, right-click
+            Konvo and choose Open the first time. We&apos;ll fix that before launch.
           </p>
         </div>
       )}

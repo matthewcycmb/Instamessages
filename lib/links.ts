@@ -7,7 +7,9 @@
 export const CHROME_STORE_URL: string | null =
   "https://chromewebstore.google.com/detail/instachat-dms-only/idgmjfcejigebpealmimgjebhfnfjcnj";
 
-// See public/install.sh. curl (unlike a browser) doesn't quarantine the
-// download, so the app opens with no Gatekeeper wall. Retired once notarized.
-export const INSTALL_CMD =
-  "curl -fsSL https://konvoinstall.com/install.sh | bash";
+// A plain browser download, quarantine and all: users right-click > Open past
+// Gatekeeper. The curl | bash installer (and its xattr un-quarantine) was
+// removed 2026-08-02 after Safe Browsing flagged konvoinstall.com for exactly
+// that pattern - do not bring it back; notarization is the real fix.
+export const MAC_ZIP =
+  "https://github.com/matthewcycmb/instamessages/releases/download/mac-preview/Konvo-mac.zip";

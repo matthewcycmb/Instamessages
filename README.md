@@ -41,7 +41,7 @@ testers.
 
 | Target | How |
 |---|---|
-| macOS | `curl -fsSL https://konvoinstall.com/install.sh \| bash` |
+| macOS | [`Konvo-mac.zip`](https://github.com/matthewcycmb/instamessages/releases/download/mac-preview/Konvo-mac.zip) from the `mac-preview` prerelease; right-click → Open |
 | Windows | `windows-preview` prerelease, rebuilt on every `wrapper/**` push |
 | iOS | TestFlight internal group — App Store Connect app `6794553167` |
 | Extension | Release on `matthewcycmb/instachat-extension`, linked from `/testers` |
@@ -57,13 +57,15 @@ NEXT_PUBLIC_POSTHOG_HOST=
 
 ## Known constraints
 
-- The macOS build is arm64 only. `install.sh` refuses Intel Macs with an
-  explanation rather than installing something that won't run.
+- The macOS build is arm64 only; Intel Macs can't run it.
 - **The Mac app is not notarized.** Apple returns status 7000, "team is not yet
   configured for notarization", on a fully enrolled account with the Program
   License Agreement accepted — an Apple-side provisioning fault, open with
-  their support. `install.sh` strips the quarantine attribute to work around
-  it. This does *not* affect TestFlight, which never touches the notary service.
+  their support. This does *not* affect TestFlight, which never touches the
+  notary service. Users right-click → Open past Gatekeeper.
+- The `curl | bash` installer (`public/install.sh`, quarantine-stripping) was
+  removed 2026-08-02: Safe Browsing flagged konvoinstall.com for exactly that
+  pattern. Do not restore it — notarization is the fix once Apple unblocks.
 - An Instagram login failing with an `e=1348020` redirect loop is an
   account-level checkpoint, not a wrapper bug. Reproduce it in Safari before
   touching any code — see the comment above `user_agent()` in `lib.rs`.
