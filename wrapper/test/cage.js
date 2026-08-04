@@ -6,6 +6,23 @@
   // cage there called window.stop() and blanked the login flow.
   var H = location.hostname;
   if (H !== "instagram.com" && H !== "www.instagram.com") return;
+  // Top frame only. Instagram loads its verification/challenge UI in
+  // same-host iframes; the cage running inside one window.stop()s and
+  // route-bounces the challenge content, leaving an empty lock modal.
+  // Everything the cage does is a top-frame concern, and the Swift bridge
+  // already refuses subframes.
+  try { if (window.self !== window.top) return; } catch (e) { return; }
+
+  // The onboarding quiz's motive + weekly hours arrive in the URL fragment
+  // (dist/index.html sets it at the login handoff; localStorage does not
+  // cross the tauri -> instagram origin boundary). Persist into this origin
+  // and strip the hash so it survives login, reloads, and relaunches.
+  if ((location.hash || "").indexOf('#konvo=') === 0) {
+    try { localStorage.konvoQuiz = location.hash.slice(7); } catch (e) {}
+    try {
+      history.replaceState(null, "", location.pathname + location.search);
+    } catch (e) {}
+  }
 
   // First launch on a fresh install has no cache and no session, so
   // instagram.com takes 10-15s to paint and the window sits empty the whole
@@ -13,9 +30,14 @@
   // new tester ever sees, and a blank window reads as a broken app. Show a
   // spinner until the page paints over it.
   (function boot() {
+    // Konvo's whole funnel is the light design - the quiz, Instagram's
+    // login, and the paywall all render while the app is pinned Light
+    // (lib.rs). The paywall block below hands appearance to the phone only
+    // once the wall is out of the way, so the first thing that ever renders
+    // dark is the chat itself.
     var b = document.createElement("div");
     b.id = "im-boot";
-    b.style.cssText = "position:fixed;inset:0;z-index:2147483646;background:#000;" +
+    b.style.cssText = "position:fixed;inset:0;z-index:2147483646;" +
       "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px";
     // Icon + wordmark, not a bare spinner. The wait is Instagram's bundle over
     // the network and is not ours to shorten, but a logo reads as an app
@@ -28,12 +50,33 @@
         "<g transform='translate(70,70) scale(15.5)' fill='none' stroke='#fff'" +
         " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
         "<path d='M7.9 20A9 9 0 1 0 4 16.1L2 22Z'/></g></svg>" +
-      "<div style='font:600 17px -apple-system,system-ui,sans-serif;color:#f5f5f7;" +
+      "<div id='im-boot-w' style='font:600 17px -apple-system,system-ui,sans-serif;" +
         "letter-spacing:-0.01em'>Konvo</div>" +
-      "<div style='width:20px;height:20px;border:2px solid #2c2c2e;" +
-        "border-top-color:#0a84ff;border-radius:50%;animation:im-spin .8s linear infinite'></div>" +
+      "<div id='im-boot-s' style='width:20px;height:20px;border:2px solid transparent;" +
+        "border-radius:50%;animation:im-spin .8s linear infinite'></div>" +
       "<style>@keyframes im-spin{to{transform:rotate(360deg)}}</style>";
     (document.body || document.documentElement).appendChild(b);
+    // Painted as a function of the current scheme, and repainted if the
+    // scheme flips while the overlay is up - which is exactly what the
+    // appearance message above causes on a dark phone.
+    function paintBoot() {
+      var dark = !/iPhone|iPad|iPod/.test(navigator.userAgent) ||
+        (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+      b.style.background = dark ? '#000' : '#fff';
+      var w = document.getElementById("im-boot-w");
+      var s = document.getElementById("im-boot-s");
+      if (w) w.style.color = dark ? '#f5f5f7' : '#141d33';
+      if (s) {
+        s.style.borderColor = dark ? '#2c2c2e' : '#e6e6ea';
+        s.style.borderTopColor = '#0a84ff';
+      }
+    }
+    paintBoot();
+    if (window.matchMedia) {
+      try {
+        matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintBoot);
+      } catch (e) {}
+    }
     function clear() {
       var el = document.getElementById("im-boot");
       if (el && el.parentNode) el.parentNode.removeChild(el);
@@ -87,8 +130,49 @@
     }
     // Route flag so CSS can hide the inbox's back-to-feed arrow while
     // keeping the thread view's back-to-inbox arrow.
-    document.documentElement.classList.toggle("im-inbox", atInbox());
+    var ib = atInbox();
+    document.documentElement.classList.toggle("im-inbox", ib);
+    // Tell the native side when the route crosses the inbox boundary: the
+    // back-swipe keeps an inbox snapshot to reveal under the drag, because
+    // Instagram takes ~300ms to render history.back() and the live page
+    // mid-render is the glitch every naive swipe shows.
+    var r = ib ? "inbox"
+      : location.pathname.indexOf("/direct/t/") === 0 ? "thread" : "other";
+    if (r !== lastRoute) {
+      lastRoute = r;
+      if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        try {
+          window.webkit.messageHandlers.konvoStore.postMessage(
+            { cmd: "route", id: 0, productId: r });
+        } catch (e) {}
+        // Arriving at the inbox: report when it FINISHES rendering - DOM
+        // mutations quiet for a beat, capped hard - so the back-swipe
+        // holds its snapshot until the crossfade can land on a finished
+        // inbox instead of a mid-render skeleton.
+        if (r === "inbox" && window.MutationObserver) {
+          try {
+            if (settleMo) settleMo.disconnect();
+            var last = Date.now(), t0 = last;
+            settleMo = new MutationObserver(function () { last = Date.now(); });
+            settleMo.observe(document.body || document.documentElement,
+              { childList: true, subtree: true });
+            var tick = setInterval(function () {
+              var now = Date.now();
+              if (now - last > 180 || now - t0 > 2000) {
+                clearInterval(tick);
+                if (settleMo) { settleMo.disconnect(); settleMo = null; }
+                try {
+                  window.webkit.messageHandlers.konvoStore.postMessage(
+                    { cmd: "route", id: 0, productId: "inbox-settled" });
+                } catch (e) {}
+              }
+            }, 90);
+          } catch (e) {}
+        }
+      }
+    }
   }
+  var lastRoute = null, settleMo = null;
   var push = history.pushState.bind(history);
   history.pushState = function () { push.apply(null, arguments); setTimeout(enforce, 0); };
   var replace = history.replaceState.bind(history);
@@ -96,6 +180,60 @@
   window.addEventListener("popstate", enforce);
   document.addEventListener("DOMContentLoaded", enforce);
   setInterval(enforce, 800); // SPA belt-and-braces: some route changes skip history APIs
+
+  // The native app's little tap when a message sends. The selector is a
+  // guess at Instagram's send control, patchable as sendSel in the
+  // cage-patch; a miss costs the buzz and nothing else.
+  var SEND_SEL = "div[role=button][aria-label*='Send' i],button[aria-label*='Send' i]";
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    document.addEventListener("click", function (e) {
+      var t = e.target.closest && e.target.closest(SEND_SEL);
+      if (!t) return;
+      try {
+        window.webkit.messageHandlers.konvoStore.postMessage(
+          { cmd: "haptic", id: 0, productId: "" });
+      } catch (err) {}
+    }, true);
+  }
+
+  // Remote hotfix channel - config, NOT code. Instagram ships DOM changes on
+  // its schedule and App Review takes days; a static JSON on konvoinstall.com
+  // closes that gap: extra hide-selectors, extra CSS, extra bounce patterns,
+  // live one git push after Meta breaks something. Strictly additive - the
+  // baseline cage in this binary always applies - and remote JS is
+  // deliberately NOT supported: selectors and regexes are data, downloadable
+  // code is an App Review 2.5.2 rejection. Last good patch is cached so an
+  // offline launch keeps yesterday's fix; a failed fetch changes nothing.
+  function applyPatch(p) {
+    if (!p) return;
+    try {
+      var extra = "";
+      if (p.hide && p.hide.length) extra += p.hide.join(",") + "{display:none !important;}";
+      if (p.css) extra += p.css;
+      if (extra) {
+        var st = document.createElement("style");
+        st.textContent = extra;
+        (document.head || document.documentElement).appendChild(st);
+      }
+      (p.block || []).forEach(function (s) { FEED.push(new RegExp(s)); });
+      // {"superwall": true} switches the paywall from the injected wall to
+      // the native Superwall placement (KonvoStore). Off until campaigns
+      // exist in the Superwall dashboard; flipping it back off is the
+      // kill switch if a remote paywall misbehaves.
+      if (p.superwall) window.__konvoSW = true;
+      if (p.sendSel) SEND_SEL = p.sendSel;
+      enforce();
+    } catch (e) {}
+  }
+  try { applyPatch(JSON.parse(localStorage.konvoPatch || "null")); } catch (e) {}
+  fetch("https://konvoinstall.com/cage-patch.json", { cache: "no-store" })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (p) {
+      if (!p) return;
+      try { localStorage.konvoPatch = JSON.stringify(p); } catch (e) {}
+      applyPatch(p);
+    })
+    .catch(function () {});
 
   // Sleep/wake, desktop only: after the machine sleeps, Instagram's live
   // connection is dead but the page still looks fine, so the inbox silently
@@ -334,6 +472,16 @@
     var now = Date.now();
     if (url === lastOpen && now - lastOpenAt < 1500) return;
     lastOpen = url; lastOpenAt = now;
+    // iPhone: the in-app Safari sheet, like Instagram's own browser -
+    // swipe it away and the chat is still underneath. The Mac has no
+    // sheet and no konvoStore handler; it keeps the real browser.
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+      try {
+        window.webkit.messageHandlers.konvoStore.postMessage(
+          { cmd: "open", id: 0, productId: url });
+        return;
+      } catch (e) {}
+    }
     if (window.__TAURI_INTERNALS__) {
       window.__TAURI_INTERNALS__
         .invoke("plugin:opener|open_url", { url: url })
@@ -479,226 +627,461 @@
       } catch (e) { delete pending[seq]; cb(null); }
     }
 
+    // ---- v3 paywall (grilled Aug 3): S12 connected -> S12b loader -> perks
+    // -> S13 three-package paywall (annual/monthly/lifetime) -> S14
+    // activation. There is no dismissal unpaid: the x concedes into the
+    // Monthly story. Money truth lives in RevenueCat behind the bridge.
+    // Every visible word is Matthew's - do not edit copy here.
+    //
+    // Thread text reads small and light next to the native app: bump the
+    // message text. The selector is a guess at Instagram's markup; a miss
+    // changes nothing, and corrections ride the remote cage-patch css
+    // channel with no app update.
     style.textContent +=
-      '#im-pay{position:fixed;inset:0;z-index:2147483645;background:#fff;color:#141d33;' +
+      "div[role='row'] div[dir='auto']{font-size:16px;font-weight:500;}";
+    // Friends' stories are kept, and the inbox story rings are the only way
+    // in - three testers asked for a feature that was already there. Louder
+    // rings, no new UI: Instagram draws them as a canvas behind the avatar.
+    // ponytail: a selector guess like the rest; corrections ride cage-patch.
+    style.textContent +=
+      "div:has(> canvas) > canvas{filter:saturate(1.4) brightness(1.2);" +
+      "transform:scale(1.05)}";
+    style.textContent +=
+      '#im-pay{--bg:#fff;--ink:#141d33;--mut:#5d6478;--line:#d9d9de;' +
+      '--chip:#f2f2f4;--icbg:#eef3ff;--accent:#0a5cf0}' +
+      '#im-pay{position:fixed;inset:0;z-index:2147483645;background:var(--bg);color:var(--ink);' +
       'display:flex;flex-direction:column;font-family:-apple-system,system-ui,sans-serif;' +
       '-webkit-font-smoothing:antialiased}' +
+      '#im-pay .imp-page{flex:1;display:flex;flex-direction:column;min-height:0;' +
+      'animation:im-payfade .45s ease}' +
+      '@keyframes im-payfade{from{opacity:0}}' +
       '#im-pay h2{margin:0;font-weight:700;letter-spacing:-0.035em;line-height:1.2}' +
       '#im-pay p{margin:0}' +
       '#im-pay .imp-mid{flex:1;display:flex;flex-direction:column;justify-content:center;' +
-      'padding:0 24px;overflow-y:auto}' +
+      'padding:0 24px;overflow-y:auto;overscroll-behavior:none}' +
       '#im-pay .imp-foot{flex:none;padding:0 20px 34px}' +
       '#im-pay .imp-btn{width:100%;min-height:54px;border:0;border-radius:13px;' +
-      'background:#0a5cf0;color:#fff;font-family:inherit;font-size:17px;font-weight:600;' +
+      'background:var(--accent);color:#fff;font-family:inherit;font-size:17px;font-weight:600;' +
       'letter-spacing:-0.012em;box-shadow:0 8px 18px rgba(10,92,240,.24)}' +
       '#im-pay .imp-btn[disabled]{opacity:.5}' +
-      '#im-pay .imp-ghost{text-align:center;font-size:15px;color:#5d6478;padding:16px 0 2px}' +
-      '#im-pay .imp-fine{text-align:center;font-size:12.5px;line-height:1.5;color:#5d6478;' +
-      'margin-top:12px}' +
+      '#im-pay .imp-ghost{text-align:center;font-size:15px;color:var(--mut);padding:16px 0 2px}' +
       '#im-pay .imp-links{display:flex;justify-content:center;gap:18px;margin-top:10px;' +
-      'font-size:13.5px;color:#5d6478}' +
+      'font-size:13.5px;color:var(--mut)}' +
       '#im-pay .imp-links span{text-decoration:underline}' +
-      '#im-pay .imp-trust{display:flex;align-items:flex-start;gap:14px}' +
-      '#im-pay .imp-ic{width:34px;height:34px;flex:none;border-radius:10px;background:#eef3ff;' +
-      'display:inline-flex;align-items:center;justify-content:center}' +
-      '#im-pay .imp-trust b{display:block;font-size:17px;font-weight:600}' +
-      '#im-pay .imp-trust i{display:block;font-style:normal;font-size:15px;line-height:1.45;' +
-      'color:#5d6478;margin-top:3px}';
+      '#im-pay .imp-row{display:flex;align-items:center;gap:12px;font-size:17px;' +
+      'opacity:.35;transition:opacity .5s ease}' +
+      '#im-pay .imp-row.done{opacity:1}' +
+      '#im-pay .imp-ck{width:20px;height:20px;flex:none;border-radius:50%;' +
+      'background:rgba(20,29,51,.1);display:inline-flex;align-items:center;' +
+      'justify-content:center}' +
+      '#im-pay .imp-row.done .imp-ck{background:var(--accent)}' +
+      '#im-pay .imp-row .imp-ck svg{display:none}' +
+      '#im-pay .imp-row.done .imp-ck svg{display:block}' +
+      '#im-pay .imp-spin{width:20px;height:20px;border:2px solid var(--line);' +
+      'border-top-color:var(--accent);border-radius:50%;' +
+      'animation:im-spin .8s linear infinite}' +
+      '#im-pay .imp-head{flex:none;height:130px;position:relative;' +
+      'background:linear-gradient(180deg,#1a6bf2 0%,#0a5cf0 100%)}' +
+      '@keyframes im-pop{from{transform:scale(.4);opacity:0}}' +
+      '#im-pay .imp-pk{flex:1;border-radius:14px;box-shadow:inset 0 0 0 1.2px var(--line);' +
+      'padding:13px 6px 11px;text-align:center;position:relative}' +
+      '#im-pay .imp-pk.on{box-shadow:inset 0 0 0 2px var(--accent);background:#f6f9ff}' +
+      '#im-pay .imp-pk b{display:block;font-size:13.5px;letter-spacing:-0.01em}' +
+      '#im-pay .imp-pk i{display:block;font-style:normal;font-size:15px;font-weight:700;' +
+      'margin-top:4px}' +
+      '#im-pay .imp-pk u{display:block;text-decoration:none;font-size:10.5px;' +
+      'color:var(--mut);margin-top:3px;line-height:1.3}' +
+      '#im-pay .imp-rec{position:absolute;top:-9px;left:50%;transform:translateX(-50%);' +
+      'white-space:nowrap;background:var(--accent);color:#fff;font-size:9px;' +
+      'font-weight:700;letter-spacing:0.05em;padding:3px 8px;border-radius:999px}' +
+      '#im-pay .imp-tl{display:flex;gap:16px}' +
+      '#im-pay .imp-tl h4{margin:0;font-size:17px;font-weight:700}' +
+      '#im-pay .imp-tl p{font-size:15px;line-height:1.45;color:var(--mut);margin-top:4px}' +
+      '#im-pay .imp-tl p b{color:var(--ink);font-weight:600}' +
+      '#im-pay .imp-dot{flex:none;width:44px;display:flex;flex-direction:column;' +
+      'align-items:center}' +
+      '#im-pay .imp-dot i{flex:none;width:44px;height:44px;border-radius:50%;' +
+      'background:var(--accent);display:inline-flex;align-items:center;' +
+      'justify-content:center}' +
+      '#im-pay .imp-stem{flex:1;width:8px;border-radius:999px;' +
+      'background:rgba(10,92,240,.15);margin-top:0}';
 
-    // Every word below is Matthew's, hand-tuned in the onboarding mockup -
-    // do not edit copy here. S15's "Seven days free" line is why monthly and
-    // weekly purchases and restores skip that page: only yearly has a trial.
+    // Funnel events, fire-and-forget through the bridge (Instagram's CSP
+    // blocks page-side analytics). Lean payloads by decision: names and
+    // screen ids only. Silent no-op without the bridge (tests, Mac).
+    function track(event, props) {
+      try {
+        window.webkit.messageHandlers.konvoStore.postMessage(
+          { cmd: "track", id: 0, event: event, props: props || {} });
+      } catch (e) {}
+    }
+
     var CHECK =
       "<svg width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
       " stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'>" +
       "<path d='M20 6 9 17l-5-5'/></svg>";
+    function loaderRow(label) {
+      return "<div class='imp-row'><span class='imp-ck'>" + CHECK + "</span>" +
+        "<span>" + label + "</span></div>";
+    }
     var PAGES = {
-      value:
-        "<div class='imp-mid' style='padding:0 20px'>" +
-        "<h2 style='font-size:26px;margin-bottom:24px'>You're here for the messages.</h2>" +
-        "<div style='display:flex;gap:10px;margin-bottom:26px'>" +
-        "<div style='flex:1;height:132px;border-radius:16px;box-shadow:inset 0 0 0 1px #d9d9de;" +
-        "padding:12px;display:flex;flex-direction:column;gap:6px;overflow:hidden'>" +
-        "<span style='height:30px;border-radius:5px;background:#eeeae3'></span>" +
-        "<span style='height:14px;width:70%;border-radius:5px;background:#eeeae3'></span>" +
-        "<span style='height:26px;border-radius:5px;background:#eeeae3'></span>" +
-        "<span style='height:18px;width:45%;border-radius:5px;background:#eeeae3'></span>" +
-        "<span style='font-size:11px;font-weight:700;letter-spacing:0.07em;color:#5d6478;" +
-        "margin-top:2px'>BEFORE</span></div>" +
-        "<div style='flex:1;height:132px;border-radius:16px;box-shadow:inset 0 0 0 1.4px #0a5cf0;" +
-        "padding:12px;display:flex;flex-direction:column;gap:10px'>" +
-        "<span style='display:flex;align-items:center;gap:8px'><span style='width:20px;" +
-        "height:20px;border-radius:50%;background:#0a5cf0'></span><span style='flex:1;" +
-        "height:8px;border-radius:4px;background:#eeeae3'></span></span>" +
-        "<span style='display:flex;align-items:center;gap:8px'><span style='width:20px;" +
-        "height:20px;border-radius:50%;background:#d9d9de'></span><span style='flex:1;" +
-        "height:8px;border-radius:4px;background:#eeeae3'></span></span>" +
-        "<span style='display:flex;align-items:center;gap:8px'><span style='width:20px;" +
-        "height:20px;border-radius:50%;background:#d9d9de'></span><span style='flex:1;" +
-        "height:8px;border-radius:4px;background:#eeeae3'></span></span>" +
-        "<span style='flex:1'></span>" +
-        "<span style='font-size:11px;font-weight:700;letter-spacing:0.07em;color:#0a5cf0'>" +
-        "KONVO</span></div></div>" +
-        "<div style='display:flex;flex-direction:column;gap:18px'>" +
-        "<div class='imp-trust'><span class='imp-ic'><svg width='18' height='18'" +
-        " viewBox='0 0 24 24' fill='none' stroke='#0a5cf0' stroke-width='2.1'" +
-        " stroke-linejoin='round'><path d='M12 4c-4.4 0-8 3-8 6.8 0 2.1 1.1 4 2.9 " +
-        "5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z'/></svg></span>" +
-        "<span><b>All your messages</b><i>DMs, group chats, requests, new conversations." +
-        "</i></span></div>" +
-        "<div class='imp-trust'><span class='imp-ic'><svg width='18' height='18'" +
-        " viewBox='0 0 24 24' fill='none' stroke='#0a5cf0' stroke-width='2.2'" +
-        " stroke-linecap='round'><circle cx='12' cy='12' r='9'/>" +
-        "<path d='m5.8 5.8 12.4 12.4'/></svg></span>" +
-        "<span><b>No feed, no Reels, no Explore</b><i>Gone, not hidden. There is nothing " +
-        "to scroll.</i></span></div>" +
-        "<div class='imp-trust'><span class='imp-ic'><svg width='18' height='18'" +
-        " viewBox='0 0 24 24' fill='none' stroke='#0a5cf0' stroke-width='2.1'" +
-        " stroke-linecap='round'><circle cx='12' cy='12' r='9' stroke-dasharray='4 3'/>" +
-        "<circle cx='12' cy='12' r='4'/></svg></span>" +
-        "<span><b>Friends' stories stay</b><i>From people you follow, right in your inbox." +
-        "</i></span></div>" +
-        "<div class='imp-trust'><span class='imp-ic'><svg width='18' height='18'" +
-        " viewBox='0 0 24 24' fill='none' stroke='#0a5cf0' stroke-width='2'" +
-        " stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18'" +
-        " height='12' rx='2'/><path d='M2 19h20'/></svg></span>" +
-        "<span><b>iPhone and Mac</b><i>The Mac app is included.</i></span></div>" +
-        "</div></div>" +
-        "<div class='imp-foot'><button class='imp-btn' data-act='price'>Continue</button></div>",
-      counter:
-        "<div class='imp-mid' style='padding:0 20px'>" +
-        "<h2 style='font-size:30px;letter-spacing:-0.04em;line-height:1.16;" +
-        "margin-bottom:8px'>Not ready for a year?</h2>" +
-        "<p style='font-size:17px;line-height:1.5;color:#5d6478;margin-bottom:24px'>" +
-        "Try it a week at a time.</p>" +
-        "<div style='border-radius:16px;background:#f0f5ff;box-shadow:inset 0 0 0 2px #0a5cf0;" +
-        "padding:20px'>" +
-        "<div style='font-size:24px;font-weight:700;letter-spacing:-0.035em'>$1.99 a week" +
-        "</div><div style='font-size:15px;color:#5d6478;margin-top:6px'>Cancel anytime. " +
-        "No trial.</div></div></div>" +
-        "<div class='imp-foot'>" +
-        "<button class='imp-btn' data-act='weekly'>Try a week</button>" +
-        "<div class='imp-ghost' data-act='stop'>No thanks</div>" +
-        "<div class='imp-fine' style='margin-top:8px'>$1.99/week, auto-renews weekly until " +
-        "canceled in Settings &rsaquo; Subscriptions.</div>" +
-        "<div class='imp-links' style='margin-top:8px'>" +
-        "<span data-act='restore'>Restore Purchases</span>" +
-        "<span data-act='terms'>Terms of Use</span>" +
-        "<span data-act='privacy'>Privacy Policy</span></div></div>",
-      stop:
-        "<div class='imp-mid'>" +
-        "<div style='margin-bottom:28px'><svg width='52' height='52' viewBox='0 0 512 512'>" +
-        "<rect width='512' height='512' rx='116' fill='#0a5cf0'/>" +
-        "<path d='M256 146c-64 0-116 45-116 100 0 31 16 58 42 76v46l52-25c7 1 14 2 22 2 " +
-        "64 0 116-45 116-99s-52-100-116-100Z' fill='none' stroke='#fff' stroke-width='26'" +
-        " stroke-linejoin='round'/></svg></div>" +
-        "<h2 style='font-size:26px;margin-bottom:12px'>Konvo is a paid app.</h2>" +
-        "<p style='font-size:17px;line-height:1.5;color:#5d6478'>Instagram's free version " +
-        "is still there, with everything we just hid.</p></div>" +
-        "<div class='imp-foot'>" +
-        "<button class='imp-btn' data-act='price'>See plans</button>" +
-        "<div class='imp-ghost' data-act='restore'>Restore Purchase</div></div>",
-      unlocked:
-        "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
-        "<svg width='118' height='118' viewBox='0 0 24 24' fill='none' stroke='#0a5cf0'" +
-        " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'" +
-        " style='margin-bottom:42px'><path d='M20 6 9 17l-5-5'/></svg>" +
-        "<div style='font-size:44px;font-weight:700;letter-spacing:-0.05em;line-height:1;" +
-        "text-align:center'>You're in.</div>" +
-        "<p style='font-size:17px;line-height:1.5;color:#5d6478;margin-top:16px;" +
-        "text-align:center'>Seven days free. Your messages are waiting.</p></div>" +
-        "<div class='imp-foot' style='padding:0 28px 40px'>" +
-        "<button class='imp-btn' data-act='done'>Open my messages</button>" +
-        "<div class='imp-ghost' data-act='mac' style='font-size:16px;font-weight:600;" +
-        "color:#0a5cf0'>Get Konvo on your Mac too</div></div>"
+      connected:
+        "<div class='imp-mid' style='align-items:center;text-align:center'>" +
+        "<span style='width:56px;height:56px;border-radius:50%;background:var(--icbg);" +
+        "display:inline-flex;align-items:center;justify-content:center;color:var(--accent);" +
+        "margin-bottom:24px;animation:im-pop .7s cubic-bezier(0.34,1.56,0.64,1) both'>" +
+        "<svg width='26' height='26' viewBox='0 0 24 24' fill='none'" +
+        " stroke='currentColor' stroke-width='2.4' stroke-linecap='round'" +
+        " stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg></span>" +
+        "<h2 style='font-size:28px'>Instagram connected.</h2>" +
+        "<p style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:12px'>" +
+        "Your DMs and Stories are ready.</p></div>"
     };
 
-    // S12 is the one two-state page: the Yearly/Monthly toggle. Each state
-    // tells its own truth - the trial timeline and "8¢ a day" belong to
-    // yearly alone; monthly is $4.99 with no trial, so its headline says 16¢
-    // (same round-down arithmetic as the 8) and the timeline goes away
-    // rather than describe a trial that does not exist.
-    function seg(label, act, selected) {
-      return "<span data-act='" + act + "' style='flex:1;text-align:center;padding:9px 0;" +
-        "border-radius:9px;font-size:15px;font-weight:600;" +
-        (selected ? "background:#fff;box-shadow:0 1px 3px rgba(20,29,51,0.12);color:#141d33"
-                  : "color:#5d6478") + "'>" + label + "</span>";
+    // Being at /direct/inbox/ is not proof of a session: Instagram renders
+    // that route for a beat before bouncing a signed-out visitor to the
+    // login page, and a wall raised in that window is a trap - login looks
+    // skipped, the user pays, and dismissing reveals no messages. Proof is
+    // the ds_user_id cookie: set at login, cleared at logout, readable from
+    // this origin (verified on device). The current_user endpoint cannot
+    // gate here - it answers 400 "useragent mismatch" to this webview's UA
+    // with every app id, desktop, mobile, or none (measured Aug 3, 2026) -
+    // so the loader greeting goes without a username until a reliable
+    // source shows up; igUser stays for that day.
+    // ponytail: a session revoked server-side leaves the cookie behind and
+    // the wall could rise over a dying page; Instagram bounces it to login
+    // moments later and the flow recovers there.
+    var igUser = "", authed = false;
+    function checkAuth() {
+      if (/(?:^|; )ds_user_id=\d/.test(document.cookie)) authed = true;
     }
-    var TIMELINE =
-      "<div style='display:flex;flex-direction:column'>" +
-      "<div style='display:flex;gap:15px'>" +
-      "<div style='flex:none;display:flex;flex-direction:column;align-items:center'>" +
-      "<span style='width:32px;height:32px;border-radius:50%;background:#0a5cf0;" +
-      "display:inline-flex;align-items:center;justify-content:center'>" +
-      "<svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
+    function loaderPage() {
+      return "<div class='imp-mid' style='padding:0 24px'>" +
+        "<span class='imp-spin'></span>" +
+        "<h2 style='font-size:26px;margin:24px 0 26px'>Setting up your Konvo" +
+        (igUser ? ", " + igUser : "") + "</h2>" +
+        "<div style='display:flex;flex-direction:column;gap:14px'>" +
+        loaderRow("Feed hidden") + loaderRow("Reels hidden") +
+        loaderRow("Explore hidden") + loaderRow("Messages kept") +
+        loaderRow("Friends' stories kept") + "</div></div>";
+    }
+
+    // The perks comparison, between the loader and the paywall: five rows,
+    // Konvo's column all check, without it all cross. Every row is a true
+    // structural claim, not marketing.
+    var XMARK =
+      "<svg width='13' height='13' viewBox='0 0 24 24' fill='none' stroke='#c2c8d2'" +
+      " stroke-width='2.8' stroke-linecap='round'>" +
+      "<path d='M18 6 6 18'/><path d='m6 6 12 12'/></svg>";
+    // The comparison table: label | without | Konvo, the Konvo column a
+    // continuous tinted strip so the eye reads it as one plan. Row one is
+    // checked on BOTH sides on purpose - Instagram does give you DMs and
+    // Stories; the difference is everything else.
+    var CKBLUE = "<span style='width:22px;height:22px;border-radius:50%;" +
+      "background:var(--accent);display:inline-flex;align-items:center;" +
+      "justify-content:center'>" + CHECK + "</span>";
+    var CKGREY = "<span style='width:22px;height:22px;border-radius:50%;" +
+      "background:#dfe3ea;display:inline-flex;align-items:center;" +
+      "justify-content:center'><svg width='11' height='11' viewBox='0 0 24 24'" +
+      " fill='none' stroke='#8a92a2' stroke-width='3.4' stroke-linecap='round'" +
+      " stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg></span>";
+    function perkRow(label, free, last) {
+      return "<div style='display:flex;align-items:stretch;border-top:1px solid #eeeef1'>" +
+        "<span style='flex:1;display:flex;align-items:center;padding:12px 8px 12px 0;" +
+        "font-size:15px;line-height:1.3'>" + label + "</span>" +
+        "<span style='width:74px;flex:none;display:flex;align-items:center;" +
+        "justify-content:center'>" + (free ? CKGREY : XMARK) + "</span>" +
+        "<span style='width:74px;flex:none;display:flex;align-items:center;" +
+        "justify-content:center;background:#eef3ff" +
+        (last ? ";border-radius:0 0 12px 12px" : "") + "'>" + CKBLUE + "</span></div>";
+    }
+    function perksPage() {
+      return "<div class='imp-mid' style='justify-content:flex-start;padding:70px 20px 0'>" +
+        "<h2 style='font-size:26px'>What changes with Konvo</h2>" +
+        "<div style='display:flex;align-items:flex-end;margin-top:28px'>" +
+        "<span style='flex:1;font-size:13px;font-weight:600;color:var(--mut)'>" +
+        "What you get</span>" +
+        "<span style='width:74px;flex:none;text-align:center;font-size:10.5px;" +
+        "font-weight:700;letter-spacing:0.03em;white-space:nowrap;" +
+        "color:var(--mut);padding-bottom:10px'>WITHOUT</span>" +
+        "<span style='width:74px;flex:none;display:flex;justify-content:center;" +
+        "padding:9px 0;background:#eef3ff;border-radius:12px 12px 0 0'>" +
+        "<span style='background:var(--accent);color:#fff;font-size:10px;" +
+        "font-weight:700;letter-spacing:0.06em;padding:4px 9px;border-radius:999px'>" +
+        "KONVO</span></span></div>" +
+        perkRow("Your DMs and Stories", true, false) +
+        perkRow("No Feed, Reels or Explore", false, false) +
+        perkRow("Nothing pulling you into a scroll", false, false) +
+        perkRow("Hours back every week", false, false) +
+        perkRow("Instagram on your terms", false, true) +
+        "</div>" +
+        "<div class='imp-foot' style='padding:14px 24px 30px'>" +
+        "<div style='display:flex;align-items:center;justify-content:center;gap:8px;" +
+        "padding-bottom:12px;font-size:14px;color:var(--mut)'>" +
+        "<span style='width:18px;height:18px;border-radius:50%;background:var(--accent);" +
+        "display:inline-flex;align-items:center;justify-content:center'>" + CHECK +
+        "</span>No commitment. Cancel anytime.</div>" +
+        "<button class='imp-btn' data-act='pay'>Continue</button></div>";
+    }
+
+    // TODO: RELEASE BLOCKER - PROOF must stay empty until real TestFlight
+    // quotes exist (locked rule: no invented social proof). Fill with
+    // entries like { q: "[TESTIMONIAL_1 - replace with real TestFlight " +
+    // "quote]", name: "[FIRST NAME]" }. Quotes only - no stars, because no
+    // rating exists to depict. The strip and the dist screen both collapse
+    // to nothing while this is empty.
+    var PROOF = [];
+    function proofStrip() {
+      if (!PROOF.length) return "";
+      var t = PROOF[0];
+      return "<div style='margin:0 0 14px;padding:11px 14px;border-radius:12px;" +
+        "background:var(--chip);font-size:14px;line-height:1.45;color:var(--ink);" +
+        "text-align:center'>&ldquo;" + t.q + "&rdquo;" +
+        "<span style='color:var(--mut)'> &mdash; " + t.name + "</span></div>";
+    }
+
+    // Live localized RevenueCat values (locked decision: never hardcode
+    // money in shipping paths). These stand-ins render only when the bridge
+    // is absent (tests, builds without the Swift class).
+    var FALLBACK = { yearly: { price: '$29.99', perWeek: '$0.58',
+                               perMonth: '$2.50', savePct: 50, trialDays: 14 },
+                     monthly: { price: '$4.99' },
+                     lifetime: { price: '$79.99' } };
+    var P = null;
+    function prod() {
+      return P && P.yearly && P.monthly && P.lifetime ? P : FALLBACK;
+    }
+
+    // The S2 motive + computed weekly hours, carried across origins in the
+    // #konvo= fragment persisted at document-start above. Missing or
+    // malformed: the paywall simply omits the line.
+    function motiveLine() {
+      var q;
+      try { q = (localStorage.getItem("konvoQuiz") || "").split("."); }
+      catch (e) { return ""; }
+      var MAP = {
+        schoolOrWork: "for school or work",
+        ownProjects: "for projects you care about",
+        presentWithPeople: "with friends and family",
+        sleepOnTime: "to wind down and sleep on time",
+        lessDistracted: "without getting pulled into Instagram"
+      };
+      if (!MAP[q[0]] || !(+q[1] > 0)) return "";
+      return "About " + q[1] + (+q[1] === 1 ? " hour" : " hours") +
+        " a week " + MAP[q[0]] + ".";
+    }
+
+    var LOCK = "<svg width='19' height='19' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
       " stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" +
       "<rect x='4' y='10.5' width='16' height='10.5' rx='3'/>" +
-      "<path d='M8.5 10.5V8a3.5 3.5 0 0 1 7 0'/></svg></span>" +
-      "<span style='flex:1;width:3px;border-radius:999px;background:rgba(10,92,240,.22);" +
-      "margin-top:5px'></span></div>" +
-      "<div style='padding-bottom:20px'><div style='font-size:16.5px;font-weight:700;" +
-      "letter-spacing:-0.02em'>Today</div><div style='font-size:15px;line-height:1.45;" +
-      "color:#5d6478;margin-top:2px'>Everything unlocks.</div></div></div>" +
-      "<div style='display:flex;gap:15px'>" +
-      "<div style='flex:none;display:flex;flex-direction:column;align-items:center'>" +
-      "<span style='width:32px;height:32px;border-radius:50%;background:#6f9de4;" +
-      "display:inline-flex;align-items:center;justify-content:center'>" +
-      "<svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
+      "<path d='M8.5 10.5V8a3.5 3.5 0 0 1 7 0'/></svg>";
+    var GLASS = "<svg width='19' height='19' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
+      " stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" +
+      "<path d='M6 3h12M6 21h12M8 3v3l4 4 4-4V3M8 21v-3l4-4 4 4v3'/></svg>";
+    var BELL = "<svg width='19' height='19' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
       " stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" +
       "<path d='M18 8.5a6 6 0 0 0-12 0c0 6-2 7-2 7h16s-2-1-2-7'/>" +
-      "<path d='M10.4 20.5a2 2 0 0 0 3.2 0'/></svg></span>" +
-      "<span style='flex:1;width:3px;border-radius:999px;background:rgba(10,92,240,.22);" +
-      "margin-top:5px'></span></div>" +
-      "<div style='padding-bottom:20px'><div style='font-size:16.5px;font-weight:700;" +
-      "letter-spacing:-0.02em'>Day 5</div><div style='font-size:15px;line-height:1.45;" +
-      "color:#5d6478;margin-top:2px'>We'll remind you the trial is ending.</div></div></div>" +
-      "<div style='display:flex;gap:15px'>" +
-      "<div style='flex:none;display:flex;flex-direction:column;align-items:center'>" +
-      "<span style='width:32px;height:32px;border-radius:50%;background:#a8bedd;" +
-      "display:inline-flex;align-items:center;justify-content:center'>" +
-      "<svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
+      "<path d='M10.4 20.5a2 2 0 0 0 3.2 0'/></svg>";
+    var STAR = "<svg width='19' height='19' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
       " stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" +
       "<path d='m12 3 2.9 5.9 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.9l1.2-6.5-4.8-4.6 " +
-      "6.6-.9Z'/></svg></span></div>" +
-      "<div><div style='font-size:16.5px;font-weight:700;letter-spacing:-0.02em'>Day 7" +
-      "</div><div style='font-size:15px;line-height:1.45;color:#5d6478;margin-top:2px'>" +
-      "You'll be charged $29.99, cancel anytime before.</div></div></div>" +
-      "</div>";
-    function pricePage(monthly) {
-      return "<div style='flex:none;padding:18px 28px 0;display:flex;" +
-        "justify-content:flex-end'>" +
-        "<button data-act='counter' aria-label='Close' style='background:none;border:0;" +
-        "padding:8px;margin:-8px'><svg width='15' height='15' viewBox='0 0 24 24'" +
-        " fill='none' stroke='#5d6478' stroke-width='2.8' stroke-linecap='round'>" +
-        "<path d='M18 6 6 18'/><path d='m6 6 12 12'/></svg></button></div>" +
-        "<div class='imp-mid' style='padding:0 28px'>" +
-        "<h2 style='font-size:29px;letter-spacing:-0.04em;line-height:1.14'>Cure your " +
-        "scrolling addiction for <span style='color:#0a5cf0'>" +
-        (monthly ? "16&cent;" : "8&cent;") + " a day</span>.</h2>" +
-        "<p style='font-size:16px;line-height:1.45;color:#5d6478;margin:8px 0 20px'>" +
-        (monthly ? "$4.99 a month. Cancel anytime."
-                 : "First 7 days free, then $29.99 a year.") + "</p>" +
-        "<div style='display:flex;background:#f2f4f7;border-radius:12px;padding:4px;" +
-        "margin-bottom:26px'>" +
-        seg("Yearly", "price", !monthly) + seg("Monthly", "price-m", monthly) +
+      "6.6-.9Z'/></svg>";
+    function node(icon, title, body, stem) {
+      return "<div class='imp-tl'><div class='imp-dot'><i>" + icon + "</i>" +
+        (stem ? "<span class='imp-stem'></span>" : "") +
+        "</div><div style='padding:4px 0 " + (stem ? "13px" : "0") + "'>" +
+        "<h4>" + title + "</h4><p>" + body + "</p></div></div>";
+    }
+    function dateIn(days) {
+      var d = new Date(Date.now() + days * 86400000);
+      try {
+        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      } catch (e) { return ""; }
+    }
+    function pkCard(act, on, badge, name, price, sub) {
+      return "<div class='imp-pk" + (on ? " on" : "") + "' data-act='" + act + "'>" +
+        (badge ? "<span class='imp-rec'>" + badge + "</span>" : "") +
+        "<b>" + name + "</b><i>" + price + "</i><u>" + sub + "</u></div>";
+    }
+    // S13. plan: 'y' | 'm' | 'l'. The Annual state renders the trial only
+    // when RevenueCat says this user is eligible - the timeline never
+    // describes a trial that will not happen. Lifetime is a one-time
+    // purchase: one-step story, "Lifetime access", never "forever".
+    function pay(plan) {
+      var pr = prod(), y = pr.yearly, m = pr.monthly, l = pr.lifetime;
+      var td = plan === "y" ? (y.trialDays || 0) : 0;
+      var sp = y.savePct || 0;
+      var head, cta, act, tl, reassure;
+      if (plan === "m") {
+        head = m.price + " a month, cancel anytime.";
+        cta = "Continue with Monthly";
+        act = "buy-m";
+        reassure = "No commitment, cancel anytime";
+        tl = node(LOCK, "Today", "Unlock your DMs and Stories in Konvo. Pay " +
+               m.price + ".", true) +
+             node(STAR, "Every month", "Renews at " + m.price +
+               ", <b>cancel anytime</b>.", false);
+      } else if (plan === "l") {
+        head = l.price + " once. Lifetime access.";
+        cta = "Get Lifetime access";
+        act = "buy-l";
+        reassure = "Pay once. No subscription.";
+        tl = node(LOCK, "Today", "Pay " + l.price + " once. That's it.", false);
+      } else if (td) {
+        head = "First " + td + " days free, then " + y.price + " a year.";
+        // ponytail: literal dollars; localize the zero through Swift if
+        // non-USD storefronts ever matter.
+        cta = "Try for $0.00";
+        act = "buy-y";
+        reassure = "No commitment, cancel anytime";
+        // Three nodes, not four: the page must fit one screen. The reminder
+        // promise rides the halfway node, which stays honest - it says we
+        // will remind you, not that the reminder lands that day (it fires
+        // two days before the charge; see the notify command).
+        tl = node(LOCK, "Today", "Unlock your DMs and Stories in Konvo. Pay $0.", true) +
+             node(BELL, "In " + Math.round(td / 2) + " days",
+               "Halfway through. We'll remind you before anything is " +
+               "charged.", true) +
+             node(STAR, "In " + td + " days", "You'll be charged on <b>" +
+               dateIn(td) + "</b>, <b>cancel anytime</b> before.", false);
+      } else {
+        head = y.price + " a year (" + (y.perMonth || y.perWeek) + "/month).";
+        cta = "Continue with Annual";
+        act = "buy-y";
+        reassure = "No commitment, cancel anytime";
+        tl = node(LOCK, "Today", "Unlock your DMs and Stories in Konvo.", true) +
+             node(STAR, "In 12 months", "Renews at " + y.price +
+               ", <b>cancel anytime</b> before.", false);
+      }
+      var mot = motiveLine();
+      return "<div class='imp-head'>" +
+        "<div style='position:absolute;inset:0;background:radial-gradient(circle at 50% 30%," +
+        "rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 60%)'></div>" +
+        "<button data-act='notready' aria-label='Close' style='position:absolute;top:10px;" +
+        "right:10px;background:none;border:0;padding:8px;color:#fff;opacity:.9;z-index:2'>" +
+        "<svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
+        " stroke-width='2.8' stroke-linecap='round'><path d='M18 6 6 18'/>" +
+        "<path d='m6 6 12 12'/></svg></button>" +
+        "<div style='position:absolute;left:34px;top:26px;width:74px;height:22px;" +
+        "border-radius:7px;background:rgba(255,255,255,.16);transform:rotate(-8deg);" +
+        "display:flex;align-items:center;justify-content:center;font-size:9px;" +
+        "font-weight:700;color:rgba(255,255,255,.55)'>FEED</div>" +
+        "<div style='position:absolute;right:30px;top:64px;width:62px;height:22px;" +
+        "border-radius:7px;background:rgba(255,255,255,.14);transform:rotate(7deg);" +
+        "display:flex;align-items:center;justify-content:center;font-size:9px;" +
+        "font-weight:700;color:rgba(255,255,255,.5)'>REELS</div>" +
+        "<div style='position:absolute;left:50%;top:33px;transform:translateX(-50%);" +
+        "width:64px;height:64px;border-radius:18px;background:#fff;display:flex;" +
+        "align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(4,30,80,.35)'>" +
+        "<svg width='34' height='34' viewBox='0 0 24 24' fill='none' stroke='#0a5cf0'" +
+        " stroke-width='2.2' stroke-linejoin='round'><path d='M12 4c-4.4 0-8 3-8 6.8 " +
+        "0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z'/>" +
+        "</svg></div></div>" +
+        "<div class='imp-mid' style='justify-content:flex-start;padding:18px 24px 0'>" +
+        "<div style='text-align:center'>" +
+        "<h2 style='font-size:24px'>" +
+        (td ? "How your free trial works" : "How your plan works") + "</h2>" +
+        "<p style='font-size:15px;color:var(--mut);margin-top:8px'>" + head + "</p>" +
+        (mot ? "<p style='font-size:14px;font-weight:600;color:var(--accent);" +
+          "margin-top:8px'>" + mot + "</p>" : "") + "</div>" +
+        proofStrip() +
+        "<div style='display:flex;gap:8px;margin:16px 0 16px'>" +
+        // The card prices annual by the month - the number a shopper
+        // compares against the monthly plan. The full yearly charge is
+        // stated in the line above and in the timeline. The unit label
+        // follows whichever number actually rendered: pairing the yearly
+        // price with "per month" would be a straight lie.
+        pkCard("pk-y", plan === "y", "RECOMMENDED", "Annual",
+          y.perMonth || y.price,
+          (y.perMonth ? "per month" : "per year") +
+          (sp ? " &middot; SAVE " + sp + "%" : "")) +
+        pkCard("pk-m", plan === "m", "", "Monthly", m.price, "per month") +
+        pkCard("pk-l", plan === "l", "", "Lifetime", l.price, "Pay once, keep it") +
         "</div>" +
-        (monthly ? "" : TIMELINE) + "</div>" +
-        "<div class='imp-foot' style='padding:22px 28px 34px'>" +
-        "<button class='imp-btn' data-act='" + (monthly ? "monthly" : "yearly") + "'>" +
-        (monthly ? "Subscribe for $4.99 a month" : "Start my free week") + "</button>" +
-        "<div class='imp-fine'>" +
-        (monthly ? "$4.99/month, auto-renews monthly until "
-                 : "$29.99/year after the free trial. Auto-renews yearly until ") +
-        "canceled in Settings &rsaquo; Subscriptions.</div>" +
-        "<div class='imp-links'><span data-act='restore'>Restore Purchases</span>" +
-        "<span data-act='terms'>Terms of Use</span>" +
-        "<span data-act='privacy'>Privacy Policy</span></div></div>";
+        (notReady ? "<div style='margin:0 0 14px;padding:11px 14px;border-radius:12px;" +
+          "background:var(--chip);font-size:14px;line-height:1.4;color:var(--mut);" +
+          "text-align:center'>Not ready to commit for a year? Monthly is " + m.price +
+          ", cancel anytime.</div>" : "") +
+        tl + "</div>" +
+        "<div class='imp-foot' style='padding:10px 24px 24px'>" +
+        "<div style='display:flex;align-items:center;justify-content:center;gap:8px;" +
+        "padding-bottom:10px;font-size:14px;color:var(--mut)'>" +
+        "<span style='width:18px;height:18px;border-radius:50%;background:var(--accent);" +
+        "display:inline-flex;align-items:center;justify-content:center'>" + CHECK +
+        "</span>" + reassure + "</div>" +
+        "<button class='imp-btn' data-act='" + act + "'>" + cta + "</button>" +
+        // Restore lives in the footer row: the four-node trial timeline
+        // pushed a centered one below the fold, and App Review needs it
+        // findable without scrolling.
+        "<div class='imp-links'><span data-act='terms'>Terms of Use</span>" +
+        "<span data-act='privacy'>Privacy Policy</span>" +
+        "<span data-act='restore'>Restore</span></div></div>";
+    }
+
+    // S14: post-purchase activation. Trial buyers get the recap and the
+    // notification ask (permission requested only on the button tap, and
+    // the day-12 reminder is scheduled only on grant). Lifetime gets its
+    // own line and no ask - there is nothing to remind about.
+    function successPage(pid) {
+      var pr = prod(), td = pr.yearly.trialDays || 0;
+      var trial = pid === "konvo.pro.yearly" && td;
+      var recap = "";
+      if (pid === "konvo.pro.lifetime") recap = "Lifetime access active.";
+      else if (trial) recap = "Free until " + dateIn(td) + ".";
+      return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
+        "<svg width='96' height='96' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
+        " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'" +
+        " style='margin-bottom:34px;color:var(--accent)'><path d='M20 6 9 17l-5-5'/></svg>" +
+        "<div style='font-size:44px;font-weight:700;letter-spacing:-0.05em;line-height:1;" +
+        "text-align:center'>You're in.</div>" +
+        "<p style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:16px;" +
+        "text-align:center'>Your DMs and Stories are ready. Feed, Reels, " +
+        "Explore: gone.</p>" +
+        (recap ? "<p style='font-size:15px;font-weight:600;margin-top:14px;" +
+          "text-align:center'>" + recap + "</p>" : "") +
+        (trial ? "<div id='imp-notif' style='margin-top:30px;text-align:center'>" +
+          "<p style='font-size:14px;line-height:1.5;color:var(--mut)'>Turn on " +
+          "notifications so we can remind you before your trial ends.</p>" +
+          "<button data-act='notify' style='background:none;border:0;padding:10px;" +
+          "font-family:inherit;font-size:15px;font-weight:600;color:var(--accent)'>" +
+          "Turn on notifications</button></div>" : "") +
+        "</div>" +
+        "<div class='imp-foot' style='padding:0 28px 40px'>" +
+        "<button class='imp-btn' data-act='done'>Open Konvo</button></div>";
     }
 
     var wall = null;
+    var notReady = false;
+    var lastBuy = "";
+    // The whole funnel up to and including the paywall is the light design;
+    // the phone's appearance takes over only when the wall is out of the
+    // way. Native launched pinned Light (lib.rs) - this asks KonvoStore to
+    // unpin, flipping the letterbox, the status bar, and Instagram's own
+    // prefers-color-scheme in one move. No reply comes back, and without
+    // the bridge (tests, old builds) it is a silent no-op.
+    var lastAppearance = "light";
+    function appearance(mode) {
+      if (mode === lastAppearance) return;
+      lastAppearance = mode;
+      try {
+        window.webkit.messageHandlers.konvoStore.postMessage(
+          { cmd: "appearance", id: 0, productId: mode });
+      } catch (e) {}
+    }
+    function goAuto() { appearance("auto"); }
+    // The wall leaves slowly: appearance flips to the phone first, then the
+    // wall fades off the now-correct chat over .8s. The reveal IS the
+    // payoff moment - an instant removal read as a glitch.
     function dismiss() {
-      if (wall && wall.parentNode) wall.parentNode.removeChild(wall);
+      if (!wall) return;
+      var w = wall;
       wall = null;
+      goAuto();
+      w.style.transition = "opacity .8s ease";
+      w.style.opacity = "0";
+      setTimeout(function () {
+        if (w.parentNode) w.parentNode.removeChild(w);
+      }, 850);
     }
     function buy(btn, productId) {
       btn.disabled = true;
@@ -706,48 +1089,152 @@
         btn.disabled = false;
         if (res && res.ok && res.entitled) {
           setCache(true);
-          // Only the yearly plan has the trial S15 talks about.
-          if (productId === "konvo.pro.yearly") wall.innerHTML = PAGES.unlocked;
-          else dismiss();
+          lastBuy = productId;
+          swap(successPage(productId));
         }
       });
     }
+    function tickRows() {
+      var rows = wall.querySelectorAll(".imp-row");
+      for (var i = 0; i < rows.length; i++) {
+        (function (el, delay) { setTimeout(function () {
+          if (wall) el.classList.add("done");
+        }, delay); })(rows[i], 400 + i * 650);
+      }
+    }
+    // Page changes inside the wall crossfade instead of cutting. The fade
+    // lives on an INNER page wrapper: the wall itself keeps its opaque
+    // background the whole time, or the live inbox behind it peeks through
+    // for the length of the fade.
+    function setPage(html, still) {
+      // still: repaint without the entrance fade - the package cards
+      // replace the same page and must not flash.
+      wall.innerHTML = "<div class='imp-page'" +
+        (still ? " style='animation:none'" : "") + ">" + html + "</div>";
+    }
+    function swap(html, then) {
+      if (!wall) return;
+      var pg = wall.firstChild;
+      if (pg) { pg.style.transition = "opacity .28s ease"; pg.style.opacity = "0"; }
+      setTimeout(function () {
+        if (!wall) return;
+        setPage(html);
+        if (then) then();
+      }, 300);
+    }
+    var swPending = false, swTried = false;
     function ensure() {
-      if (wall || cached() || !atInbox()) return;
+      // __konvoBeta: compile-time beta builds (KONVO_BETA=1) never wall.
+      if (window.__konvoBeta || wall || cached() || !atInbox()) return;
+      // Verified session first, always. The check is synchronous, so the
+      // wall rises in the same tick the cookie appears.
+      if (!authed) { checkAuth(); if (!authed) return; }
+      // Superwall experiment layer, on only when the cage-patch says
+      // {"superwall": true}: the native placement presents Superwall's
+      // remotely-designed paywall over the webview instead of the injected
+      // wall below. The injected wall stays the enforcement floor - it
+      // rises the moment Superwall's sheet ends without an entitlement, so
+      // a closed sheet never leaves the inbox open. One attempt per
+      // session; after that the floor rules.
+      if (window.__konvoSW && !swTried) {
+        if (!swPending) {
+          swPending = true;
+          storekit("paywall", null, function (res) {
+            swPending = false;
+            swTried = true;
+            if (res && res.entitled) { setCache(true); dismiss(); }
+            else ensure();
+          });
+        }
+        return;
+      }
+      // The wall is light-only design: re-pin Light for the rare case of a
+      // lapsed subscription raising it over an already-dark app.
+      appearance("light");
+      try {
+        if (!localStorage.konvoLoginTracked) {
+          localStorage.konvoLoginTracked = "1";
+          track("login_succeeded", { screen_id: "s12_connected" });
+        }
+      } catch (e) {}
       wall = document.createElement("div");
       wall.id = "im-pay";
-      wall.innerHTML = PAGES.value;
+      setPage(PAGES.connected);
       wall.addEventListener("click", function (e) {
         var t = e.target.closest("[data-act]");
         if (!t || !wall) return;
         var act = t.getAttribute("data-act");
-        if (act === "price" || act === "price-m") {
-          wall.innerHTML = pricePage(act === "price-m");
-        } else if (act === "counter" || act === "stop") {
-          wall.innerHTML = PAGES[act];
-        } else if (act === "yearly") {
+        if (act === "pk-y" || act === "pk-m" || act === "pk-l") {
+          var plan = act.slice(3);
+          track("plan_selected", { plan: plan === "y" ? "annual"
+            : plan === "m" ? "monthly" : "lifetime", screen_id: "s13_paywall" });
+          setPage(pay(plan), true);
+        } else if (act === "pay") {
+          track("paywall_viewed", { variant: "default", screen_id: "s13_paywall" });
+          swap(pay("y"));
+        } else if (act === "notready") {
+          // The x does not dismiss - it concedes: reveal the softer path
+          // and flip to the Monthly story.
+          notReady = true;
+          track("plan_selected", { plan: "monthly", screen_id: "s13_paywall" });
+          setPage(pay("m"), true);
+        } else if (act === "buy-y") {
           buy(t, "konvo.pro.yearly");
-        } else if (act === "monthly") {
+        } else if (act === "buy-m") {
           buy(t, "konvo.pro.monthly");
-        } else if (act === "weekly") {
-          buy(t, "konvo.pro.weekly");
+        } else if (act === "buy-l") {
+          buy(t, "konvo.pro.lifetime");
+        } else if (act === "notify") {
+          t.disabled = true;
+          storekit("notify", null, function (res) {
+            var g = !!(res && res.granted);
+            track("notification_permission_result",
+              { granted: g, screen_id: "s14_success" });
+            var n = wall && wall.querySelector('#imp-notif');
+            if (n) n.innerHTML = "<p style='font-size:14px;color:var(--mut)'>" +
+              (g ? "Reminder set for " +
+                   dateIn((prod().yearly.trialDays || 14) - 2) + "."
+                 : "You can turn notifications on in Settings anytime.") + "</p>";
+          });
         } else if (act === "restore") {
-          // AppStore.sync then re-read entitlements; unlocking straight to
-          // the inbox - a restorer is returning, not starting a trial.
+          // Sync then re-read entitlements; unlocking straight to the
+          // inbox - a restorer is returning, not starting a trial.
           storekit("restore", null, function (res) {
             if (res && res.entitled) { setCache(true); dismiss(); }
           });
         } else if (act === "done") {
+          track("onboarding_completed", { screen_id: "s14_success" });
+          // Land in messages, never wherever the page happened to drift to.
+          if (!atInbox()) location.assign("/direct/inbox/");
           dismiss();
-        } else if (act === "mac") {
-          openExternal("https://konvoinstall.com");
         } else if (act === "terms") {
           openExternal("https://konvoinstall.com/terms");
         } else if (act === "privacy") {
           openExternal("https://konvoinstall.com/privacy");
         }
       });
+      // The wall eases on rather than slamming over the fresh login: a
+      // short fade so "Instagram connected." arrives, not appears.
+      wall.style.opacity = "0";
       (document.body || document.documentElement).appendChild(wall);
+      requestAnimationFrame(function () {
+        var w = wall;
+        if (!w) return;
+        w.style.transition = "opacity .35s ease";
+        w.style.opacity = "1";
+      });
+      // Live prices arrive while the connected/loader beat plays; the S13
+      // render reads whatever answered by then. The cadence is deliberately
+      // slow: ~1.8s on connected, ~4.4s of rows ticking, crossfades between.
+      storekit("products", null, function (res) {
+        if (res && res.ok) P = res;
+      });
+      setTimeout(function () {
+        swap(loaderPage(), tickRows);
+      }, 1800);
+      setTimeout(function () {
+        swap(perksPage());
+      }, 6200);
     }
 
     // Verify at every launch; the verdict beats the cache in both
@@ -759,6 +1246,8 @@
       setCache(!!res.entitled);
       if (res.entitled) dismiss();
     });
+    // A paying user never sees a wall, so the phone rules immediately.
+    if (cached()) goAuto();
     // Same belt-and-braces cadence as enforce(): the inbox is reached by SPA
     // navigation after login, which fires no event this script can hook.
     setInterval(ensure, 800);

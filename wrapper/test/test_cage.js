@@ -25,11 +25,18 @@ function boot(path, html, opts = {}) {
   // jsdom ignores the userAgent option here, and the cage branches on it.
   Object.defineProperty(dom.window.navigator, 'userAgent',
     { value: opts.ua || IPHONE, configurable: true });
-  dom.window.fetch = () => new Promise(() => {});  // notification poll: never resolves
+  // The paywall's auth gate is the ds_user_id cookie: present for a
+  // signed-in user unless the case is explicitly loggedOut. The fetch
+  // (the badge poll) never resolves, as before.
+  if (!opts.loggedOut) dom.window.document.cookie = 'ds_user_id=1234567';
+  // Beta builds prepend window.__konvoBeta=true before the cage runs.
+  if (opts.beta) dom.window.__konvoBeta = true;
+  dom.window.fetch = () => new Promise(() => {});
   // Paywall state, seeded before the cage runs: `paid` is the offline cache a
   // paying user relies on; `bridge` stands in for KonvoStore.swift and gets
   // every postMessage the wall sends, replying via __konvoStoreReply.
   if (opts.paid) dom.window.localStorage.setItem('konvoPaid', '1');
+  if (opts.patch) dom.window.localStorage.setItem('konvoPatch', JSON.stringify(opts.patch));
   if (opts.bridge) dom.window.webkit = { messageHandlers: { konvoStore: {
     postMessage: m => opts.bridge(m, dom) } } };
   // jsdom refuses to navigate and locks window.location, so shadow `location`
@@ -40,6 +47,7 @@ function boot(path, html, opts = {}) {
     hostname: 'www.instagram.com',
     pathname: q < 0 ? path : path.slice(0, q),
     search: q < 0 ? '' : path.slice(q),
+    hash: opts.hash || '',
     href: 'https://www.instagram.com' + path,
     replace: t => dom.went.push(t),
     assign: t => dom.went.push(t),
@@ -324,144 +332,287 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(!heartPhone.window.document.getElementById('im-create'),
     'the story probe must stay deleted - the experiment is settled');
 
-  // 10. The paywall. iOS is the paid platform: an iPhone at the inbox with
-  //     no entitlement gets the two-page wall. The Mac never does (S11
-  //     promises "the Mac app is included"), a cached konvoPaid - the
-  //     offline path for a paying user - suppresses it with no bridge
-  //     round-trip, and it only rises at the inbox, never over a thread.
+  // 10. The paywall sequence. iOS is the paid platform: an unpaid iPhone at
+  //     the inbox gets S12 connected -> S12b loader -> perks comparison ->
+  //     S13 three-package paywall, on real timers. The Mac never does, a
+  //     cached konvoPaid suppresses it with no bridge round-trip, and it
+  //     only rises at the inbox, never over a thread.
   const wallFresh = boot('/direct/inbox/', '');
   const wallDesk = boot('/direct/inbox/', '', { ua: DESKTOP });
   const wallPaid = boot('/direct/inbox/', '', { paid: true });
   const wallThread = boot('/direct/t/123/', '');
-  await settle();
-  const wall = wallFresh.window.document.getElementById('im-pay');
-  assert(wall, 'an unpaid iPhone inbox must get the paywall');
-  assert(/You're here for the messages\./.test(wall.textContent),
-    'the wall must open on the value page, not the price');
+  const wallOut = boot('/direct/inbox/', '', { loggedOut: true });
+  const wallBeta = boot('/direct/inbox/', '', { beta: true });
+  await settle(1300);   // auth check, then the next ensure tick
+  const wdoc = wallFresh.window.document;
+  const payText = () => wdoc.getElementById('im-pay').textContent;
+  assert(wdoc.getElementById('im-pay'), 'an unpaid iPhone inbox must get the wall');
+  assert(/Instagram connected\./.test(payText()),
+    'the sequence must open on the connected confirmation');
   assert(!wallDesk.window.document.getElementById('im-pay'),
-    'no paywall on the Mac - "the Mac app is included"');
+    'no paywall on the Mac');
   assert(!wallPaid.window.document.getElementById('im-pay'),
     'a cached konvoPaid must suppress the wall without any bridge');
   assert(!wallThread.window.document.getElementById('im-pay'),
     'the wall only rises at the inbox');
-
-  //     The decline path: value -> price -> (x) counter -> hard stop -> back
-  //     to plans. Every page is reachable and the stop is not a dead end.
-  const wdoc = wallFresh.window.document;
+  //     The trap this closes: /direct/inbox/ renders for a beat before
+  //     Instagram bounces a signed-out visitor, and a wall raised there
+  //     takes money from someone who then lands on a login page.
+  assert(!wallOut.window.document.getElementById('im-pay'),
+    'no verified Instagram session, no paywall - ever');
+  assert(!wallBeta.window.document.getElementById('im-pay'),
+    'a KONVO_BETA build must never raise the wall');
+  await settle(2600);  // the loader (auth tick + slow cadence + crossfade)
+  assert(/Setting up your Konvo/.test(payText()),
+    'connected must auto-advance into the honest loader');
+  assert(/Friends' stories kept/.test(payText()),
+    'every loader line is a real cage rule');
+  await settle(5200);  // ~7.6s in: the perks comparison
+  assert(/What changes with Konvo/.test(payText()),
+    'the loader must auto-advance into the perks comparison');
+  assert(/Nothing pulling you into a scroll/.test(payText()),
+    'every perk row is a true structural claim');
   const wtap = act => {
     const el = wdoc.querySelector(`[data-act='${act}']`);
     assert(el, `the ${act} control must exist on the current page`);
     el.dispatchEvent(new wallFresh.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   };
-  wtap('price');
-  assert(/8¢ a day/.test(wdoc.getElementById('im-pay').textContent),
-    'Continue must land on the price page');
-  wtap('counter');
-  assert(/Not ready for a year\?/.test(wdoc.getElementById('im-pay').textContent),
-    'the close button must offer the weekly counter, not dismiss');
-  wtap('stop');
-  assert(/Konvo is a paid app\./.test(wdoc.getElementById('im-pay').textContent),
-    'declining the counter must reach the calm hard stop');
-  wtap('price');
-  assert(/8¢ a day/.test(wdoc.getElementById('im-pay').textContent),
-    'See plans must reopen the price page - the door stays open');
+  wtap('pay');
+  await settle(450);   // crossfade
+  assert(/How your free trial works/.test(payText()),
+    'Continue on the perks page must reach S13');
+  assert(/First 14 days free, then \$29\.99 a year\./.test(payText()),
+    'the headline states the real yearly charge');
+  assert(/\$2\.50/.test(payText()) && /per month/.test(payText()),
+    'the Annual card prices by the month, the number shoppers compare');
+  assert(/SAVE 50%/.test(payText()),
+    'the honest computed discount must show on the Annual card');
+  assert(/Try for \$0\.00/.test(payText()),
+    'the trial CTA is Try for $0.00');
+  assert(/No commitment, cancel anytime/.test(payText()),
+    'the reassurance row sits above the CTA');
+  assert(/Pay once, keep it/.test(payText()),
+    'the Lifetime card carries its badge');
+  assert(/In 7 days/.test(payText()) && /In 14 days/.test(payText()),
+    'three nodes only: today, halfway, charge - the page must fit one screen');
+  assert(!/In 12 days/.test(payText()),
+    'the fourth node is gone');
+  assert(/We'll remind you before anything is charged\./.test(payText()),
+    'the reminder promise rides the halfway node');
 
-  //     The Monthly tab tells its own truth: 16¢ headline, its own price and
-  //     CTA, and no trial timeline - monthly has no trial to describe.
-  //     Flipping back restores the yearly story intact.
-  wtap('price-m');
-  const monthlyText = wdoc.getElementById('im-pay').textContent;
-  assert(/16¢ a day/.test(monthlyText), 'the Monthly tab must reprice the headline');
-  assert(/\$4\.99 a month/.test(monthlyText), 'the Monthly tab must state its own price');
-  assert(!/Day 7/.test(monthlyText), 'the trial timeline must vanish on Monthly');
-  assert(wdoc.querySelector("[data-act='monthly']"),
-    'the Monthly CTA must exist and buy the monthly product');
-  wtap('price');
-  const yearlyText = wdoc.getElementById('im-pay').textContent;
-  assert(/8¢ a day/.test(yearlyText) && /Day 7/.test(yearlyText),
-    'flipping back to Yearly must restore the trial story');
+  //     The three packages are side-by-side selectable; each tells its own
+  //     truth. Monthly: no trial language. Lifetime: one-step, one-time.
+  wtap('pk-m');
+  assert(/\$4\.99 a month, cancel anytime\./.test(payText()),
+    'the Monthly card must state its own price');
+  assert(!/days free/.test(payText()),
+    'no trial language may survive on Monthly');
+  assert(/Continue with Monthly/.test(payText()),
+    'Monthly must have its own CTA');
+  wtap('pk-l');
+  assert(/\$79\.99 once\. Lifetime access\./.test(payText()),
+    'Lifetime states the one-time price and the exact phrase Lifetime access');
+  assert(/Pay \$79\.99 once\. That's it\./.test(payText()),
+    'the Lifetime timeline is a one-step confirmation');
+  assert(/Get Lifetime access/.test(payText()),
+    'the Lifetime CTA');
+  assert(/Pay once\. No subscription\./.test(payText()),
+    'the Lifetime reassurance replaces cancel-anytime');
+  assert(!/forever/i.test(payText()),
+    'the word forever is banned copy');
+  wtap('pk-y');
+  assert(/First 14 days free/.test(payText()) && /In 14 days/.test(payText()),
+    'flipping back to Annual must restore the trial story');
 
-  //     Buying the yearly plan through the bridge: S15 only exists for the
-  //     trial plan, and Open my messages drops the wall and fills the cache.
+  //     The x does not dismiss: it reveals the not-ready section and flips
+  //     to the Monthly story. The wall itself never goes away unpaid.
+  wtap('notready');
+  assert(/Not ready to commit for a year\? Monthly is \$4\.99/.test(payText()),
+    'the x must concede into the softer monthly path');
+  assert(/Continue with Monthly/.test(payText()),
+    'the not-ready state shows the Monthly story');
+  assert(wdoc.getElementById('im-pay'), 'the wall must survive the x');
+  wtap('pk-y');
+  assert(/Try for \$0\.00/.test(payText()),
+    'Annual must still be reachable after not-ready');
+
+  //     Live values beat the stand-ins: a bridge that answers products
+  //     reprices the whole page, including a 7-day ASC trial. The paywall
+  //     never hardcodes money (locked decision).
   const posted = [];
   const answer = replies => (m, d) => {
-    posted.push(m.cmd + ':' + m.productId);
+    posted.push(m.cmd + ':' + (m.event || m.productId || ''));
     if (m.cmd in replies) d.window.__konvoStoreReply(m.id, replies[m.cmd]);
   };
+  const LIVE_PRODUCTS = { ok: true,
+    yearly: { price: 'US$39.99', perWeek: 'US$0.77', perMonth: 'US$3.33',
+      savePct: 33, trialDays: 7 },
+    monthly: { price: 'US$4.99' }, lifetime: { price: 'US$99.99' } };
+  const live = boot('/direct/inbox/', '', { bridge: answer({
+    entitlements: { entitled: false },
+    products: LIVE_PRODUCTS,
+  }) });
+  await settle(8400);
+  const ldoc0 = live.window.document;
+  const ltap = act => ldoc0.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new live.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  ltap('pay');
+  await settle(450);
+  const ltext = ldoc0.getElementById('im-pay').textContent;
+  assert(/First 7 days free, then US\$39\.99 a year\./.test(ltext),
+    'live values must replace the stand-ins');
+  assert(/US\$3\.33/.test(ltext),
+    'the card must carry the live per-month price');
+  assert(/SAVE 33%/.test(ltext),
+    'the discount must be the live-computed percentage');
+  assert(/US\$99\.99/.test(ltext),
+    'the Lifetime card must carry the live price');
+  assert(/In 4 days/.test(ltext) && /In 7 days/.test(ltext),
+    'halfway and charge nodes must follow the live trial length');
+  assert(posted.includes('products:'),
+    'the sequence must ask the bridge for products');
+  assert(posted.includes('track:login_succeeded') &&
+    posted.includes('track:paywall_viewed'),
+    'the funnel events must reach the bridge');
+
+  //     A trial-ineligible user gets the no-trial Annual story.
+  const noTrial = boot('/direct/inbox/', '', { bridge: answer({
+    entitlements: { entitled: false },
+    products: { ok: true, yearly: { price: '$29.99', perWeek: '$0.58',
+      perMonth: '$2.50', savePct: 50 }, monthly: { price: '$4.99' },
+      lifetime: { price: '$79.99' } },
+  }) });
+  await settle(8400);
+  noTrial.window.document.querySelector("[data-act='pay']").dispatchEvent(
+    new noTrial.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(450);
+  const ntext = noTrial.window.document.getElementById('im-pay').textContent;
+  assert(/How your plan works/.test(ntext) && !/days free/.test(ntext),
+    'no trial may be described when the user is ineligible');
+  assert(/Continue with Annual/.test(ntext) && /In 12 months/.test(ntext),
+    'the ineligible Annual story is renewal framing');
+  assert(/\$2\.50\/month/.test(ntext),
+    'the ineligible headline prices by the month too');
+
+  //     The #konvo fragment from the onboarding persists into this origin,
+  //     and the paywall speaks the complete motive sentence.
+  const quiz = boot('/direct/inbox/', '', { hash: '#konvo=ownProjects.15' });
+  await settle(8400);
+  assert.strictEqual(quiz.window.localStorage.getItem('konvoQuiz'), 'ownProjects.15',
+    'the fragment must persist into instagram.com-origin storage');
+  quiz.window.document.querySelector("[data-act='pay']").dispatchEvent(
+    new quiz.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(450);
+  assert(/About 15 hours a week for projects you care about\./.test(
+    quiz.window.document.getElementById('im-pay').textContent),
+    'the paywall must speak the complete motive sentence');
+
+  //     A trial purchase lands on S14 activation: recap, notification ask
+  //     (granted -> reminder set), then Open Konvo drops the wall.
   const buyer = boot('/direct/inbox/', '', { bridge: answer({
     entitlements: { entitled: false },
+    products: LIVE_PRODUCTS,
     purchase: { ok: true, entitled: true },
+    notify: { ok: true, granted: true },
   }) });
-  await settle();
+  await settle(8400);
   const bdoc = buyer.window.document;
   const btap = act => bdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new buyer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  btap('price');
-  btap('yearly');
+  btap('pay');
+  await settle(450);
+  btap('buy-y');
+  await settle(450);   // crossfade to S14
   assert(posted.includes('purchase:konvo.pro.yearly'),
-    'Start my free week must purchase the yearly product');
-  assert(/You're in\./.test(bdoc.getElementById('im-pay').textContent),
-    'a yearly purchase earns the trial S15');
+    'the Annual CTA must purchase the yearly product');
+  const stext = bdoc.getElementById('im-pay').textContent;
+  assert(/You're in\./.test(stext) && /Feed, Reels, Explore: gone\./.test(stext),
+    'S14 opens on the confirmation');
+  assert(/Free until/.test(stext),
+    'a trial purchase gets the recap line');
+  assert(/Turn on notifications/.test(stext),
+    'the trial S14 carries the notification ask');
+  btap('notify');
+  await settle(100);
+  assert(posted.includes('notify:'),
+    'the ask must reach the bridge only on tap');
+  assert(/Reminder set for/.test(bdoc.getElementById('im-pay').textContent),
+    'a granted permission must confirm the reminder date');
+  assert(posted.includes('track:notification_permission_result'),
+    'the permission result must be tracked');
   btap('done');
-  assert(!bdoc.getElementById('im-pay'), 'Open my messages must drop the wall');
+  await settle(950);   // the wall fades off over .8s
+  assert(!bdoc.getElementById('im-pay'), 'Open Konvo must drop the wall');
   assert.strictEqual(buyer.window.localStorage.getItem('konvoPaid'), '1',
     'a purchase must fill the offline cache');
+  assert(posted.includes('track:onboarding_completed'),
+    'completing the funnel must be tracked');
 
-  //     The weekly counter-offer has no trial, so S15's "Seven days free"
-  //     would be a lie - it unlocks straight to the inbox instead.
-  const weekly = boot('/direct/inbox/', '', { bridge: answer({
+  //     Lifetime: its own recap, no notification ask, distinct product id.
+  const lifer = boot('/direct/inbox/', '', { bridge: answer({
     entitlements: { entitled: false },
+    products: LIVE_PRODUCTS,
     purchase: { ok: true, entitled: true },
   }) });
-  await settle();
-  const ktap = act => weekly.window.document.querySelector(`[data-act='${act}']`)
-    .dispatchEvent(new weekly.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  ktap('price');
-  ktap('counter');
-  ktap('weekly');
-  assert(!weekly.window.document.getElementById('im-pay'),
-    'a weekly purchase must skip S15 - its copy is trial-only');
+  await settle(8400);
+  const ftap = act => lifer.window.document.querySelector(`[data-act='${act}']`)
+    .dispatchEvent(new lifer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  ftap('pay');
+  await settle(450);
+  ftap('pk-l');
+  ftap('buy-l');
+  await settle(450);
+  assert(posted.includes('purchase:konvo.pro.lifetime'),
+    'the Lifetime CTA must purchase the non-consumable');
+  const ftext = lifer.window.document.getElementById('im-pay').textContent;
+  assert(/Lifetime access active\./.test(ftext),
+    'a lifetime purchase gets its own recap');
+  assert(!/Turn on notifications/.test(ftext),
+    'no notification ask for lifetime - nothing to remind about');
 
-  //     ...and so does monthly, through its own tab and product.
+  //     Monthly through its own card and product.
   const monthlyBuy = boot('/direct/inbox/', '', { bridge: answer({
     entitlements: { entitled: false },
+    products: LIVE_PRODUCTS,
     purchase: { ok: true, entitled: true },
   }) });
-  await settle();
+  await settle(8400);
   const mtap = act => monthlyBuy.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new monthlyBuy.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  mtap('price');
-  mtap('price-m');
-  mtap('monthly');
+  mtap('pay');
+  await settle(450);
+  mtap('pk-m');
+  mtap('buy-m');
+  await settle(450);
   assert(posted.includes('purchase:konvo.pro.monthly'),
     'the Monthly CTA must purchase konvo.pro.monthly');
-  assert(!monthlyBuy.window.document.getElementById('im-pay'),
-    'a monthly purchase must skip S15 too - no trial to celebrate');
+  assert(/You're in\./.test(
+    monthlyBuy.window.document.getElementById('im-pay').textContent),
+    'S14 is generic success copy - true for monthly too');
 
-  //     The verdict beats the cache in both directions. Lapsed: the cache
-  //     said paid, StoreKit says no - the wall comes back and Restore
-  //     Purchases (AppStore.sync) clears it again. Reinstalled: no cache,
-  //     StoreKit says yes - the wall never shows at all.
+  //     The verdict beats the cache in both directions.
   const lapsed = boot('/direct/inbox/', '', { paid: true, bridge: answer({
     entitlements: { entitled: false },
     restore: { ok: true, entitled: true },
   }) });
-  await settle();
+  await settle(9600);
   const ldoc = lapsed.window.document;
   assert(ldoc.getElementById('im-pay'),
     'a lapsed subscription must bring the wall back despite the cache');
-  ldoc.querySelector("[data-act='price']").dispatchEvent(
+  ldoc.querySelector("[data-act='pay']").dispatchEvent(
     new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(450);
   ldoc.querySelector("[data-act='restore']").dispatchEvent(
     new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  assert(posted.includes('restore:'), 'Restore Purchases must reach AppStore.sync');
+  assert(posted.includes('restore:'), 'Restore Purchases must reach the bridge');
+  await settle(950);
   assert(!ldoc.getElementById('im-pay'), 'a successful restore must drop the wall');
   const reinstalled = boot('/direct/inbox/', '', { bridge: answer({
     entitlements: { entitled: true },
   }) });
   await settle();
   assert(!reinstalled.window.document.getElementById('im-pay'),
-    'a reinstalling subscriber must never see the wall - entitlements survive deletion');
+    'a reinstalling subscriber must never see the wall');
   assert.strictEqual(reinstalled.window.localStorage.getItem('konvoPaid'), '1',
     'the launch verdict must refill the offline cache');
 

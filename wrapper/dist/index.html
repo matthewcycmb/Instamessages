@@ -1,31 +1,765 @@
 <!doctype html>
-<!-- The launch splash. The webview starts here, painted from disk on the very
-     first frame, then immediately navigates to instagram.com - which takes a
-     network round-trip before it has a document at all. Without this page that
-     wait was a dead black window on every cold launch. CAGE_SCRIPT's boot
-     overlay (visually identical, in lib.rs) takes over at instagram's
-     document-start; keep the two in sync by eye if the brand changes. -->
+<!-- The bundled start page, painted from disk on the very first frame.
+     Two jobs, decided synchronously in the head script before first paint:
+
+     - Mac, or an iPhone that has already onboarded: today's dark splash,
+       immediate navigation to the inbox. CAGE_SCRIPT's boot overlay
+       (visually identical, in lib.rs) takes over at instagram's
+       document-start; keep the two in sync by eye if the brand changes.
+     - A fresh iPhone install: the v2 onboarding flow (approved Aug 2 sheet,
+       wrapper/onboarding-design/index.html, copy verbatim). The S10 button
+       sets localStorage.konvoOnboarded and hands off to Instagram login -
+       set there, not at the paywall, so a kill mid-login never replays the
+       quiz. The flag lives on this tauri:// origin and is wiped only by app
+       deletion, which is exactly once-per-install.
+
+     The S2 motive and the computed weekly hours ride to the paywall in the
+     URL fragment (#konvo=<motive>.<hours>); CAGE_SCRIPT persists it into
+     instagram.com-origin localStorage at document-start and strips the hash.
+
+     The paywall (S12-S14) is NOT here: it runs on the instagram.com origin,
+     injected by CAGE_SCRIPT after login. -->
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Konvo</title>
+<script>
+(function () {
+  var done = false;
+  try { done = !!localStorage.konvoOnboarded; } catch (e) {}
+  var ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  // The onboarding opens light; native launches pinned Light to match
+  // (lib.rs). The dark S5-S7 stretch asks the bridge for "dark" and S8a
+  // asks for "light" again. The Mac keeps its hardcoded dark splash.
+  if (ios) document.documentElement.classList.add("ios");
+  if (ios && !done) {
+    document.documentElement.classList.add("onboard");
+  } else {
+    if (ios) {
+      // Returning user: the light funnel is behind them and the phone rules
+      // now. Ask KonvoStore to unpin the Light override immediately so the
+      // splash, the letterbox, and the status bar are dark on dark phones
+      // all the way into the chat. Silent no-op without the bridge.
+      try {
+        window.webkit.messageHandlers.konvoStore.postMessage(
+          { cmd: "appearance", id: 0, productId: "auto" });
+      } catch (e) {}
+    }
+    // Navigate AFTER the splash has parsed and had a frame to paint.
+    // Navigating from this head script leaves the webview blank white for
+    // the whole instagram round-trip - the logo markup below never renders
+    // if the document is already leaving when it parses.
+    var go = function () {
+      location.replace("https://www.instagram.com/direct/inbox/");
+    };
+    if (document.readyState !== "loading") {
+      go();
+    } else {
+      window.addEventListener("DOMContentLoaded", function () {
+        requestAnimationFrame(go);
+      });
+    }
+  }
+})();
+</script>
 <style>
+  /* The approved light mockup: the onboarding does not follow the system
+     appearance. Native pins the app Light at launch (lib.rs); the S5-S7
+     stretch pins dark via the bridge, and CAGE_SCRIPT flips native to
+     follow-system once the paywall clears. */
+  :root {
+    --bg: #fff; --card: #fff; --ink: #141d33; --mut: #5d6478;
+    --line: #d9d9de; --chip: #f2f2f4; --icbg: #eef3ff; --accent: #0a5cf0;
+    --track: rgba(20,29,51,0.12);
+    --dbg: #05070A; --dink: #f5f5f7; --dmut: #8e8e93; --daccent: #0a84ff;
+  }
   html, body { margin: 0; height: 100%; background: #000 }
   body { display: flex; flex-direction: column; align-items: center;
-         justify-content: center; gap: 18px }
+         justify-content: center; gap: 18px;
+         font-family: -apple-system, system-ui, sans-serif;
+         -webkit-font-smoothing: antialiased }
   .w { font: 600 17px -apple-system, system-ui, sans-serif; color: #f5f5f7;
        letter-spacing: -0.01em }
   .s { width: 20px; height: 20px; border: 2px solid #2c2c2e;
        border-top-color: #0a84ff; border-radius: 50%;
        animation: spin .8s linear infinite }
   @keyframes spin { to { transform: rotate(360deg) } }
+
+  #splash { display: flex; flex-direction: column; align-items: center;
+            gap: 18px }
+
+  /* iOS splash: light to match the funnel, but a returning user's splash
+     follows the phone (the head script unpins native on that path). */
+  .ios, .ios body { background: var(--bg) }
+  .ios .w { color: var(--ink) }
+  .ios .s { border-color: var(--line); border-top-color: var(--accent) }
+  @media (prefers-color-scheme: dark) {
+    .ios:not(.onboard), .ios:not(.onboard) body { background: #000 }
+    .ios:not(.onboard) .w { color: #f5f5f7 }
+    .ios:not(.onboard) .s { border-color: #2c2c2e; border-top-color: #0a84ff }
+  }
+
+  /* ---- onboarding (fresh iPhone installs only) ---- */
+  .onboard #splash { display: none }
+  #flow { display: none }
+  .onboard #flow { display: block; position: fixed; inset: 0; overflow: hidden;
+                   color: var(--ink); -webkit-tap-highlight-color: transparent;
+                   -webkit-user-select: none; user-select: none;
+                   touch-action: manipulation; overscroll-behavior: none }
+  h1, h2, p { margin: 0 }
+  /* Native-push feel: transform only (opacity flips instantly, no crossfade),
+     Apple's sheet curve, incoming screen rides over the dimmed stack. */
+  .screen { position: absolute; inset: 0; background: var(--bg); display: flex;
+            flex-direction: column; transform: translateX(100%); opacity: 0;
+            transition: transform .5s cubic-bezier(0.32, 0.72, 0, 1);
+            pointer-events: none }
+  .screen.on { transform: none; opacity: 1; pointer-events: auto; z-index: 2 }
+  .screen.past { transform: translateX(-25%); opacity: 1; z-index: 1 }
+  /* Transition mix: the quiz keeps the iOS push above; the dark impact
+     screens crossfade in place; the privacy sheet rises. The outgoing
+     screen holds still under a fade/rise (.hold) instead of dimming away. */
+  .screen.t-fade { transform: none; transition: opacity .55s ease }
+  /* The reveal deserves a slower curtain: the dark screen fades in over a
+     full second, then the number pops. */
+  #s5.t-fade { transition: opacity 1.1s ease }
+  .screen.t-rise { transition: transform .6s cubic-bezier(0.32, 0.72, 0, 1),
+                               opacity .6s ease }
+  /* :not(.on) is load-bearing: this rule sits after .screen.on and matches
+     just as specifically, so without it the resting offset wins while the
+     screen is showing and the whole page sits 36px low. */
+  .screen.t-rise:not(.on) { transform: translateY(36px) }
+  .screen.hold { transform: none; opacity: 1; z-index: 1 }
+  .screen.dark { background: var(--dbg); color: var(--dink) }
+  .body { flex: 1; display: flex; flex-direction: column; padding: 26px 20px 0 }
+  .mid { justify-content: center; padding: 0 24px }
+  .foot { flex: none; padding: 0 20px 34px }
+  .btn { width: 100%; min-height: 54px; border: 0; border-radius: 13px;
+         background: var(--accent); color: #fff; font-family: inherit;
+         font-size: 17px; font-weight: 600; letter-spacing: -0.012em;
+         cursor: pointer; box-shadow: 0 8px 18px rgba(10,92,240,0.24);
+         transition: transform .15s ease }
+  .btn:active { transform: scale(0.97) }
+  .dark .btn { background: var(--daccent);
+               box-shadow: 0 8px 24px rgba(10,132,255,0.35) }
+  .back:active { opacity: 0.5 }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.035em;
+       line-height: 1.14 }
+  .sub { font-size: 15.5px; line-height: 1.45; color: var(--mut);
+         margin: 8px 0 26px }
+  .chrome { flex: none; padding: 14px 20px 0 }
+  .track { height: 3px; border-radius: 999px; background: var(--track);
+           overflow: hidden }
+  .fill { height: 3px; border-radius: 999px; background: var(--accent);
+          transition: width .25s ease }
+  .back { margin: 12px 0 0 -8px; width: 32px; height: 32px; display: flex;
+          align-items: center; justify-content: center; background: none;
+          border: 0; padding: 0; cursor: pointer; color: var(--mut) }
+  /* Opal-style option pills: full-width stadium rows, left label,
+     tap auto-advances. */
+  .opts { display: flex; flex-direction: column; gap: 12px }
+  .opt { display: flex; align-items: center; min-height: 62px;
+         padding: 14px 26px; border-radius: 999px; background: var(--card);
+         color: var(--ink); border: 0; font-family: inherit; text-align: left;
+         cursor: pointer; box-shadow: inset 0 0 0 1.2px var(--line);
+         font-size: 17px; font-weight: 500; letter-spacing: -0.015em;
+         line-height: 1.35; transition: transform .15s ease }
+  .opt:active { transform: scale(0.98) }
+  .opt.sel { background: var(--chip); box-shadow: inset 0 0 0 2px var(--accent) }
+  .opt[disabled] { opacity: 0.35; pointer-events: none }
+  .spin { width: 30px; height: 30px; flex: none; border-radius: 50%;
+          border: 3px solid var(--line); border-top-color: var(--accent);
+          animation: spin .8s linear infinite }
+  .pill { display: flex; align-items: center; gap: 10px; padding: 11px 18px;
+          border-radius: 999px; background: var(--chip); opacity: 0.45;
+          font-size: 15.5px; font-weight: 500; transform: translateY(6px);
+          transition: opacity .45s ease, transform .45s ease }
+  .pill.done { opacity: 1; transform: none }
+  .check { width: 20px; height: 20px; flex: none; border-radius: 50%;
+           background: var(--track); display: inline-flex;
+           align-items: center; justify-content: center }
+  .check svg { display: none }
+  .done .check { background: var(--accent) }
+  .done .check svg { display: block }
+  @keyframes pop { from { transform: scale(0.55); opacity: 0 } }
+  .pop { animation: pop .55s cubic-bezier(0.34, 1.56, 0.64, 1) both }
+  .lead { font-size: 22px; font-weight: 600; letter-spacing: -0.02em }
+  .bignum { font-size: 64px; font-weight: 700; letter-spacing: -0.05em;
+            line-height: 0.95; color: var(--daccent); white-space: nowrap }
+  .glow { position: absolute; left: 50%; top: 42%; width: 520px; height: 520px;
+          transform: translate(-50%, -50%); border-radius: 50%; z-index: 0;
+          pointer-events: none;
+          background: radial-gradient(circle, rgba(10,132,255,0.22) 0%,
+          rgba(10,132,255,0.07) 42%, rgba(10,132,255,0) 70%) }
+  .dark .body { position: relative; z-index: 1 }
+  .trust { display: flex; align-items: center; gap: 14px; font-size: 17px;
+           font-weight: 600 }
+  .trust .ic { width: 34px; height: 34px; flex: none; border-radius: 10px;
+               background: var(--icbg); display: inline-flex; align-items: center;
+               justify-content: center; color: var(--accent) }
+  #s1 { background: url('welcome-bg.jpg') center/cover }
+  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 470px;
+          background: linear-gradient(180deg, rgba(255,255,255,0) 0%,
+          rgba(255,255,255,0.82) 46%, rgba(255,255,255,0.95) 100%) }
+  .dots { display: flex; gap: 7px; justify-content: center;
+          margin-bottom: 18px }
+  /* the pact (S9) */
+  .pactline { display: flex; align-items: flex-start; gap: 13px;
+              font-size: 16px; line-height: 1.45 }
+  .pactck { width: 26px; height: 26px; flex: none; border-radius: 8px;
+            background: #fff; display: inline-flex; align-items: center;
+            justify-content: center; margin-top: 1px }
+  .dots i { width: 7px; height: 7px; border-radius: 999px; background: var(--line) }
+  .dots i.on { width: 20px; background: var(--accent) }
+  /* The S8 heroes bleed under a white-gradient footer (approved sheet). */
+  .hero { flex: 1; min-height: 0; position: relative }
+  .hero img { position: absolute; top: 10px; left: 50%;
+              transform: translateX(-50%); width: min(300px, 76vw) }
+  .herofoot { flex: none; padding: 22px 20px 34px;
+              background: linear-gradient(180deg, rgba(255,255,255,0) 0%,
+              #fff 34%); position: relative; z-index: 1 }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%;
+          height: 6px; border-radius: 999px; margin: 34px 0 16px;
+          background: linear-gradient(90deg, var(--accent) 29%, var(--track) 29%) }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none;
+          width: 28px; height: 28px; border-radius: 50%; background: #fff;
+          box-shadow: 0 2px 10px rgba(20,29,51,0.24), inset 0 0 0 1px var(--line) }
 </style>
-<svg width="62" height="62" viewBox="0 0 512 512" aria-hidden="true">
-  <rect width="512" height="512" rx="116" fill="#0a84ff"/>
-  <g transform="translate(70,70) scale(15.5)" fill="none" stroke="#fff"
-     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
-  </g>
-</svg>
-<div class="w">Konvo</div>
-<div class="s"></div>
-<script>location.replace("https://www.instagram.com/direct/inbox/")</script>
+
+<div id="splash">
+  <svg width="62" height="62" viewBox="0 0 512 512" aria-hidden="true">
+    <rect width="512" height="512" rx="116" fill="#0a84ff"/>
+    <g transform="translate(70,70) scale(15.5)" fill="none" stroke="#fff"
+       stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+    </g>
+  </svg>
+  <div class="w">Konvo</div>
+  <div class="s"></div>
+</div>
+
+<div id="flow">
+
+  <div class="screen on" id="s1">
+    <div class="fade"></div>
+    <div style="position: relative; flex: none; padding: 20px 28px 0;
+         display: flex; align-items: center; gap: 9px">
+      <span style="width: 26px; height: 26px; border-radius: 8px;
+            background: var(--accent); display: inline-flex; align-items: center;
+            justify-content: center"><svg width="14" height="14"
+            viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4"
+            stroke-linejoin="round"><path d="M12 4c-4.4 0-8 3-8 6.8 0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z"/></svg></span>
+      <span style="font-size: 20px; font-weight: 700;
+            letter-spacing: -0.035em">Konvo</span>
+    </div>
+    <div style="flex: 1"></div>
+    <div style="position: relative; flex: none; padding: 0 28px 40px">
+      <h1 style="font-size: 30px; font-weight: 700; letter-spacing: -0.045em;
+          line-height: 1.12">Instagram without the Feed, Reels or Explore.</h1>
+      <p style="font-size: 17px; line-height: 1.5; color: var(--mut);
+         margin: 14px 0 28px; max-width: 32ch">Your DMs and friends&rsquo;
+         Stories still work.</p>
+      <button class="btn" data-next="s2">Get started</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s2">
+    <div class="chrome">
+      <div class="track"><div class="fill" style="width: 33%"></div></div>
+      <button class="back" data-back="s1" aria-label="Back"><svg width="10"
+        height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    </div>
+    <div class="body">
+      <h2>Why do you want to<br>scroll less?</h2>
+      <p class="sub">I want to&hellip;</p>
+      <div class="opts">
+        <button class="opt" data-mot="schoolOrWork">Get school or work done</button>
+        <button class="opt" data-mot="ownProjects">Work on my own projects</button>
+        <button class="opt" data-mot="presentWithPeople">Be more present with people</button>
+        <button class="opt" data-mot="sleepOnTime">Go to sleep on time</button>
+        <button class="opt" data-mot="lessDistracted">Feel less distracted</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="s3">
+    <div class="chrome">
+      <div class="track"><div class="fill" style="width: 66%"></div></div>
+      <button class="back" data-back="s2" aria-label="Back"><svg width="10"
+        height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    </div>
+    <div class="body">
+      <h2>What&rsquo;s your average screen time on Instagram per day?</h2>
+      <p class="sub">Best guess is fine.</p>
+      <div style="flex: 1; display: flex; flex-direction: column;
+           justify-content: center">
+        <div id="mins" style="font-size: 44px; font-weight: 700;
+             letter-spacing: -0.04em; text-align: center">2 h 30 m</div>
+        <input type="range" id="slider" min="15" max="480" step="15" value="150"
+               aria-label="Daily Instagram time">
+        <div style="display: flex; justify-content: space-between;
+             font-size: 13px; color: var(--mut)"><span>15 min</span><span>8 h +</span></div>
+      </div>
+    </div>
+    <div class="foot"><button class="btn" data-next="s4">Continue</button></div>
+  </div>
+
+  <div class="screen" id="s4">
+    <div class="chrome">
+      <div class="track"><div class="fill" style="width: 100%"></div></div>
+      <button class="back" data-back="s3" aria-label="Back"><svg width="10"
+        height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    </div>
+    <div class="body">
+      <h2 style="font-size: 24px">How long do you spend messaging on
+          Instagram per day?</h2>
+      <p class="sub">An estimate is fine.</p>
+      <div class="opts">
+        <button class="opt" data-m="10">&lt; 10 mins</button>
+        <button class="opt" data-m="20">10 - 20 mins</button>
+        <button class="opt" data-m="30">20 - 30 mins</button>
+        <button class="opt" data-m="45">30 - 45 mins</button>
+        <button class="opt" data-m="60">45 - 60 mins</button>
+        <button class="opt" data-m="20" data-est="1">I don&rsquo;t know</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="s4b">
+    <div class="body mid" style="align-items: center">
+      <span class="spin"></span>
+      <h2 style="font-size: 26px; margin: 26px 0 30px">Adding it up</h2>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div class="pill"><span class="check"><svg width="11" height="11"
+          viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span id="p-time">2 h 30 m a day on Instagram</span></div>
+        <div class="pill"><span class="check"><svg width="11" height="11"
+          viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span id="p-msg">About 20 minutes messaging</span></div>
+        <div class="pill"><span class="check"><svg width="11" height="11"
+          viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>Projecting the
+          years ahead&hellip;</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen dark t-fade" id="s5" data-next="s6">
+    <div class="glow"></div>
+    <div class="body" style="padding: 0 28px">
+      <div style="flex: 1; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; text-align: center;
+           gap: 26px">
+        <p class="lead">At your current pace, Instagram is on track to take</p>
+        <div class="bignum" id="years-lost">6.3 years</div>
+        <p class="lead">of your life distracted on your phone.</p>
+      </div>
+      <p style="flex: none; text-align: center; font-size: 13px;
+         color: var(--dmut); padding-bottom: 30px">Tap to continue</p>
+    </div>
+  </div>
+
+  <div class="screen dark t-fade" id="s6">
+    <div class="glow" style="opacity: 0.6"></div>
+    <div class="body mid" style="padding: 0 28px">
+      <p class="lead" style="font-size: 24px; line-height: 1.25">But staying
+         connected only takes a fraction of that.</p>
+      <div style="display: flex; align-items: flex-end;
+           justify-content: center; gap: 56px; margin-top: 44px">
+        <div style="width: 110px; display: flex; flex-direction: column;
+             align-items: center; gap: 10px">
+          <b style="font-size: 15px" id="col-now-v">2 h 30 m / day</b>
+          <div style="width: 64px; height: 190px; border-radius: 12px;
+               background: #4a4f5a"></div>
+          <span style="font-size: 13.5px; color: var(--dmut)">Instagram
+            now</span>
+        </div>
+        <div style="width: 110px; display: flex; flex-direction: column;
+             align-items: center; gap: 10px">
+          <b style="font-size: 15px; color: var(--daccent)" id="col-dm-v">20 m / day</b>
+          <div id="col-dm" style="width: 64px; height: 26px; border-radius: 12px;
+               background: var(--daccent);
+               box-shadow: 0 0 18px rgba(10,132,255,0.5)"></div>
+          <span style="font-size: 13.5px; color: var(--dmut)">With
+            Konvo</span>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><button class="btn" data-next="s7">See what changes</button></div>
+  </div>
+
+  <div class="screen dark t-fade" id="s7">
+    <div class="glow"></div>
+    <div class="body" style="padding: 0 24px">
+      <p style="margin-top: 84px; text-align: center; font-size: 16px;
+         color: var(--dmut)">You don&rsquo;t have to give up DMs or Stories.</p>
+      <div style="flex: 1; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; text-align: center">
+        <p class="lead">Konvo could help you get back</p>
+        <div class="bignum" id="years-back" style="margin: 18px 0">5.4 years</div>
+        <p class="lead" id="motive-line" style="max-width: 26ch">of your life
+           to achieve your dreams and work on my own projects.</p>
+      </div>
+    </div>
+    <div class="foot"><button class="btn" data-next="s8a">See what stays</button></div>
+  </div>
+
+  <div class="screen t-fade" id="s8a">
+    <div class="body" style="flex: none; padding: 40px 24px 0">
+      <h2 style="font-size: 26px">No Feed. No Reels. No Explore.</h2>
+      <p class="sub" style="margin-top: 8px">They&rsquo;re removed
+         completely, so there&rsquo;s nothing pulling you into a scroll.</p>
+    </div>
+    <div class="hero"><img src="phone-mockup.webp" alt=""></div>
+    <div class="herofoot">
+      <div class="dots"><i class="on"></i><i></i></div>
+      <button class="btn" data-next="s8b">Next</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s8b">
+    <div class="body" style="flex: none; padding: 40px 24px 0">
+      <h2 style="font-size: 26px">Your messages stay.</h2>
+      <p class="sub" style="margin-top: 8px">DMs, group chats, voice notes
+         and friends&rsquo; Stories still work.</p>
+    </div>
+    <div class="hero"><img src="phone-thread.webp" alt=""></div>
+    <div class="herofoot">
+      <div class="dots"><i></i><i class="on"></i></div>
+      <button class="btn" data-next="s9">Continue</button>
+    </div>
+  </div>
+
+  <!-- Flat accent, not a gradient: the native letterbox paints one solid
+       colour, and a gradient would seam against it at the safe area. -->
+  <div class="screen t-fade" id="s9" style="background: #0a5cf0; color: #fff">
+    <div class="body mid" style="padding: 0 28px">
+      <h2 style="font-size: 30px; letter-spacing: -0.035em; line-height: 1.18;
+          text-align: center">Make a commitment pact<br>before you start</h2>
+      <div style="display: flex; flex-direction: column; gap: 18px;
+           margin-top: 34px">
+        <div class="pactline"><span class="pactck"><svg width="12" height="12"
+          viewBox="0 0 24 24" fill="none" stroke="#0a5cf0" stroke-width="3.6"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>Today
+          I put an end to my scrolling addiction.</span></div>
+        <div class="pactline"><span class="pactck"><svg width="12" height="12"
+          viewBox="0 0 24 24" fill="none" stroke="#0a5cf0" stroke-width="3.6"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>Instagram
+          is for my people, not for the algorithm.</span></div>
+        <div class="pactline"><span class="pactck"><svg width="12" height="12"
+          viewBox="0 0 24 24" fill="none" stroke="#0a5cf0" stroke-width="3.6"
+          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>I&rsquo;ll
+          reply, then get back to my life.</span></div>
+      </div>
+      <button id="commit" data-next="s10" aria-label="Tap to commit"
+        style="align-self: center; margin: 40px 0 0; width: 96px; height: 96px;
+        border: 0; border-radius: 28px; background: #fff; cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        box-shadow: 0 12px 30px rgba(4,30,80,0.28)">
+        <svg width="46" height="46" viewBox="0 0 24 24" fill="none"
+          stroke="#0a5cf0" stroke-width="1.7" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M12 11v3.5a5 5 0 0 1-.6 2.4"/>
+          <path d="M8.6 8.9a4 4 0 0 1 6.4 3.2v2a9 9 0 0 1-.5 3"/>
+          <path d="M5.6 12a7 7 0 0 1 3-5.8"/>
+          <path d="M12 5a7 7 0 0 1 7 7v2.5"/>
+          <path d="M6 15.5V12"/><path d="M9 19.5a12 12 0 0 0 1.2-3"/>
+          <path d="M17.6 18.5a15 15 0 0 0 .8-2.5"/></svg>
+      </button>
+      <p style="text-align: center; font-size: 17px; font-weight: 600;
+         margin-top: 18px">Tap to commit</p>
+      <p id="pactdate" style="text-align: center; font-size: 13.5px;
+         line-height: 1.5; color: rgba(255,255,255,0.72); margin-top: 26px;
+         padding: 12px 16px; border-radius: 12px;
+         background: rgba(255,255,255,0.12)"></p>
+    </div>
+  </div>
+
+  <div class="screen t-fade" id="s9t">
+    <div class="body mid">
+      <h2 style="margin-bottom: 24px">What early users say</h2>
+      <div class="opts" id="quotes"></div>
+    </div>
+    <div class="foot"><button class="btn" data-next="s10">Continue</button></div>
+  </div>
+
+  <div class="screen t-rise" id="s10">
+    <div class="body mid">
+      <span style="width: 44px; height: 44px; border-radius: 13px;
+            background: var(--icbg); display: inline-flex; align-items: center;
+            justify-content: center; margin-bottom: 20px;
+            color: var(--accent)"><svg width="23"
+            height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+      <h2 style="margin-bottom: 28px">Your password stays with Instagram.</h2>
+      <div style="display: flex; flex-direction: column; gap: 20px">
+        <div class="trust">
+          <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="3"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0"/></svg></span>
+          <span>You sign in with Instagram</span>
+        </div>
+        <div class="trust">
+          <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><path d="m4.5 4.5 15 15"/></svg></span>
+          <span>Konvo never sees or stores your password</span>
+        </div>
+        <div class="trust">
+          <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.5 18.5h3"/></svg></span>
+          <span>Your session stays on this device</span>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><button class="btn" id="signin">Got it, sign in</button></div>
+  </div>
+
+  <div class="screen t-fade" id="s11">
+    <div class="body mid" style="align-items: center; gap: 20px">
+      <span class="spin" style="width: 20px; height: 20px; border-width: 2px"></span>
+      <span style="font-size: 15px; color: var(--mut)">Opening Instagram
+        sign-in&hellip;</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  if (!document.documentElement.classList.contains("onboard")) return;
+
+  // Quiz state. The motive is stored as its stable value, never the display
+  // string; the phrase for S7 is the option text lowercased (approved
+  // mapping). M is the messaging range's upper bound; "I don't know" is a
+  // transparent 20-minute estimate.
+  var motive = "", motivePhrase = "";
+
+  // TODO: RELEASE BLOCKER - QUOTES stays empty until real TestFlight quotes
+  // exist (locked rule: no invented social proof). Entries like
+  // { q: "[TESTIMONIAL_1 - replace with real TestFlight quote]",
+  //   name: "[FIRST NAME]" }. Quotes only, no stars: no rating exists to
+  // depict. While empty, the testimonial screen (s9t) is skipped entirely.
+  var QUOTES = [];
+  if (QUOTES.length) {
+    var qbox = document.getElementById("quotes");
+    for (var qi = 0; qi < QUOTES.length; qi++) {
+      var qd = document.createElement("div");
+      qd.className = "opt";
+      qd.style.pointerEvents = "none";
+      qd.textContent = "“" + QUOTES[qi].q + "” - " + QUOTES[qi].name;
+      qbox.appendChild(qd);
+    }
+    document.querySelector("#s9 [data-next]").dataset.next = "s9t";
+  }
+
+  // Funnel events, fire-and-forget through the bridge. Lean payloads by
+  // decision (Aug 3): names and screen ids only, no quiz values. Silent
+  // no-op without the bridge (Mac, tests without the mock).
+  function track(event, props) {
+    try {
+      window.webkit.messageHandlers.konvoStore.postMessage(
+        { cmd: "track", id: 0, event: event, props: props || {} });
+    } catch (e) {}
+  }
+  track("onboarding_screen_viewed", { screen_id: "s1" });
+
+  // The pact's date line: honest and computed, never a hardcoded date.
+  try {
+    document.getElementById("pactdate").textContent = "Your Konvo starts today, " +
+      new Date().toLocaleDateString(undefined, { month: "long", day: "numeric" }) + ".";
+  } catch (e) {}
+
+  var slider = document.getElementById("slider");
+  function mins() { return +slider.value; }
+  function msgMins() {
+    var sel = document.querySelector("#s4 .opt.sel");
+    return sel ? +sel.dataset.m : 20;
+  }
+  function fmt(m) {
+    if (m >= 480) return "8 h +";
+    var h = Math.floor(m / 60), r = m % 60;
+    return h ? (r ? h + " h " + r + " m" : h + " h") : r + " m";
+  }
+  function sync() {
+    document.getElementById("mins").textContent = fmt(mins());
+    var p = ((mins() - 15) / (480 - 15)) * 100;
+    slider.style.background = "linear-gradient(90deg, var(--accent) " + p +
+      "%, var(--track) " + p + "%)";
+  }
+  slider.addEventListener("input", sync);
+
+  // The disclosed projection (sheet header, locked): full 24 h days over the
+  // next 60 years, one decimal. years = mins/1440*60.
+  function years(m) { return (m / 1440 * 60).toFixed(1).replace(/\.0$/, ""); }
+  function weeklyHours() {
+    return Math.max(1, Math.round((Math.max(0, mins() - msgMins())) * 7 / 60));
+  }
+
+  // The funnel's appearance: light, except the S5-S7 dark stretch. The
+  // bridge pins the letterbox and status bar to match; silent no-op without
+  // it (Mac, tests). konvoFunnelDone only flips on "auto" (KonvoStore).
+  var mode = "light";
+  var DARK = { s5: 1, s6: 1, s7: 1 };
+  // The pact fills the whole phone, letterbox included - only the native
+  // side can paint that, so the screen announces itself as "blue".
+  var BLUE = { s9: 1 };
+  function setMode(m) {
+    if (m === mode) return;
+    mode = m;
+    try {
+      window.webkit.messageHandlers.konvoStore.postMessage(
+        { cmd: "appearance", id: 0, productId: m });
+    } catch (e) {}
+  }
+
+  var cur = document.getElementById("s1");
+  // The tap lock: every navigation arms a dwell during which all taps are
+  // ignored, so the 500ms slide always plays in full and nobody can spam
+  // through the flow. The reveals (S5, S7) hold longer so their numbers
+  // land before the screen will advance.
+  var busy = 0;
+  var DWELL = { s4b: 3500, s5: 2400, s6: 1400, s7: 1800 };
+  function show(id, back) {
+    var next = document.getElementById(id);
+    var glide = !/t-fade|t-rise/.test(next.className);
+    cur.classList.remove("on");
+    // Under a push the old screen dims onto the stack; under a fade or a
+    // rise it holds still and gets covered.
+    if (!back) cur.classList.add(glide ? "past" : "hold");
+    next.classList.remove("past", "hold");
+    next.classList.add("on");
+    cur = next;
+    busy = Date.now() + (DWELL[id] || 1000);
+    track("onboarding_screen_viewed", { screen_id: id });
+    setMode(BLUE[id] ? "blue" : DARK[id] ? "dark" : "light");
+    if (id === "s4") gateOptions();
+    if (id === "s4b") { prime(); sequence("s4b", 3400, "s5"); }
+    if (id === "s5") reveal();
+    if (id === "s6") columns();
+    if (id === "s7") outcome();
+  }
+
+  // The honest calculating beat between the questions and the reveal: the
+  // pills tick with the user's own answers, the "projecting" teaser stays
+  // dim, then the dark reveal fades in.
+  function prime() {
+    document.getElementById("p-time").textContent =
+      fmt(mins()) + " a day on Instagram";
+    document.getElementById("p-msg").textContent =
+      "About " + msgMins() + " minutes messaging";
+  }
+  function sequence(id, total, then) {
+    var items = document.getElementById(id).querySelectorAll(".pill");
+    for (var i = 0; i < items.length; i++) {
+      items[i].classList.remove("done");
+      // Every pill completes - the projection included - and the screen
+      // holds a beat on the finished list before the reveal fades in.
+      (function (el, delay) { setTimeout(function () {
+        el.classList.add("done");
+      }, delay); })(items[i], 400 + i * 700);
+    }
+    setTimeout(function () { show(then); }, total);
+  }
+
+  // "Options above the S3 total are disabled; selection can never exceed
+  // total time" (sheet). If the current selection just became impossible,
+  // fall back to the largest possible range.
+  function gateOptions() {
+    var t = mins(), opts = document.querySelectorAll("#s4 .opt"), last = null;
+    for (var i = 0; i < opts.length; i++) {
+      var dead = +opts[i].dataset.m > t;
+      if (dead) opts[i].setAttribute("disabled", "");
+      else { opts[i].removeAttribute("disabled"); if (!opts[i].dataset.est) last = opts[i]; }
+    }
+    var sel = document.querySelector("#s4 .opt.sel");
+    if (sel && sel.hasAttribute("disabled") && last) {
+      sel.classList.remove("sel");
+      last.classList.add("sel");
+    }
+  }
+
+  function reveal() {
+    var y = document.getElementById("years-lost");
+    y.textContent = years(mins()) + " years";
+    y.classList.remove("pop");
+    // The pop waits for the slow fade to mostly land, so the number is the
+    // last thing that arrives.
+    setTimeout(function () {
+      void y.offsetWidth;
+      y.classList.add("pop");
+    }, 500);
+  }
+
+  function columns() {
+    var t = mins(), m = Math.min(msgMins(), t);
+    document.getElementById("col-now-v").textContent = fmt(t) + " / day";
+    document.getElementById("col-dm-v").textContent = m + " m / day";
+    // Proportional heights against the fixed 190px column; the blue one
+    // keeps a minimum so it never vanishes (sheet annotation).
+    document.getElementById("col-dm").style.height =
+      Math.max(24, Math.round(190 * m / t)) + "px";
+  }
+
+  function outcome() {
+    var t = mins(), m = Math.min(msgMins(), t);
+    var y = document.getElementById("years-back");
+    y.textContent = years(t - m) + " years";
+    y.classList.remove("pop");
+    void y.offsetWidth;
+    y.classList.add("pop");
+    document.getElementById("motive-line").textContent =
+      "of your life to achieve your dreams and " +
+      (motivePhrase || "feel less distracted") + ".";
+  }
+
+  document.addEventListener("click", function (e) {
+    if (Date.now() < busy) return;
+    var bk = e.target.closest("[data-back]");
+    if (bk) { show(bk.dataset.back, true); return; }
+    var b = e.target.closest("[data-next]");
+    if (b) {
+      if (b.dataset.next === "s4") {
+        track("quiz_answered", { question: "screentime", screen_id: "s3" });
+      }
+      show(b.dataset.next);
+      return;
+    }
+    var opt = e.target.closest(".opt");
+    if (!opt) return;
+    var peers = opt.parentNode.querySelectorAll(".opt");
+    for (var i = 0; i < peers.length; i++) peers[i].classList.remove("sel");
+    opt.classList.add("sel");
+    // Locked immediately: a second tap during the selection beat must not
+    // re-schedule the advance.
+    busy = Date.now() + 1250;
+    var screen = opt.closest(".screen").id;
+    if (screen === "s2") {
+      motive = opt.dataset.mot;
+      motivePhrase = opt.textContent.trim().toLowerCase();
+    }
+    track("quiz_answered",
+      { question: screen === "s2" ? "motive" : "messaging", screen_id: screen });
+    // Tap-to-select auto-advances after a beat; no Continue on option
+    // screens (approved: one subtle haptic, ~250ms, advance).
+    setTimeout(function () { show(screen === "s2" ? "s3" : "s4b"); }, 250);
+  });
+
+  document.getElementById("signin").addEventListener("click", function () {
+    track("login_started", { screen_id: "s10" });
+    // The once-per-install flag, set at the login handoff on purpose: a
+    // killed app mid-login must never replay the quiz.
+    try { localStorage.konvoOnboarded = "1"; } catch (e) {}
+    show("s11");
+    // The motive and weekly hours personalize the paywall on the
+    // instagram.com origin; CAGE_SCRIPT persists this fragment into that
+    // origin's localStorage at document-start and strips it.
+    var frag = motive ? "#konvo=" + motive + "." + weeklyHours() : "";
+    location.replace("https://www.instagram.com/direct/inbox/" + frag);
+  });
+
+  sync();
+})();
+</script>

@@ -11,6 +11,13 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
+# konvo-beta: tester builds with no funnel and no paywall. A cargo feature,
+# NOT an env var: xcodebuild strips the calling shell's env before the Build
+# Rust Code phase, so option_env! silently compiled the flag out. The tauri
+# CLI's --features flag is the channel that survives that boundary.
+[features]
+konvo-beta = []
+
 [dependencies]
 tauri = { version = "2", features = ["devtools", "macos-private-api", "tray-icon", "image-png"] }
 tauri-plugin-deep-link = "2"
