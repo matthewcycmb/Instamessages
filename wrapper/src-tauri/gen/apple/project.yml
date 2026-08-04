@@ -8,6 +8,16 @@ fileGroups: [../../src]
 configs:
   debug: debug
   release: release
+# RevenueCat + Superwall SDKs (KonvoStore.swift). Mirrored by hand in
+# project.pbxproj: xcodegen only runs at regeneration time, so both must
+# carry them.
+packages:
+  RevenueCat:
+    url: https://github.com/RevenueCat/purchases-ios
+    majorVersion: 5.0.0
+  SuperwallKit:
+    url: https://github.com/superwall/Superwall-iOS
+    majorVersion: 4.0.0
 settingGroups:
   app:
     base:
@@ -70,6 +80,11 @@ targets:
     settings:
       base:
         SWIFT_VERSION: "5.0"
+        # Tauri's "Build Rust Code" phase reads project files and writes
+        # Externals/, which Xcode's script sandbox forbids (EPERM). Never
+        # accept Xcode's "update to recommended settings" nag: it flips
+        # this on and every build fails.
+        ENABLE_USER_SCRIPT_SANDBOXING: "NO"
         # iPhone only. The cage rules target Instagram's *mobile web* layout;
         # at iPad width Instagram serves a wider layout whose nav lives in
         # different containers, so the selectors miss and the cage leaks.
@@ -87,6 +102,8 @@ targets:
     dependencies:
       - framework: libapp.a
         embed: false
+      - package: RevenueCat
+      - package: SuperwallKit
       - sdk: CoreGraphics.framework
       - sdk: Metal.framework
       - sdk: MetalKit.framework

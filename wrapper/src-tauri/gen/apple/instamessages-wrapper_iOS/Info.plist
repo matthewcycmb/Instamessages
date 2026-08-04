@@ -17,7 +17,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
-	<string>0.1.0</string>
+	<string>35</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -33,5 +33,17 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Konvo uses the camera so you can take a photo and send it in a conversation.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Konvo uses the microphone so you can record and send a voice note.</string>
+	<key>CFBundleDisplayName</key>
+	<string>Konvo</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Konvo uses your photo library so you can send an existing photo in a conversation.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Konvo saves photos from a conversation to your photo library when you download them.</string>
 </dict>
 </plist>

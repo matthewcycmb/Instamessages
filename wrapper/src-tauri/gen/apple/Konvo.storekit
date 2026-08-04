@@ -4,7 +4,21 @@
 
   ],
   "products" : [
-
+    {
+      "displayPrice" : "79.99",
+      "familyShareable" : false,
+      "internalID" : "21540006",
+      "localizations" : [
+        {
+          "description" : "Messages and stories. Nothing else. Pay once.",
+          "displayName" : "Konvo Pro Lifetime",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "konvo.pro.lifetime",
+      "referenceName" : "Lifetime",
+      "type" : "NonConsumable"
+    }
   ],
   "settings" : {
 
@@ -31,7 +45,7 @@
           "introductoryOffer" : {
             "internalID" : "21540004",
             "paymentMode" : "free",
-            "subscriptionPeriod" : "P1W"
+            "subscriptionPeriod" : "P2W"
           },
           "localizations" : [
             {

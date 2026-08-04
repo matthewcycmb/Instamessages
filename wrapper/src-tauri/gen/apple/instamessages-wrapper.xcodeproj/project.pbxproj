@@ -49,11 +49,16 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		CA7FEED000000000000000B1 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = CA7FEED000000000000000B2 /* RevenueCat */; };
+		CA7FEED000000000000000C1 /* SuperwallKit in Frameworks */ = {isa = PBXBuildFile; productRef = CA7FEED000000000000000C2 /* SuperwallKit */; };
+
 		09C7400F58897631D969FA0C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				E6CCD902F98D3B0923648D73 /* libapp.a in Frameworks */,
+				CA7FEED000000000000000B1 /* RevenueCat in Frameworks */,
+				CA7FEED000000000000000C1 /* SuperwallKit in Frameworks */,
 				F23657B56E778145A4750D6C /* CoreGraphics.framework in Frameworks */,
 				31C709A01E03514554E976AB /* Metal.framework in Frameworks */,
 				F872EE291AD812280AFB7B07 /* MetalKit.framework in Frameworks */,
@@ -202,6 +207,8 @@
 			);
 			name = "instamessages-wrapper_iOS";
 			packageProductDependencies = (
+				CA7FEED000000000000000B2 /* RevenueCat */,
+				CA7FEED000000000000000C2 /* SuperwallKit */,
 			);
 			productName = "instamessages-wrapper_iOS";
 			productReference = 9F41D80ACBAB45D2562597B2 /* instamessages-wrapper_iOS.app */;
@@ -230,6 +237,10 @@
 			);
 			mainGroup = FFDB89E8128E9A9B3A6FA620;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				CA7FEED000000000000000B3 /* XCRemoteSwiftPackageReference "purchases-ios" */,
+				CA7FEED000000000000000C3 /* XCRemoteSwiftPackageReference "Superwall-iOS" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 949797467AA9EB2A3C4A84C3 /* Products */;
 			projectDirPath = "";
@@ -300,7 +311,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "instamessages-wrapper_iOS/instamessages-wrapper_iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = JBTFJ7JD4R;
+				DEVELOPMENT_TEAM = "JBTFJ7JD4R";
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -315,7 +326,7 @@
 				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.matthewchan.konvo;
-				PRODUCT_NAME = Konvo;
+				PRODUCT_NAME = "Konvo";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -452,7 +463,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "instamessages-wrapper_iOS/instamessages-wrapper_iOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				DEVELOPMENT_TEAM = JBTFJ7JD4R;
+				DEVELOPMENT_TEAM = "JBTFJ7JD4R";
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -467,7 +478,7 @@
 				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.matthewchan.konvo;
-				PRODUCT_NAME = Konvo;
+				PRODUCT_NAME = "Konvo";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -497,6 +508,38 @@
 			defaultConfigurationName = debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CA7FEED000000000000000B3 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
+		CA7FEED000000000000000C3 /* XCRemoteSwiftPackageReference "Superwall-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/superwall/Superwall-iOS.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CA7FEED000000000000000B2 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA7FEED000000000000000B3 /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
+		};
+		CA7FEED000000000000000C2 /* SuperwallKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CA7FEED000000000000000C3 /* XCRemoteSwiftPackageReference "Superwall-iOS" */;
+			productName = SuperwallKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = E4B999A29DD51AE95DC96581 /* Project object */;
 }
