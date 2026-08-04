@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konvo iOS onboarding v4</title>
+<style>
+  /*
+    Konvo onboarding v4 mockup sheet. 15 screens at 390x844.
+    v4 (Aug 1): S5, S7, S8, S9, S13 rebuilt as art-directed compositions.
+    S5/S7 hero numbers on one line with gradient + odometer motion notes;
+    S8 one large product demo replaces the KEEP/REMOVE cards, testimonial
+    slot collapses until a real approved quote exists; S9 leads with
+    "14 days free" + one annual offer surface + 50% anchor; S13 = blue
+    product header, segmented 12-month/1-month selector, vertical trial
+    timeline (no Day-5 row: no reminder feature exists). Social proof only
+    when verifiable; placeholders stay bracketed. Prices remain sheet-only
+    stand-ins for live localized StoreKit values.
+    Flow: S1 intro > S2 motivation > S3 total time > S4 intentional time >
+    [dark] S5 years impact > S6 keep vs remove > S7 outcome > [light]
+    S8a-b value duo > S10 privacy > S11 login > S12 connected >
+    S13 full paywall > S14 success.
+    v4.10 (Aug 2): setting-up loader moved to S12b (between connected and
+    paywall); S12 loses its "Choose my plan" button and auto-advances into
+    the loader, which auto-advances into the paywall. The paywall's close
+    destination is an open flow question again.
+    v4.11 (Aug 2): S1 hero + S8a use the static inbox render
+    (assets/phone-mockup.png), S8b uses the thread render
+    (assets/phone-thread.png); the HTML mini-UI (rings, rows, surface
+    cards, bubbles) is retired and its CSS deleted. Implementation note:
+    renders are 1.2 MB PNGs; compress or rebuild in HTML before shipping
+    into the self-contained dist page.
+    v4.12 (Aug 2): S8a/S8b headlines swapped (no-feed first over the inbox,
+    messages-stay over the thread); renders alpha-trimmed so the phones
+    fill the slide; S8 text blocks lowered 40px.
+    v4.4 (Aug 1 evening, Matthew's call after grill): S9 paid disclosure slide
+    DELETED, no pre-login price transparency (supersedes the "disclosure
+    before login" hold below); S13b locked stop replaced by the Your Konvo
+    plan reveal from the Desktop handoff file.
+    v4.5 (Aug 1 evening): S13b replaced again, now the "Setting up your
+    Konvo" honest checklist loader (handoff-konvo-s8); the Your Konvo reveal
+    is retired. S2/S4 options restyled as Opal pill lists (.opts); S3/S4
+    questions reworded to Matthew's exact copy (S4 now asks about messaging
+    time only, while the projection math still counts DMs AND Stories).
+    v4.6 (Aug 1 evening): S6 rebuilt as the messaging-vs-scrolling bar
+    comparison (reference match); S8 proof screen split into S8a/S8b/S8c,
+    one value proposition per slide; S4 question shortened to two lines.
+    v4.7 (Aug 1 evening): S6 drops the "Scrolling removed" bar (two bars
+    only); S8a-c rebuilt per Matthew's spec as one continuous product-UI
+    story (inbox appears > Feed/Reels/Explore slide away > reply and leave),
+    generic icons and time-math repetition banned, fake names/content in the
+    mini UI, no wellness claims.
+    v4.8 (Aug 1 evening): S1 briefly rebuilt literal, then REVERTED to the
+    original photo opener ("Keep the people. Lose the scroll.") minutes
+    later on Matthew's call. S2 is
+    "Why do you want to scroll less?" / "I want to..." with stable motive
+    values (schoolOrWork, ownProjects, presentWithPeople, sleepOnTime,
+    lessDistracted) and complete-sentence payoff mappings reused on S7 and
+    S13; S13 gains the motive callback line and drops the auto-renew fine
+    print sentence (Terms/Privacy links kept).
+    v4.9 (Aug 2): S1 keeps the photo opener but takes the literal headline
+    ("Instagram without the Feed, Reels or Explore." / "Your DMs and
+    friends' Stories still work."); S6 becomes a vertical two-column chart
+    and loses the "you said" reassurance line; S5 closing is "of your life
+    distracted on your phone." with the projection-basis footnote removed
+    (60-year window now documented only here and in annotations); S7 reads
+    "Konvo could help you get back [years] of your life to achieve your
+    dreams and {S2 option}"; S8c cut, value story is a two-slide duo.
+
+    v3 changes (Aug 1): motivation question added (the only new screen; its
+    answer personalizes S7 + S13); "days/year" replaced by a disclosed
+    60-year projection to one decimal; every calc includes DMs AND Stories;
+    proof screen cut to KEEP/REMOVE lists readable in ~3s; privacy cut to
+    3 points; Day-5 reminder row REMOVED (no reminder feature exists);
+    banned copy purged ("nothing to scroll", "distraction-free DMs", etc).
+    Held from before: stories stay, disclosure before login, full paywall
+    only after verified login, no weekly plan, no exit offers, no em dashes.
+
+    Example math (2h30m total, 20m intentional): 150/1440*60 = 6.3 yr total,
+    130/1440*60 = 5.4 yr protectable, 130*7/60 = about 15 h/week. All values
+    are computed from answers at runtime, never hardcoded.
+
+    Progress: 3-step indicator on S2-S4 only; nothing advertises 14 screens.
+    Annotations live under each phone, never inside the screen.
+  */
+  *, *::before, *::after { box-sizing: border-box }
+  body { margin: 0; padding: 48px; background: #0e1014;
+         font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue",
+         Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;
+         color: #141d33 }
+  h1, h2, p { margin: 0 }
+  .sheet { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start }
+  .slot { flex: none; width: 390px; display: flex; flex-direction: column; gap: 8px }
+  .slot > span { font-size: 12px; color: #636366 }
+  .slot > em { font-size: 11.5px; line-height: 1.5; color: #8a8f98;
+               font-style: normal }
+  .phone { width: 390px; height: 844px; border-radius: 44px; overflow: hidden;
+           position: relative; display: flex; flex-direction: column;
+           background: #fff; box-shadow: 0 22px 50px rgba(20,50,110,0.2) }
+  .phone.dark { background: #05070A; color: #f5f5f7 }
+
+  .bar { flex: none; height: 54px; display: flex; align-items: center;
+         justify-content: space-between; padding: 0 28px; font-size: 15px;
+         font-weight: 600; color: #141d33; position: relative; z-index: 2 }
+  .dark .bar { color: #f5f5f7 }
+
+  .chrome { flex: none; padding: 0 20px; position: relative; z-index: 2 }
+  .steps { display: flex; gap: 6px }
+  .steps i { height: 3px; flex: 1; border-radius: 999px;
+             background: rgba(20,29,51,0.12) }
+  .steps i.on { background: #0a5cf0 }
+  .backchev { margin: 12px 0 0 -8px; width: 32px; height: 32px; display: flex;
+              align-items: center; justify-content: center; color: #5d6478 }
+
+  .body { flex: 1; display: flex; flex-direction: column; padding: 26px 20px 0;
+          position: relative; z-index: 2 }
+  .mid { justify-content: center; padding: 0 24px }
+  .foot { flex: none; padding: 0 20px 34px; position: relative; z-index: 2 }
+  .btn { width: 100%; min-height: 56px; border: 0; border-radius: 14px;
+         background: #0a5cf0; color: #fff; font-family: inherit;
+         font-size: 17px; font-weight: 600; letter-spacing: -0.012em;
+         cursor: pointer; box-shadow: 0 8px 18px rgba(10,92,240,0.24) }
+  .dark .btn { background: #0a84ff; box-shadow: 0 8px 24px rgba(10,132,255,0.35) }
+  .ghost { text-align: center; font-size: 15px; color: #5d6478;
+           padding: 16px 0 2px }
+  h2 { font-size: 28px; font-weight: 700; letter-spacing: -0.035em;
+       line-height: 1.14 }
+  .sub { font-size: 15.5px; line-height: 1.45; color: #5d6478;
+         margin: 8px 0 26px }
+  .fine { text-align: center; font-size: 12.5px; line-height: 1.5;
+          color: #5d6478; margin-top: 12px }
+  .links { display: flex; justify-content: center; gap: 18px; margin-top: 10px;
+           font-size: 13.5px; color: #5d6478 }
+  .links span { text-decoration: underline }
+
+  /* dark impact */
+  .glow { position: absolute; left: 50%; top: 42%; width: 520px; height: 520px;
+          transform: translate(-50%, -50%); border-radius: 50%; z-index: 1;
+          background: radial-gradient(circle, rgba(10,132,255,0.22) 0%,
+          rgba(10,132,255,0.07) 42%, rgba(10,132,255,0) 70%) }
+  .bignum { font-size: 68px; font-weight: 700; letter-spacing: -0.05em;
+            line-height: 0.95; color: #0a84ff }
+  .dark .lead { font-size: 22px; font-weight: 600; letter-spacing: -0.02em;
+                color: #f5f5f7 }
+  .dark .muted { color: #8e8e93 }
+  .dark .foot .fine { color: #8e8e93 }
+
+  /* choice cards */
+  .cards { display: flex; flex-direction: column; gap: 10px }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
+  .card { display: flex; align-items: center; justify-content: center;
+          min-height: 56px; padding: 14px 16px; border-radius: 14px;
+          background: #fff; box-shadow: inset 0 0 0 1.2px #d9d9de;
+          font-size: 17px; font-weight: 500; letter-spacing: -0.015em;
+          text-align: center }
+  .card.sel { background: #f2f2f4; box-shadow: inset 0 0 0 2px #0a5cf0;
+              font-weight: 600 }
+  .opts { display: flex; flex-direction: column; gap: 12px }
+  .opts .card { justify-content: flex-start; text-align: left;
+                border-radius: 999px; min-height: 62px; padding: 14px 26px }
+  .ck { width: 20px; height: 20px; flex: none; border-radius: 50%;
+        background: #0a5cf0; display: inline-flex; align-items: center;
+        justify-content: center }
+
+  /* snap picker (S3) */
+  .ruler { position: relative; margin: 30px 0 8px; height: 64px }
+  .ticks { position: absolute; inset: 0; display: flex; align-items: flex-end;
+           justify-content: space-between; padding: 0 6px }
+  .ticks i { width: 2px; background: #d9d9de; border-radius: 1px; height: 18px }
+  .ticks i.major { height: 30px; background: #aab1bf }
+  .needle { position: absolute; left: 50%; top: 0; bottom: 0; width: 3px;
+            transform: translateX(-50%); background: #0a5cf0;
+            border-radius: 999px }
+  .needle::after { content: ""; position: absolute; top: -7px; left: 50%;
+            transform: translateX(-50%); border: 7px solid transparent;
+            border-top-color: #0a5cf0 }
+
+  /* comparison bars (S6) */
+  .cmp { display: flex; justify-content: space-between; align-items: baseline;
+         font-size: 15px; color: #8e8e93; margin: 24px 0 8px }
+  .cmp b { color: #f5f5f7; font-weight: 600; letter-spacing: -0.01em }
+  .cbar { height: 10px; border-radius: 999px }
+
+  /* keep/remove lists (S8) */
+  .kv { border-radius: 16px; padding: 16px 18px;
+        box-shadow: inset 0 0 0 1.2px #d9d9de }
+  .kv h5 { margin: 0 0 10px; font-size: 12px; font-weight: 700;
+           letter-spacing: 0.09em }
+  .kv div { display: flex; align-items: center; gap: 10px; font-size: 16px;
+            padding: 6px 0 }
+  .chip { display: inline-flex; align-items: center; gap: 7px;
+          border-radius: 999px; background: #f2f2f4; padding: 8px 14px;
+          font-size: 13.5px; font-weight: 600; color: #5d6478 }
+
+  /* paywall */
+  .plan { border-radius: 16px; padding: 16px;
+          box-shadow: inset 0 0 0 1.2px #d9d9de; display: flex;
+          align-items: center; justify-content: space-between }
+  .plan.sel { box-shadow: inset 0 0 0 2px #0a5cf0; background: #f6f9ff }
+  .badge { font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+           color: #fff; background: #0a5cf0; border-radius: 999px;
+           padding: 4px 10px }
+  .goal { border-radius: 14px; background: #f6f9ff; padding: 14px 16px;
+          box-shadow: inset 0 0 0 1px rgba(10,92,240,0.25);
+          font-size: 14.5px; line-height: 1.5; color: #141d33 }
+
+  /* rows */
+  .row { display: flex; align-items: center; gap: 14px }
+  .ic { width: 34px; height: 34px; flex: none; border-radius: 10px;
+        background: #eef3ff; display: inline-flex; align-items: center;
+        justify-content: center; color: #0a5cf0 }
+  .row b { font-size: 17px; font-weight: 600 }
+
+  /* v4 additions */
+  .grad { background: linear-gradient(180deg, #f5f5f7 6%, #0a84ff 92%);
+          -webkit-background-clip: text; background-clip: text;
+          color: transparent }
+  .ghostnum { font-size: 34px; font-weight: 700; letter-spacing: -0.04em;
+              color: #f5f5f7; opacity: 0.14 }
+  .eyebrow { font-size: 12.5px; font-weight: 700; letter-spacing: 0.1em;
+             color: #0a5cf0 }
+  .marks { display: flex; gap: 7px; justify-content: center; margin-top: 20px }
+  .marks i { width: 26px; height: 6px; border-radius: 999px; background: #dbe7ff }
+  .marks i.on { background: #0a5cf0 }
+  .offer { border-radius: 18px; background: #eef4ff; padding: 20px 18px 16px;
+           position: relative; box-shadow: inset 0 0 0 1px rgba(10,92,240,0.18) }
+  .offer .bdg { position: absolute; top: -11px; left: 16px; font-size: 11px;
+                font-weight: 700; letter-spacing: 0.06em; color: #fff;
+                background: #0a5cf0; border-radius: 999px; padding: 4px 10px }
+  .seg2 { display: flex; background: #f2f2f4; border-radius: 16px; padding: 5px;
+          gap: 5px }
+  .seg2 > div { flex: 1; border-radius: 12px; padding: 12px 10px;
+                text-align: center }
+  .seg2 .on { background: #fff; box-shadow: inset 0 0 0 2px #0a5cf0 }
+  .dots { display: flex; gap: 7px; justify-content: center;
+          margin-bottom: 18px }
+  .dots i { width: 7px; height: 7px; border-radius: 999px; background: #d9d9de }
+  .dots i.on { width: 20px; background: #0a5cf0 }
+  .pill2 { display: inline-flex; background: #f2f2f4; border-radius: 999px;
+           padding: 4px; margin: 0 auto }
+  .pill2 span { border-radius: 999px; padding: 9px 22px; font-size: 15px;
+                font-weight: 600; color: #5d6478 }
+  .pill2 .on { background: #0a5cf0; color: #fff }
+
+  .tl { display: flex; gap: 16px }
+  .tl h4 { margin: 0; font-weight: 700; color: #141d33 }
+  .tl p { color: #5d6478; line-height: 1.45 }
+  .dotcol { flex: none; width: 44px; display: flex; flex-direction: column;
+            align-items: center }
+  .dotcol .c { flex: none; border-radius: 50%; display: flex;
+               align-items: center; justify-content: center }
+  .dotcol .stem { flex: 1; border-radius: 999px }
+  .bluehead { height: 168px; background: linear-gradient(180deg, #0a5cf0, #0d6bf2);
+              position: relative; overflow: hidden; flex: none }
+  .quote { font-size: 15px; line-height: 1.55; font-style: italic;
+           color: #141d33; border-left: 3px solid #dbe7ff; padding-left: 14px }
+  .quote small { display: block; font-style: normal; color: #5d6478;
+                 margin-top: 6px; font-size: 13px }
+  .dmrow { display: flex; align-items: center; gap: 10px; padding: 9px 12px }
+  .dmrow .av { width: 34px; height: 34px; border-radius: 50%; flex: none;
+               background: #dbe7ff; display: inline-flex; align-items: center;
+               justify-content: center; font-size: 13px; font-weight: 700;
+               color: #0a5cf0 }
+  .dmrow b { display: block; font-size: 14px }
+  .dmrow span { display: block; font-size: 12.5px; color: #5d6478 }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ============ S1 INTRO ============ -->
+  <div class="slot">
+    <span>S1 Intro</span>
+    <div class="phone" style="background: url('assets/welcome-bg.jpg') center/cover">
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 470px;
+           background: linear-gradient(180deg, rgba(255,255,255,0) 0%,
+           rgba(255,255,255,0.82) 46%, rgba(255,255,255,0.95) 100%)"></div>
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div style="position: relative; z-index: 2; padding: 0 28px; display: flex;
+           align-items: center; gap: 9px">
+        <span style="width: 26px; height: 26px; border-radius: 8px; background: #0a5cf0;
+              display: inline-flex; align-items: center; justify-content: center">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff"
+               stroke-width="2.4" stroke-linejoin="round">
+            <path d="M12 4c-4.4 0-8 3-8 6.8 0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z"/>
+          </svg></span>
+        <span style="font-size: 20px; font-weight: 700; letter-spacing: -0.035em">Konvo</span>
+      </div>
+      <div style="flex: 1; position: relative; z-index: 2; display: flex;
+           align-items: center; justify-content: center; min-height: 0">
+        <img src="assets/phone-mockup.png" alt="" style="max-height: 470px;
+             max-width: 100%; object-fit: contain">
+      </div>
+      <div style="position: relative; z-index: 2; padding: 0 28px 40px">
+        <h1 style="font-size: 30px; font-weight: 700; letter-spacing: -0.045em;
+            line-height: 1.12">Instagram without the Feed, Reels or
+            Explore.</h1>
+        <p style="font-size: 17px; line-height: 1.5; color: #5d6478;
+           margin: 14px 0 28px; max-width: 32ch">Your DMs and friends&rsquo;
+           Stories still work.</p>
+        <button class="btn">Get started</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ S2 MOTIVATION ============ -->
+  <div class="slot">
+    <span>S2 Motivation (new; the only added screen)</span>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="chrome">
+        <div class="steps"><i class="on"></i><i></i><i></i></div>
+        <div class="backchev"><svg width="10" height="17" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></div>
+      </div>
+      <div class="body">
+        <h2>Why do you want to<br>scroll less?</h2>
+        <p class="sub">I want to&hellip;</p>
+        <div class="opts">
+          <div class="card">Get school or work done</div>
+          <div class="card sel">Work on my own projects</div>
+          <div class="card">Be more present with people</div>
+          <div class="card">Go to sleep on time</div>
+          <div class="card">Feel less distracted</div>
+        </div>
+      </div>
+    </div>
+    <em>Single select, one subtle haptic, ~250ms, auto-advance; back chevron
+    stays. Stored as stable values, never display strings: schoolOrWork,
+    ownProjects, presentWithPeople, sleepOnTime, lessDistracted. S7 reuses
+    the option text lowercased (see S7 note). S13
+    payoff is always a complete sentence from the mapping: "About
+    {weeklyHours} hours a week" + "for school or work" / "for projects you
+    care about" / "with friends and family" / "to wind down and sleep on
+    time" / "without getting pulled into Instagram". weeklyHours always
+    computed, never a hardcoded 15. VoiceOver reads "I want to" then each
+    option.</em>
+  </div>
+
+  <!-- ============ S3 TOTAL TIME ============ -->
+  <div class="slot">
+    <span>S3 Total Instagram time</span>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="chrome">
+        <div class="steps"><i class="on"></i><i class="on"></i><i></i></div>
+        <div class="backchev"><svg width="10" height="17" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></div>
+      </div>
+      <div class="body">
+        <h2>What&rsquo;s your average screen time on Instagram per day?</h2>
+        <p class="sub">Best guess is fine.</p>
+        <div style="flex: 1; display: flex; flex-direction: column;
+             justify-content: center">
+          <div style="font-size: 56px; font-weight: 700; letter-spacing: -0.045em;
+               text-align: center">2 h 30 m</div>
+          <div class="ruler">
+            <div class="ticks">
+              <i></i><i></i><i class="major"></i><i></i><i></i><i class="major"></i>
+              <i></i><i></i><i class="major"></i><i></i><i></i><i class="major"></i>
+              <i></i><i></i><i class="major"></i><i></i><i></i><i class="major"></i>
+              <i></i><i></i><i class="major"></i><i></i><i></i>
+            </div>
+            <div class="needle"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between;
+               font-size: 13px; color: #5d6478"><span>15 min</span><span>8 h +</span></div>
+        </div>
+      </div>
+      <div class="foot"><button class="btn">Continue</button></div>
+    </div>
+    <em>The snap picker from v2, unchanged: 15 minute steps, haptic per snap.</em>
+  </div>
+
+  <!-- ============ S4 INTENTIONAL TIME ============ -->
+  <div class="slot">
+    <span>S4 Intentional time (DMs AND Stories now)</span>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="chrome">
+        <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+        <div class="backchev"><svg width="10" height="17" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2.4"
+          stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></div>
+      </div>
+      <div class="body">
+        <h2 style="font-size: 24px">How long do you spend messaging on
+            Instagram per day?</h2>
+        <p class="sub">An estimate is fine.</p>
+        <div class="opts">
+          <div class="card">&lt; 10 mins</div>
+          <div class="card sel">10 - 20 mins</div>
+          <div class="card">20 - 30 mins</div>
+          <div class="card">30 - 45 mins</div>
+          <div class="card">45 - 60 mins</div>
+          <div class="card">I don&rsquo;t know</div>
+        </div>
+      </div>
+      <div class="foot"><button class="btn">Show me</button></div>
+    </div>
+    <em>Ranges feed the math by their upper bound ("10 - 20 mins" computes
+    as 20). "I don't know" applies a transparent "Estimate 20 min". Options
+    above the S3 total are disabled; selection can never exceed total
+    time.</em>
+  </div>
+
+  <!-- ============ S5 YEARS IMPACT (dark) ============ -->
+  <div class="slot">
+    <span>S5 Loss reveal (dark section begins)</span>
+    <div class="phone dark">
+      <div class="glow" style="background: radial-gradient(circle, rgba(10,60,140,0.5) 0%, rgba(10,60,140,0.14) 45%, rgba(10,60,140,0) 70%)"></div>
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="body" style="padding: 0 28px; z-index: 2">
+        <p class="lead" style="margin-top: 96px; text-align: center">At your
+           current pace, Instagram is on track to take</p>
+        <div style="flex: 1; display: flex; flex-direction: column;
+             align-items: center; justify-content: center">
+          <div class="ghostnum">6.2 years</div>
+          <div class="bignum grad" style="white-space: nowrap; margin: 4px 0">6.3 years</div>
+          <div class="ghostnum">6.4 years</div>
+        </div>
+        <div style="text-align: center; padding-bottom: 30px">
+          <p class="lead">of your life distracted on your phone.</p>
+          <p class="muted" style="font-size: 13px; margin-top: 40px">Tap to
+             continue</p>
+        </div>
+      </div>
+    </div>
+    <em>Three zones: opener upper quarter, hero centered, closing beneath.
+    Ghost values depict the ~900ms vertical odometer settling; one haptic at
+    the landing value; Reduce Motion swaps to a fade. "6.3 years" never
+    wraps (minimumScaleFactor on compact phones). Full-screen tap advances.</em>
+  </div>
+
+  <!-- ============ S6 MESSAGING VS SCROLLING (dark) ============ -->
+  <div class="slot">
+    <span>S6 Messaging vs scrolling (dark)</span>
+    <div class="phone dark">
+      <div class="glow" style="opacity: 0.6"></div>
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="body mid" style="padding: 0 28px">
+        <p class="lead" style="font-size: 24px; line-height: 1.25">But staying
+           connected only takes a fraction of that.</p>
+        <div style="display: flex; align-items: flex-end;
+             justify-content: center; gap: 64px; margin-top: 44px">
+          <div style="display: flex; flex-direction: column;
+               align-items: center; gap: 10px">
+            <b style="font-size: 15px; color: #f5f5f7">2 h 30 m / day</b>
+            <div style="width: 64px; height: 190px; border-radius: 12px;
+                 background: #4a4f5a"></div>
+          </div>
+          <div style="display: flex; flex-direction: column;
+               align-items: center; gap: 10px">
+            <b style="font-size: 15px; color: #0a84ff">20 m / day</b>
+            <div style="width: 64px; height: 26px; border-radius: 12px;
+                 background: #0a84ff;
+                 box-shadow: 0 0 18px rgba(10,132,255,0.5)"></div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: center; gap: 64px;
+             margin-top: 10px; font-size: 13.5px; color: #8e8e93">
+          <span style="width: 96px; text-align: center">Instagram now</span>
+          <span style="width: 96px; text-align: center">DMs needed</span>
+        </div>
+      </div>
+      <div class="foot"><button class="btn">See what changes</button></div>
+    </div>
+    <em>Vertical column comparison: both columns grow up from the baseline
+    ~700ms, tall column first. Heights proportional to the S3/S4 values
+    (blue column has a minimum height so it never vanishes). All values
+    compute at runtime; "I don't know" shows "We estimated 20 minutes a day
+    for DMs."</em>
+  </div>
+
+  <!-- ============ S7 OUTCOME (dark) ============ -->
+  <div class="slot">
+    <span>S7 Positive outcome (dark)</span>
+    <div class="phone dark">
+      <div class="glow"></div>
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="body" style="padding: 0 24px; z-index: 2">
+        <p class="muted" style="margin-top: 84px; text-align: center;
+           font-size: 16px">You don&rsquo;t have to give up DMs or Stories.</p>
+        <div style="flex: 1; display: flex; flex-direction: column;
+             align-items: center; justify-content: center; text-align: center">
+          <p class="lead">Konvo could help you get back</p>
+          <div class="ghostnum" style="margin-top: 14px">5.3 years</div>
+          <div class="bignum grad" style="white-space: nowrap; margin: 4px 0">5.4 years</div>
+          <div class="ghostnum">5.5 years</div>
+          <p class="lead" style="margin-top: 18px; max-width: 26ch">of your
+             life to achieve your dreams and work on my own projects.</p>
+        </div>
+      </div>
+      <div class="foot"><button class="btn">See what stays</button></div>
+    </div>
+    <em>Identical vertical odometer to S5: ghost neighbors pass, the value
+    settles sharply, one haptic. Gradient on the hero only. Closing line:
+    "of your life to achieve your dreams and" + the S2 option lowercased
+    ("get school or work done" / "work on my own projects" / "be more
+    present with people" / "go to sleep on time" / "feel less distracted").
+    Stand-in shown: ownProjects. Years value computed at runtime.</em>
+  </div>
+
+  <!-- ============ S8a VALUE: MESSAGES STAY ============ -->
+  <div class="slot">
+    <span>S8a Value 1 of 2 (no feed)</span>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="body" style="padding: 40px 24px 0">
+        <h2 style="font-size: 26px">No Feed. No Reels. No Explore.</h2>
+        <p class="sub" style="margin-top: 8px">They&rsquo;re removed
+           completely, so there&rsquo;s nothing pulling you into a scroll.</p>
+        <div style="flex: 1; min-height: 0; position: relative">
+          <img src="assets/phone-mockup.png" alt="" style="position: absolute;
+               top: 10px; left: 50%; transform: translateX(-50%); width: 300px">
+        </div>
+      </div>
+      <div class="foot" style="padding-top: 22px; background:
+           linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 34%)">
+        <div class="dots"><i class="on"></i><i></i></div>
+        <button class="btn">Next</button>
+      </div>
+    </div>
+    <em>Static phone render of the dark Konvo inbox (fake accounts), same
+    asset as the S1 hero: only messages and stories, no feed surfaces
+    anywhere. Entrance: rises ~12px and settles with a soft spring.</em>
+  </div>
+
+  <!-- ============ S8b VALUE: SURFACES REMOVED ============ -->
+  <div class="slot">
+    <span>S8b Value 2 of 2 (messages stay)</span>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="body" style="padding: 40px 24px 0">
+        <h2 style="font-size: 26px">Your messages stay.</h2>
+        <p class="sub" style="margin-top: 8px">DMs, group chats, voice notes
+           and friends&rsquo; Stories still work.</p>
+        <div style="flex: 1; min-height: 0; position: relative">
+          <img src="assets/phone-thread.png" alt="" style="position: absolute;
+               top: 10px; left: 50%; transform: translateX(-50%); width: 300px">
+        </div>
+      </div>
+      <div class="foot" style="padding-top: 22px; background:
+           linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 34%)">
+        <div class="dots"><i></i><i class="on"></i></div>
+        <button class="btn">Continue</button>
+      </div>
+    </div>
+    <em>Static phone render of a DM thread (fake content): what stays.
+    Closes the two-slide value story (S8c cut Aug 1).</em>
+  </div>
+
+  <!-- ============ S10 PRIVACY ============ -->
+  <div class="slot">
+    <span>S10 Privacy (3 points, short)</span>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="body mid">
+        <span style="width: 44px; height: 44px; border-radius: 13px; background: #eef3ff;
+              display: inline-flex; align-items: center; justify-content: center;
+              margin-bottom: 20px; color: #0a5cf0">
+          <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <h2 style="margin-bottom: 28px">Your password stays with Instagram.</h2>
+        <div style="display: flex; flex-direction: column; gap: 20px">
+          <div class="row"><span class="ic"><svg width="18" height="18"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="3"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0"/></svg></span>
+            <b>You sign in with Instagram</b></div>
+          <div class="row"><span class="ic"><svg width="18" height="18"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><path d="m4.5 4.5 15 15"/></svg></span>
+            <b>Konvo never sees or stores your password</b></div>
+          <div class="row"><span class="ic"><svg width="18" height="18"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.5 18.5h3"/></svg></span>
+            <b>Your session stays on this device</b></div>
+        </div>
+      </div>
+      <div class="foot"><button class="btn">Got it, sign in</button></div>
+    </div>
+    <em>All three statements verified true of the implementation: login happens
+    on instagram.com inside the webview, credentials never touch Konvo code,
+    the session lives in the on-device webview storage only.</em>
+  </div>
+
+  <!-- ============ S11 LOGIN ============ -->
+  <div class="slot">
+    <span>S11 Instagram login handoff</span>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="body mid" style="align-items: center; gap: 20px">
+        <span style="width: 20px; height: 20px; border-radius: 50%;
+              border: 2px solid #e6e6ea; border-top-color: #0a5cf0"></span>
+        <span style="font-size: 15px; color: #5d6478">Opening Instagram
+          sign-in&hellip;</span>
+      </div>
+    </div>
+    <em>The existing untouched auth chain: password, 2FA, challenges,
+    checkpoints. Failure explains itself and offers Retry; onboarding answers
+    survive. The full paywall never appears before the session is verified
+    usable.</em>
+  </div>
+
+  <!-- ============ S12 CONNECTED ============ -->
+  <div class="slot">
+    <span>S12 Connection confirmation</span>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="body mid" style="align-items: center; text-align: center">
+        <span style="width: 56px; height: 56px; border-radius: 50%; background: #eef3ff;
+              display: inline-flex; align-items: center; justify-content: center;
+              color: #0a5cf0; margin-bottom: 24px">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5"/></svg></span>
+        <h2>Instagram connected.</h2>
+        <p style="font-size: 17px; line-height: 1.5; color: #5d6478;
+           margin-top: 12px">Your DMs and Stories are ready.</p>
+      </div>
+    </div>
+    <em>Real DM contents are never shown before an active entitlement. No
+    button: holds ~1s, then auto-advances into the setting-up loader.</em>
+  </div>
+
+  <!-- ============ S12b SETTING UP ============ -->
+  <div class="slot">
+    <span>S12b Setting up (honest checklist loader)</span>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="body mid" style="padding: 0 24px">
+        <span style="width: 20px; height: 20px; border-radius: 50%;
+              border: 2px solid #e6e6ea; border-top-color: #0a5cf0"></span>
+        <h2 style="font-size: 26px; margin: 24px 0 26px">Setting up your
+           Konvo</h2>
+        <div style="display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span class="ck"><svg width="11" height="11" viewBox="0 0 24 24"
+              fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"
+              stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span style="font-size: 17px">Feed hidden</span></div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span class="ck"><svg width="11" height="11" viewBox="0 0 24 24"
+              fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"
+              stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span style="font-size: 17px">Reels hidden</span></div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span class="ck"><svg width="11" height="11" viewBox="0 0 24 24"
+              fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"
+              stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span style="font-size: 17px">Explore hidden</span></div>
+          <div style="display: flex; align-items: center; gap: 12px">
+            <span class="ck"><svg width="11" height="11" viewBox="0 0 24 24"
+              fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"
+              stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+            <span style="font-size: 17px">Messages kept</span></div>
+          <div style="display: flex; align-items: center; gap: 12px;
+               opacity: 0.35">
+            <span class="ck" style="background: rgba(20,29,51,0.1)"></span>
+            <span style="font-size: 17px">Friends&rsquo; stories kept</span></div>
+        </div>
+      </div>
+    </div>
+    <em>Honest loader: rows tick in sequence (~2.5s total), every line a real
+    cage rule, last row still pending. No button; follows S12 automatically
+    and auto-advances into the full paywall when the list completes.</em>
+  </div>
+
+  <!-- ============ S13 FULL PAYWALL ============ -->
+  <div class="slot">
+    <span>S13 Full paywall (top kept; bottom matches the timeline reference)</span>
+    <div class="phone">
+      <div class="bluehead">
+        <div style="position: absolute; inset: 0; background:
+             radial-gradient(circle at 50% 30%, rgba(255,255,255,0.22) 0%,
+             rgba(255,255,255,0) 60%)"></div>
+        <div style="position: absolute; top: 12px; right: 16px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff"
+               stroke-width="2.8" stroke-linecap="round" opacity="0.9">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></div>
+        <div style="position: absolute; left: 34px; top: 44px; width: 74px;
+             height: 22px; border-radius: 7px; background: rgba(255,255,255,0.16);
+             transform: rotate(-8deg); display: flex; align-items: center;
+             justify-content: center; font-size: 9px; font-weight: 700;
+             color: rgba(255,255,255,0.55)">FEED</div>
+        <div style="position: absolute; right: 30px; top: 96px; width: 62px;
+             height: 22px; border-radius: 7px; background: rgba(255,255,255,0.14);
+             transform: rotate(7deg); display: flex; align-items: center;
+             justify-content: center; font-size: 9px; font-weight: 700;
+             color: rgba(255,255,255,0.5)">REELS</div>
+        <div style="position: absolute; left: 50%; top: 54px;
+             transform: translateX(-50%); width: 64px; height: 64px;
+             border-radius: 18px; background: #fff; display: flex;
+             align-items: center; justify-content: center;
+             box-shadow: 0 10px 30px rgba(4,30,80,0.35)">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#0a5cf0"
+               stroke-width="2.2" stroke-linejoin="round">
+            <path d="M12 4c-4.4 0-8 3-8 6.8 0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z"/></svg>
+        </div>
+      </div>
+      <div class="body" style="padding: 42px 26px 0">
+        <div style="text-align: center">
+          <h2 style="font-size: 26px">How your free trial works</h2>
+          <p style="font-size: 15px; color: #5d6478; margin-top: 8px">First
+             14 days free, then $29.99 ($2.50/month).</p>
+          <p style="font-size: 14px; font-weight: 600; color: #0a5cf0;
+             margin-top: 8px">About 15 hours a week for projects you care
+             about.</p>
+        </div>
+        <div style="display: flex; justify-content: center; margin: 18px 0 26px">
+          <div class="pill2"><span class="on">Annual</span><span>Monthly</span></div>
+        </div>
+        <div class="tl">
+          <div class="dotcol"><span class="c" style="width: 44px; height: 44px;
+            background: #0a5cf0">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff"
+              stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="10.5" width="16" height="10.5" rx="3"/>
+              <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0"/></svg></span>
+            <span class="stem" style="width: 8px; background:
+              rgba(10,92,240,0.15); margin-top: 0"></span></div>
+          <div style="padding-bottom: 24px; padding-top: 6px">
+            <h4 style="font-size: 17px">Today</h4>
+            <p style="font-size: 15px; margin-top: 4px">Unlock your DMs and
+              Stories in Konvo. Pay $0.</p></div>
+        </div>
+        <div class="tl">
+          <div class="dotcol"><span class="c" style="width: 44px; height: 44px;
+            background: #0a5cf0">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff"
+              stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 3h12M6 21h12M8 3v3l4 4 4-4V3M8 21v-3l4-4 4 4v3"/></svg></span>
+            <span class="stem" style="width: 8px; background:
+              rgba(10,92,240,0.15); margin-top: 0"></span></div>
+          <div style="padding-bottom: 24px; padding-top: 6px">
+            <h4 style="font-size: 17px">In 7 days</h4>
+            <p style="font-size: 15px; margin-top: 4px">Halfway through your
+              trial. Still $0, nothing changes.</p></div>
+        </div>
+        <div class="tl">
+          <div class="dotcol"><span class="c" style="width: 44px; height: 44px;
+            background: #0a5cf0">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff"
+              stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 3 2.9 5.9 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.9l1.2-6.5-4.8-4.6 6.6-.9Z"/></svg></span>
+            <span class="stem" style="width: 8px; min-height: 34px; background:
+              linear-gradient(rgba(10,92,240,0.15), rgba(10,92,240,0))"></span></div>
+          <div style="padding-top: 6px">
+            <h4 style="font-size: 17px">In 14 days</h4>
+            <p style="font-size: 15px; margin-top: 4px">You&rsquo;ll be charged
+              on <b style="color: #141d33">Aug 15</b>,
+              <b style="color: #141d33">cancel anytime</b> before.</p></div>
+        </div>
+        <div style="text-align: center; margin-top: 22px">
+          <span style="font-size: 15px; font-weight: 600;
+                color: #0a5cf0">Restore Purchases</span>
+        </div>
+      </div>
+      <div class="foot" style="padding: 12px 24px 30px">
+        <button class="btn">Start 14-day free trial</button>
+        <div class="fine"><span style="text-decoration: underline">Terms
+          of Use</span> &middot; <span style="text-decoration:
+          underline">Privacy Policy</span></div>
+      </div>
+    </div>
+    <em>Bottom mirrors the reference: pill toggle under the price line,
+    uniform filled nodes on one soft stem, bold date and "cancel anytime" in
+    the charge line, Restore Purchases centered above the CTA. Three nodes
+    like the reference, but the middle one is an honest halfway marker, not a
+    reminder promise (no reminder feature exists). Aug 15 stands in for the real
+    computed renewal date; prices are live StoreKit values. States: Monthly
+    selected switches to Today / Every month with CTA "Continue with
+    Monthly"; trial-ineligible shows Today / In 12 months with "Continue with
+    Annual". Close destination TBD since the loader moved to S12b. The blue
+    motive line under the price is the complete sentence from the S2 mapping.
+    Auto-renew fine print sentence removed (Matthew, Aug 1); Terms and
+    Privacy links kept for App Review.</em>
+  </div>
+
+  <!-- ============ S14 SUCCESS ============ -->
+  <div class="slot">
+    <span>S14 Success and activation</span>
+    <div class="phone">
+      <div class="bar"><span>9:41</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="body mid" style="align-items: center; text-align: center">
+        <svg width="118" height="118" viewBox="0 0 24 24" fill="none" stroke="#0a5cf0"
+             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             style="margin-bottom: 42px"><path d="M20 6 9 17l-5-5"/></svg>
+        <div style="font-size: 44px; font-weight: 700; letter-spacing: -0.05em;
+             line-height: 1">You&rsquo;re in.</div>
+        <p style="font-size: 17px; line-height: 1.5; color: #5d6478;
+           margin-top: 16px">Your DMs and Stories are ready.</p>
+      </div>
+      <div class="foot" style="padding: 0 28px 40px">
+        <button class="btn">Open Konvo</button>
+      </div>
+    </div>
+    <em>Short success animation + haptic, then auto-opens the inbox after
+    ~700-900ms; the button is the fallback. Nothing else after this screen.</em>
+  </div>
+
+</div>
+</body>
+</html>

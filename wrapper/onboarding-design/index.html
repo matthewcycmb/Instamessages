@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Konvo iOS onboarding v7 (implemented)</title>
+<style>
+  /*
+    Konvo onboarding v7, Aug 3 2026: CAPTURES OF THE REAL APP (wrapper/dist
+    + the CAGE_SCRIPT paywall run in a harness), not mockups. The app is the
+    source of truth; this sheet documents it. v4 art-directed mockups and
+    the decision log: index-v4-mockup.html next door.
+    New since v6: the pact is the blue commitment-pact screen (checklist +
+    tap-to-commit, date computed at runtime), the perks screen is a
+    WITHOUT/KONVO comparison table, Restore moved into the paywall footer
+    row so all four paywall states fit one screen with zero scroll, and the
+    S10 t-rise CSS bug (whole screen sitting 36px low) is fixed.
+    Also since v5: pact before privacy, RevenueCat three-package paywall
+    (annual/monthly/lifetime), In-12 reminder node backed by a real local
+    notification, S14 activation variants, collapsed social-proof slots
+    (RELEASE BLOCKER until real quotes), PostHog funnel events.
+    Stand-ins visible here: sim-store values ($29.99 / $0.58 per week /
+    SAVE 50% / 14 days / $4.99 / $79.99), username matty16e, motive
+    ownProjects. All live values at runtime. Regenerate: see NOTES.md.
+  */
+  body { margin: 0; padding: 48px; background: #0e1014;
+         font-family: -apple-system, system-ui, sans-serif; color: #c8ccd6 }
+  .sheet { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start }
+  .slot { flex: none; width: 390px; display: flex; flex-direction: column; gap: 8px }
+  .slot > span { font-size: 12px; color: #8a8f98 }
+  .slot img { width: 390px; border-radius: 30px;
+              box-shadow: 0 22px 50px rgba(20,50,110,0.2) }
+  .slot > em { font-size: 11.5px; line-height: 1.5; color: #8a8f98;
+               font-style: normal }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="slot"><span>S1 Intro</span><img src="captures/s01-intro.png" alt="S1 Intro"><em>Photo opener, literal headline. Get started.</em></div>
+  <div class="slot"><span>S2 Motive</span><img src="captures/s02-motive.png" alt="S2 Motive"><em>Stable values; tap auto-advances. Tracked lean (no values).</em></div>
+  <div class="slot"><span>S3 Screen time</span><img src="captures/s03-screentime.png" alt="S3 Screen time"><em>Snap slider, 15 min to 8 h+, default 2 h 30 m.</em></div>
+  <div class="slot"><span>S4 Messaging</span><img src="captures/s04-messaging.png" alt="S4 Messaging"><em>Ranges gate on the S3 total; nothing pre-selected.</em></div>
+  <div class="slot"><span>S4b Adding it up</span><img src="captures/s05-calculating.png" alt="S4b Adding it up"><em>All three pills complete, then the reveal fades in.</em></div>
+  <div class="slot"><span>S5 Years lost</span><img src="captures/s06-years-lost.png" alt="S5 Years lost"><em>Dark pin via bridge; T/1440*60, one decimal.</em></div>
+  <div class="slot"><span>S6 With Konvo</span><img src="captures/s07-columns.png" alt="S6 With Konvo"><em>Stacked columns share a centerline.</em></div>
+  <div class="slot"><span>S7 Years back</span><img src="captures/s08-years-back.png" alt="S7 Years back"><em>One sentence through the number; motive from S2.</em></div>
+  <div class="slot"><span>S8a No feed</span><img src="captures/s09-nofeed.png" alt="S8a No feed"><em>Inbox render hero bleeds under the gradient footer.</em></div>
+  <div class="slot"><span>S8b Messages stay</span><img src="captures/s10-messages-stay.png" alt="S8b Messages stay"><em>Thread render; closes the value duo.</em></div>
+  <div class="slot"><span>S9 The pact</span><img src="captures/s11-pact.png" alt="S9 The pact"><em>Blue commitment pact: three checked lines, tap-to-commit, start date computed at runtime.</em></div>
+  <div class="slot"><span>S10 Privacy</span><img src="captures/s12-privacy.png" alt="S10 Privacy"><em>Three true statements. (Testimonial screen sits before this, collapsed until real quotes: RELEASE BLOCKER.)</em></div>
+  <div class="slot"><span>S11 Handoff</span><img src="captures/s13-handoff.png" alt="S11 Handoff"><em>konvoOnboarded + #konvo fragment, then Instagram login. login_started tracked.</em></div>
+  <div class="slot"><span>S12 Connected</span><img src="captures/s14-connected.png" alt="S12 Connected"><em>Auto after login; wall fades on. login_succeeded tracked once.</em></div>
+  <div class="slot"><span>S12b Setting up</span><img src="captures/s15-setting-up.png" alt="S12b Setting up"><em>Title carries the signed-in username; rows tick slowly.</em></div>
+  <div class="slot"><span>Perks</span><img src="captures/s16-perks.png" alt="Perks"><em>Comparison table: row one is checked on BOTH sides on purpose (Instagram does give you DMs and Stories); the tinted column is Konvo.</em></div>
+  <div class="slot"><span>S13 Annual</span><img src="captures/s17-paywall-annual.png" alt="S13 Annual"><em>Three packages via RevenueCat: per-week price, live SAVE%, Try for $0.00, 4-node timeline with the In-12 reminder promise. Restore sits in the footer row; every state fits one screen, no scrolling.</em></div>
+  <div class="slot"><span>S13 Monthly</span><img src="captures/s18-paywall-monthly.png" alt="S13 Monthly"><em>Its own no-trial truth.</em></div>
+  <div class="slot"><span>S13 Lifetime</span><img src="captures/s19-paywall-lifetime.png" alt="S13 Lifetime"><em>$79.99 once, non-consumable. One-step timeline. 'Lifetime access', never 'forever'.</em></div>
+  <div class="slot"><span>S13 Not ready</span><img src="captures/s20-paywall-notready.png" alt="S13 Not ready"><em>The x concedes: banner + Monthly. Wall never dismisses unpaid.</em></div>
+  <div class="slot"><span>S14 Trial success</span><img src="captures/s21-success-trial.png" alt="S14 Trial success"><em>Recap (Free until date) + notification ask; permission requested only on tap.</em></div>
+  <div class="slot"><span>S14 Reminder set</span><img src="captures/s22-success-reminder.png" alt="S14 Reminder set"><em>Granted: day-12 local notification scheduled, date confirmed.</em></div>
+  <div class="slot"><span>S14 Lifetime success</span><img src="captures/s23-success-lifetime.png" alt="S14 Lifetime success"><em>Lifetime access active. No notification ask - nothing to remind about.</em></div>
+</div>
+</body>
+</html>

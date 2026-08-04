@@ -95,9 +95,23 @@ print('expires', p['ExpirationDate'])")
   done <<<"$DEVICES"
 }
 
+# KONVO_BETA=1 builds the tester variant (no funnel, no wall) via the
+# konvo-beta cargo feature. The binary is the only truth: an env var once
+# died at the xcodebuild boundary and shipped a walled build silently, so
+# the IPA's beta-ness is checked against KONVO_BETA and a mismatch forces
+# a rebuild (and fails the run if it survives one).
+beta_matches() {  # $1 = ipa; succeeds if the binary's beta-ness matches KONVO_BETA
+  local bin; bin=$(mktemp)
+  unzip -p "$1" 'Payload/*.app/Konvo' > "$bin" 2>/dev/null || return 1
+  # grep reads to EOF (no -q): -q quits at first match, strings takes a
+  # SIGPIPE, and pipefail turns a real match into a false failure.
+  if [ -n "${KONVO_BETA:-}" ]; then strings "$bin" | grep 'konvoBeta=true' >/dev/null
+  else ! strings "$bin" | grep 'konvoBeta=true' >/dev/null; fi
+}
+
 IPA=$(ls -t src-tauri/gen/apple/build/*/*.ipa 2>/dev/null | head -1)
 NEED_BUILD=0
-if [ -z "$IPA" ] || [ "$NEW" = 1 ] || ! profile_has_all "$IPA"; then NEED_BUILD=1; fi
+if [ -z "$IPA" ] || [ "$NEW" = 1 ] || ! profile_has_all "$IPA" || ! beta_matches "$IPA"; then NEED_BUILD=1; fi
 
 if [ "$CHECK" = "--check" ]; then
   echo "Pre-flight only. Would build: $([ $NEED_BUILD = 1 ] && echo yes || echo no)."
@@ -106,12 +120,16 @@ fi
 
 if [ "$NEED_BUILD" = 1 ]; then
   echo "Building dev-signed IPA (~2 min)..."
-  PATH="$HOME/.cargo/bin:$PATH" npx @tauri-apps/cli ios build --export-method debugging --ci || exit 1
+  PATH="$HOME/.cargo/bin:$PATH" npx @tauri-apps/cli ios build --export-method debugging --ci ${KONVO_BETA:+--features konvo-beta} || exit 1
   IPA=$(ls -t src-tauri/gen/apple/build/*/*.ipa | head -1)
   # Trust nothing: confirm the fresh artifact's profile really gained the phones.
   profile_has_all "$IPA" || {
     echo "Build finished but the embedded profile still lacks a device."
     echo "Xcode cached an old profile: rm ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision and rebuild."
+    exit 1
+  }
+  beta_matches "$IPA" || {
+    echo "Build finished but the binary's beta-ness does not match KONVO_BETA."
     exit 1
   }
 fi
