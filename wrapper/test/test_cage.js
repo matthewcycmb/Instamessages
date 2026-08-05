@@ -83,8 +83,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .window.document.querySelectorAll('style')].map(s => s.textContent).join('');
   assert(!/aria-label="Notifications"/.test(deskSheets),
     'the desktop heart stays - flip-flopped twice, re-added by request 2026-07-31');
-  assert(/a:has\(img\[alt\$='profile picture'\]\)\{pointer-events:none/.test(sheets),
-    'avatars must be inert, not hidden - display:none left a hole in the profile header');
+  // Avatars used to be inert (pointer-events:none) because profiles were
+  // unreachable. Profiles are a deliberate doorway now, and that rule also
+  // killed taps on the notes tray - which is built out of avatars - so
+  // liking a friend's note did nothing. Avatars must stay TAPPABLE.
+  assert(!/pointer-events:\s*none/.test(sheets),
+    'avatars must stay tappable - notes are avatars, and profiles are open now');
   assert(!/a:has\(svg\[aria-label="Messages"\]\)/.test(sheets),
     'Messages must stay: it is the only way back to the inbox from a profile');
   assert(/aria-label="New post"/.test(sheets),
@@ -319,8 +323,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //    linking to Instagram's activity page - phone-only.
   const heartPhone = boot('/direct/inbox/', '');
   const h = heartPhone.window.document.getElementById('im-heart');
-  assert(h && h.getAttribute('href') === '/accounts/activity/',
-    'the phone inbox must carry the injected heart');
+  // /notifications/ on the phone, /accounts/activity/ on the Mac: measured
+  // on device - pushing the desktop path made Instagram render
+  // /notifications/ anyway, which is what the full page load was for.
+  assert(h && h.getAttribute('href') === '/notifications/',
+    'the phone inbox must carry the injected heart, pointed at the phone route');
   assert(!boot('/direct/inbox/', '', { ua: DESKTOP }).window.document.getElementById('im-heart'),
     'no heart on the Mac - tried in build 25, reverted same-day');
   const activity = boot('/accounts/activity/', '');

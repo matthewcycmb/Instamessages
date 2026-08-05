@@ -84,8 +84,13 @@
        animation: spin .8s linear infinite }
   @keyframes spin { to { transform: rotate(360deg) } }
 
+  /* The launch frame, shaped like a real app's: icon dead centre, name
+     small at the foot, no spinner. A spinner under a logo reads as a page
+     working; a centred mark reads as an app starting. */
   #splash { display: flex; flex-direction: column; align-items: center;
-            gap: 18px }
+            justify-content: center; position: fixed; inset: 0 }
+  #splash .w { position: absolute; bottom: 56px; font-size: 15px;
+               font-weight: 500; opacity: .55 }
 
   /* iOS splash: light to match the funnel, but a returning user's splash
      follows the phone (the head script unpins native on that path). */
@@ -233,7 +238,6 @@
     </g>
   </svg>
   <div class="w">Konvo</div>
-  <div class="s"></div>
 </div>
 
 <div id="flow">

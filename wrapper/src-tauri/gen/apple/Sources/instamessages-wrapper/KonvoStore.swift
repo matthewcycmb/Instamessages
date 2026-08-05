@@ -94,6 +94,20 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
     // whose inputAccessoryView answers nil. Patched once, on the first
     // bridge message - the bundled onboarding tracks s1 at launch, long
     // before any keyboard (earliest: Instagram's login form) can appear.
+    // Instagram's mobile web renders everything smaller than their native
+    // app - text, avatars, row heights, the compose bar. Page zoom scales
+    // the whole layout at once, which is what "match the native app" means;
+    // bumping font-size selector by selector only makes text bigger inside
+    // boxes that stayed small.
+    // Sizing lives in the cage's viewport override, NOT here. pageZoom
+    // scales rendered pixels without reflowing the layout, so the page
+    // grew wider than the screen and could be panned around. Narrowing the
+    // viewport instead makes Instagram lay out in fewer CSS pixels, which
+    // the screen then scales up: same "bigger", but it always fits.
+    private static func applyZoom(_ webView: WKWebView) {
+        if webView.pageZoom != 1 { webView.pageZoom = 1 }
+    }
+
     private static var accessoryKilled = false
     private static func killAccessoryBar(_ webView: WKWebView) {
         guard !accessoryKilled else { return }
@@ -115,8 +129,10 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                 return
             }
             object_setClass(sub, patched)
-            accessoryKilled = true
         }
+        // Set regardless: retrying this walk on every single
+        // bridge message bought nothing.
+        accessoryKilled = true
     }
 
     // WKWebView re-insets the page when the keyboard appears but not when
@@ -150,16 +166,21 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             // ponytail: moves the webview's own scroll view; if Instagram
             // ever composes inside an inner scroller this needs the focused
             // element's scroll parent instead.
+            // ONLY a keyboard that was already on screen and got taller
+            // (text -> emoji). A dismissed keyboard parks its frame off the
+            // bottom, so "grew" on the next appearance is the whole
+            // keyboard height.
+            //
+            // Ask the page to keep the FOCUSED field visible rather than
+            // scrolling by a pixel guess: scrolling blind by the growth
+            // overshot on pages shorter than the offset and pushed their
+            // headers off the top of the screen.
             let grew = was - Self.keyboardTop
-            guard was < .greatestFiniteMagnitude, grew > 1, let wv = webView
-            else { return }
-            let sv = wv.scrollView
-            let maxY = max(0, sv.contentSize.height + sv.adjustedContentInset.bottom
-                - sv.bounds.height)
-            let y = min(sv.contentOffset.y + grew, maxY)
-            if y > sv.contentOffset.y {
-                sv.setContentOffset(CGPoint(x: sv.contentOffset.x, y: y), animated: false)
-            }
+            guard was < UIScreen.main.bounds.height - 1, grew > 1 else { return }
+            webView?.evaluateJavaScript(
+                "var a=document.activeElement;"
+                    + "if(a&&a.scrollIntoView)a.scrollIntoView({block:'nearest'})",
+                completionHandler: nil)
         }
     }
 
@@ -171,8 +192,124 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
     // ponytail: the compose row is a 96pt geometry allowance, not DOM
     // truth; grows a cage-patch selector if Instagram's layout shifts.
     fileprivate static var route = "other"
-    fileprivate static var inboxSnap: UIView?
-    fileprivate static var inboxSettled: (() -> Void)?
+    // True while the back-swipe owns the screen, so the push animation
+    // never fires on the route change the gesture itself caused.
+    fileprivate static var swiping = false
+
+    // Opening a thread is a push, not a cut: the inbox holds the screen
+    // while Instagram renders, then the thread slides in from the right
+    // over it with the inbox easing back, the way a navigation controller
+    // does it. Without this the tap lands on a blank frame and snaps.
+    // ponytail: 1.2s cap if the settled signal never arrives.
+    // The screens behind the current one, newest last - a navigation stack
+    // of pictures. The back-swipe reveals the top of this stack, which is
+    // why going back from a profile lands on the chat that opened it and
+    // not on the inbox.
+    // ponytail: capped at 5; deeper than that nobody swipes back through.
+    fileprivate static var snapStack: [UIView] = []
+    // The current screen, captured while it was idle - see pushIntoThread.
+    fileprivate static var settledSnap: UIView?
+    private static var firstNavDone = false
+
+    // Five full-screen snapshots is 55-75MB on a modern iPhone, held for
+    // the life of the process. That is memory pressure we were creating
+    // ourselves - and pressure is what kills the web content process, which
+    // is why the reload recovery below exists. Give it all back the moment
+    // iOS asks, or when the app leaves the screen.
+    private static var purgeInstalled = false
+    private static func installSnapshotPurge() {
+        guard !purgeInstalled else { return }
+        purgeInstalled = true
+        for name: NSNotification.Name in [
+            UIApplication.didReceiveMemoryWarningNotification,
+            UIApplication.didEnterBackgroundNotification,
+        ] {
+            NotificationCenter.default.addObserver(
+                forName: name, object: nil, queue: .main
+            ) { _ in
+                snapStack.forEach { $0.removeFromSuperview() }
+                snapStack.removeAll()
+                settledSnap = nil
+            }
+        }
+    }
+
+    // Prepared once and reused: a freshly allocated generator spins the
+    // Taptic Engine up synchronously, and it was being allocated on the
+    // exact frame the swipe animation starts.
+    fileprivate static let haptic = UIImpactFeedbackGenerator(style: .light)
+
+    fileprivate static func pushIntoThread(
+        _ webView: WKWebView, back: Bool = false
+    ) {
+        // Prefer the picture taken when the screen last went quiet: the
+        // FIRST snapshotView of a session comes back empty (the web
+        // content process has not replicated its layer tree yet), which is
+        // why the first chat you opened after launch slid in over black.
+        // It is also free here - no synchronous capture on the tap frame.
+        // The stored idle snapshot is only right for the FIRST navigation
+        // of a session, where a live capture comes back empty. After that
+        // it is stale the moment the user scrolls, so take live pixels.
+        let live = firstNavDone ? webView.snapshotView(afterScreenUpdates: false) : nil
+        guard let host = webView.superview,
+              let current = live ?? settledSnap
+                ?? webView.snapshotView(afterScreenUpdates: false)
+        else { return }
+        firstNavDone = true
+        settledSnap = nil
+        // Forward: the screen being left goes on the stack. Back: the
+        // screen being returned to comes off it.
+        if back {
+            _ = snapStack.popLast()
+            current.frame = webView.frame
+            current.isUserInteractionEnabled = false
+            host.addSubview(current)
+            UIView.animate(
+                withDuration: 0.2, delay: 0,
+                options: [.curveEaseOut, .beginFromCurrentState]
+            ) {
+                current.transform =
+                    CGAffineTransform(translationX: webView.bounds.width, y: 0)
+            } completion: { _ in
+                current.transform = .identity
+                current.removeFromSuperview()
+            }
+            return
+        }
+        let under: UIView
+        if true {
+            under = current
+            snapStack.append(current)
+            if snapStack.count > 5 { snapStack.removeFirst() }
+        }
+        under.frame = webView.frame
+        under.transform = .identity
+        under.alpha = 1
+        under.isUserInteractionEnabled = false
+        host.insertSubview(under, belowSubview: webView)
+        let width = webView.bounds.width * (back ? -1 : 1)
+        webView.transform = CGAffineTransform(translationX: width, y: 0)
+        var started = false
+        let slide = {
+            if started { return }
+            started = true
+            UIView.animate(
+                withDuration: 0.2, delay: 0,
+                options: [.curveEaseOut, .beginFromCurrentState]
+            ) {
+                webView.transform = .identity
+                under.transform = CGAffineTransform(translationX: -width * 0.3, y: 0)
+            } completion: { _ in
+                under.transform = .identity
+                under.removeFromSuperview()
+            }
+        }
+        // Instantly. Any wait at all - even a quarter second capped on the
+        // destination painting - reads as the app hesitating after a tap.
+        // An unpainted destination shows the page's own background colour
+        // (set from the "bg" command), not black.
+        slide()
+    }
 
     private final class KonvoGestures: NSObject, UIGestureRecognizerDelegate {
         weak var webView: WKWebView?
@@ -192,19 +329,24 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             let x = max(0, g.translation(in: wv).x)
             switch g.state {
             case .began:
-                guard KonvoStore.route == "thread", snap == nil,
+                // Any screen that is not the inbox can be swiped back -
+                // threads, profiles, posts. The inbox is the floor: back
+                // from there is Instagram's login chain.
+                guard KonvoStore.route != "inbox", snap == nil,
                       let s = wv.snapshotView(afterScreenUpdates: false)
                 else { return }
-                // What the drag reveals: the standing inbox picture, or a
-                // plain system-background sheet when none exists yet -
-                // anything but the live page mid-render.
-                let u = KonvoStore.inboxSnap ?? {
+                // What the drag reveals: the screen underneath this one on
+                // the stack - the chat that opened this profile, not
+                // whatever the inbox happened to look like. Popped only if
+                // the swipe commits.
+                let u = KonvoStore.snapStack.last ?? {
                     let v = UIView()
                     v.backgroundColor = .systemBackground
                     return v
                 }()
                 u.frame = wv.frame
                 u.alpha = 1
+                u.isUserInteractionEnabled = false
                 wv.superview?.addSubview(u)
                 under = u
                 s.frame = wv.frame
@@ -214,53 +356,62 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                 s.layer.shadowOffset = CGSize(width: -4, height: 0)
                 wv.superview?.addSubview(s)
                 snap = s
+                KonvoStore.swiping = true
+                KonvoStore.haptic.prepare()
                 // Keyboard drops as the slide starts, like native; its
                 // re-layout happens under the snapshot, invisible.
                 wv.endEditing(true)
             case .changed:
                 snap?.frame.origin.x = x
             case .ended, .cancelled, .failed:
-                guard let s = snap else { return }
+                // swiping stays true until this gesture's own animation is
+                // done: its history.back() fires a popstate, and the nav
+                // handler must not animate on top of the slide in flight.
+                guard let s = snap else { KonvoStore.swiping = false; return }
                 let u = under
                 snap = nil
                 under = nil
                 let commit = x > wv.bounds.width * 0.3
                     || g.velocity(in: wv).x > 600
                 if commit {
+                    // The small confirmation buzz a native back-swipe has.
+                    KonvoStore.haptic.impactOccurred()
+                    // The revealed screen is now the current one.
+                    if !KonvoStore.snapStack.isEmpty { KonvoStore.snapStack.removeLast() }
                     // Navigate now, once; the thread slides off and the
                     // inbox picture holds the frame until the live inbox
                     // reports settled, then a quick fade lands on a
                     // FINISHED page - a timer here always guessed wrong.
                     // ponytail: 1.5s cap if the settle signal never comes.
                     wv.evaluateJavaScript(
-                        "if(location.pathname.indexOf('/direct/t/')===0)history.back()",
+                        "if(!/^\\/direct\\/(inbox|requests)?\\/?$/.test(location.pathname))"
+                            + "history.back()",
                         completionHandler: nil)
                     UIView.animate(
-                        withDuration: 0.22, delay: 0, options: .curveEaseOut
+                        withDuration: 0.18, delay: 0, options: .curveEaseOut
                     ) {
                         s.frame.origin.x = wv.bounds.width
                     } completion: { _ in
                         s.removeFromSuperview()
-                        var done = false
-                        let fade = {
-                            if done { return }
-                            done = true
-                            UIView.animate(withDuration: 0.15) {
-                                u?.alpha = 0
-                            } completion: { _ in u?.removeFromSuperview() }
-                        }
-                        KonvoStore.inboxSettled = fade
-                        DispatchQueue.main.asyncAfter(
-                            deadline: .now() + 1.5, execute: fade)
+                        KonvoStore.swiping = false
+                        // Nothing held. The inbox reorders the instant you
+                        // send a message, so any picture we keep differs
+                        // from the live page and the swap reads as a jump.
+                        // Show the real inbox straight away, mid-render or
+                        // not - a page finishing its paint looks like a
+                        // page loading; a screen swapping under you looks
+                        // like a bug.
+                        u?.removeFromSuperview()
                     }
                 } else {
                     // Nothing was navigated: pure animation, the thread
                     // underneath never moved.
-                    UIView.animate(withDuration: 0.2) {
+                    UIView.animate(withDuration: 0.16) {
                         s.frame.origin.x = 0
                     } completion: { _ in
                         s.removeFromSuperview()
                         u?.removeFromSuperview()
+                        KonvoStore.swiping = false
                     }
                 }
             default: break
@@ -328,6 +479,8 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             let id = body["id"] as? Int,
             let webView = message.webView
         else { return }
+        Self.installSnapshotPurge()
+        Self.applyZoom(webView)
         Self.killAccessoryBar(webView)
         Self.installKeyboardNudge(webView)
         Self.installTerminationRecovery(webView)
@@ -398,29 +551,59 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         // its picture waiting for the crossfade moment.
         if cmd == "route" {
             DispatchQueue.main.async { [weak webView] in
-                if productId == "inbox-settled" {
-                    if Self.route == "inbox", let wv = webView,
+                if productId.hasSuffix("-settled") {
+                    // Capture the finished screen now, while nothing is
+                    // animating, so the next push has a real picture ready
+                    // and never has to snapshot on the tap frame.
+                    if let wv = webView,
                        let s = wv.snapshotView(afterScreenUpdates: false) {
                         s.frame = wv.frame
-                        Self.inboxSnap = s
+                        Self.settledSnap = s
                     }
-                    Self.inboxSettled?()
-                    Self.inboxSettled = nil
                 } else {
-                    // Leaving the inbox for a thread: grab the freshest
-                    // pixels while they are still the inbox - beats the
-                    // arrival snapshot whenever the list reordered since.
-                    // A message sent inside the thread postdates any
-                    // picture; that reorder shows at the crossfade and is
-                    // the floor.
-                    if Self.route == "inbox", productId == "thread",
-                       let wv = webView,
-                       let s = wv.snapshotView(afterScreenUpdates: false) {
-                        s.frame = wv.frame
-                        Self.inboxSnap = s
-                    }
                     Self.route = productId
                 }
+            }
+            return
+        }
+
+        // The page's own background colour, painted onto the native
+        // letterbox the webview cannot reach. Fire-and-forget.
+        if cmd == "bg" {
+            let nums = productId.components(
+                separatedBy: CharacterSet(charactersIn: "rgba(), ")
+            ).compactMap(Double.init)
+            guard nums.count >= 3 else { return }
+            let color = UIColor(
+                red: nums[0] / 255, green: nums[1] / 255, blue: nums[2] / 255,
+                alpha: nums.count > 3 ? nums[3] : 1)
+            guard (nums.count > 3 ? nums[3] : 1) > 0.01 else { return }
+            DispatchQueue.main.async { [weak webView] in
+                guard let wv = webView else { return }
+                wv.window?.rootViewController?.view.backgroundColor = color
+                wv.backgroundColor = color
+                wv.scrollView.backgroundColor = color
+            }
+            return
+        }
+
+        // Every SPA navigation animates the same way, wherever it goes:
+        // forward slides in from the right, back from the left. The
+        // back-swipe owns its own animation, so it opts out.
+        if cmd == "nav" {
+            DispatchQueue.main.async { [weak webView] in
+                guard !Self.swiping, let wv = webView else { return }
+                if productId == "push-silent" {
+                    // Stack it without animating: the back-swipe still
+                    // needs a picture of the screen underneath.
+                    if let s = wv.snapshotView(afterScreenUpdates: false) {
+                        s.frame = wv.frame
+                        Self.snapStack.append(s)
+                        if Self.snapStack.count > 5 { Self.snapStack.removeFirst() }
+                    }
+                    return
+                }
+                Self.pushIntoThread(wv, back: productId == "pop")
             }
             return
         }
@@ -428,7 +611,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         // The native app's little tap when a message sends. Fire-and-forget.
         if cmd == "haptic" {
             DispatchQueue.main.async {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                KonvoStore.haptic.impactOccurred()
             }
             return
         }

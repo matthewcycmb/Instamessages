@@ -30,6 +30,15 @@
   // new tester ever sees, and a blank window reads as a broken app. Show a
   // spinner until the page paints over it.
   (function boot() {
+    // Once per app launch, never between screens. This overlay exists for
+    // the cold start where instagram.com takes 10-15s to paint; showing it
+    // again on an in-app navigation just reads as the app hanging.
+    // sessionStorage dies with the webview session, so a relaunch shows it
+    // again and a navigation does not.
+    try {
+      if (sessionStorage.konvoBooted) return;
+      sessionStorage.konvoBooted = "1";
+    } catch (e) {}
     // Konvo's whole funnel is the light design - the quiz, Instagram's
     // login, and the paywall all render while the app is pinned Light
     // (lib.rs). The paywall block below hands appearance to the phone only
@@ -38,7 +47,7 @@
     var b = document.createElement("div");
     b.id = "im-boot";
     b.style.cssText = "position:fixed;inset:0;z-index:2147483646;" +
-      "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px";
+      "display:flex;flex-direction:column;align-items:center;justify-content:center";
     // Icon + wordmark, not a bare spinner. The wait is Instagram's bundle over
     // the network and is not ours to shorten, but a logo reads as an app
     // starting where a lone spinner on black reads as a page that has hung.
@@ -50,11 +59,9 @@
         "<g transform='translate(70,70) scale(15.5)' fill='none' stroke='#fff'" +
         " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
         "<path d='M7.9 20A9 9 0 1 0 4 16.1L2 22Z'/></g></svg>" +
-      "<div id='im-boot-w' style='font:600 17px -apple-system,system-ui,sans-serif;" +
-        "letter-spacing:-0.01em'>Konvo</div>" +
-      "<div id='im-boot-s' style='width:20px;height:20px;border:2px solid transparent;" +
-        "border-radius:50%;animation:im-spin .8s linear infinite'></div>" +
-      "<style>@keyframes im-spin{to{transform:rotate(360deg)}}</style>";
+      "<div id='im-boot-w' style='position:absolute;bottom:56px;font:500 15px " +
+        "-apple-system,system-ui,sans-serif;letter-spacing:-0.01em;opacity:.55'>" +
+        "Konvo</div>";
     (document.body || document.documentElement).appendChild(b);
     // Painted as a function of the current scheme, and repainted if the
     // scheme flips while the overlay is up - which is exactly what the
@@ -64,12 +71,7 @@
         (window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
       b.style.background = dark ? '#000' : '#fff';
       var w = document.getElementById("im-boot-w");
-      var s = document.getElementById("im-boot-s");
       if (w) w.style.color = dark ? '#f5f5f7' : '#141d33';
-      if (s) {
-        s.style.borderColor = dark ? '#2c2c2e' : '#e6e6ea';
-        s.style.borderTopColor = '#0a84ff';
-      }
     }
     paintBoot();
     if (window.matchMedia) {
@@ -77,9 +79,17 @@
         matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintBoot);
       } catch (e) {}
     }
+    // Fade, never cut: Instagram's own launch dissolves into the app, and
+    // a hard removal here read as a flicker between two screens.
     function clear() {
       var el = document.getElementById("im-boot");
-      if (el && el.parentNode) el.parentNode.removeChild(el);
+      if (!el || el.dataset.going) return;
+      el.dataset.going = "1";
+      el.style.transition = "opacity .32s ease";
+      el.style.opacity = "0";
+      setTimeout(function () {
+        if (el.parentNode) el.parentNode.removeChild(el);
+      }, 340);
     }
     window.addEventListener("load", clear);
     // Never let the overlay trap someone if load never fires (offline, a
@@ -122,8 +132,74 @@
   function atInbox() {
     return /^\/direct\/(inbox|requests)?\/?$/.test(location.pathname);
   }
+  // Instagram's mobile web lays out smaller than their native app. Telling
+  // it the screen is narrower than it is makes every row, avatar and
+  // bubble render larger once the browser scales that layout to the real
+  // width - and because it is a real reflow, nothing overflows sideways.
+  // Measured against the native app, screen by screen: its INBOX matches
+  // Instagram's mobile web 1:1 (124 vs 125px avatars, identical row
+  // pitch), but its THREADS run ~7% larger (574 vs 534px bubbles). One
+  // global scale cannot serve both - and scaling everything is what blew
+  // up post pages. So: threads only.
+  // ponytail: THE sizing knob, per route.
+  var THREAD_SCALE = 1.07;
+  // CSS zoom, not a viewport meta rewrite: WebKit ignored the width change
+  // after first layout (two builds rendered pixel-identical), and zoom is
+  // the one that actually reflows - fewer CSS pixels across, everything
+  // laid out larger, still no horizontal overflow.
+  // The inbox title (your username + chevron) renders smaller and sits
+  // further left than the native app's. No CSS selector for it survives
+  // Instagram's class churn, so find it the way findMe() does - the
+  // username-shaped leaf in the top strip - and style that element.
+  // ponytail: measured 18% short of native; re-measure if their header
+  // changes shape.
+  // Runs ONCE per arrival at the inbox, never on the tick: this is a
+  // whole-document scan plus getBoundingClientRect (forced layout), and on
+  // an 800ms timer it was a guaranteed hitch while scrolling.
+  var titleSized = false, titleEl = null, titleMo = null;
+  function sizeInboxTitle() {
+    if (titleSized || !atInbox()) return;
+    titleSized = true;
+    var els = document.querySelectorAll("span,h1,div");
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      if (el.childElementCount || el.dataset.imTitle) continue;
+      var t = (el.textContent || "").trim();
+      if (!/^[A-Za-z0-9._]{2,30}$/.test(t)) continue;
+      var r = el.getBoundingClientRect();
+      if (r.width === 0 || r.top < 0 || r.top > 120) continue;
+      el.dataset.imTitle = "1";
+      el.style.fontSize = "23px";
+      el.style.fontWeight = "700";
+      el.style.letterSpacing = "-0.02em";
+      titleEl = el;
+      // Watch the row it lives in: Instagram rebuilds this header when you
+      // come back from a chat, and a rebuilt element carries none of our
+      // styling, so the name flashed at its original size first.
+      if (titleMo) titleMo.disconnect();
+      var host = el.parentElement && el.parentElement.parentElement;
+      if (host && window.MutationObserver) {
+        titleMo = new MutationObserver(function () {
+          if (titleEl && titleEl.isConnected) return;
+          titleSized = false;
+          sizeInboxTitle();
+        });
+        titleMo.observe(host, { childList: true, subtree: true });
+      }
+      return;
+    }
+  }
+
+  function sizeViewport() {
+    var want = /^\/direct\/t\//.test(location.pathname) ? String(THREAD_SCALE) : "";
+    if (document.documentElement.style.zoom !== want) {
+      document.documentElement.style.zoom = want;
+    }
+  }
+
   function enforce() {
     if (!location.hostname.endsWith("instagram.com")) return;
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) sizeViewport();
     if (blocked(location.pathname)) {
       try { window.stop(); } catch (e) {}
       location.replace("/direct/inbox/");
@@ -140,6 +216,7 @@
       : location.pathname.indexOf("/direct/t/") === 0 ? "thread" : "other";
     if (r !== lastRoute) {
       lastRoute = r;
+      titleSized = false;
       if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
         try {
           window.webkit.messageHandlers.konvoStore.postMessage(
@@ -149,21 +226,30 @@
         // mutations quiet for a beat, capped hard - so the back-swipe
         // holds its snapshot until the crossfade can land on a finished
         // inbox instead of a mid-render skeleton.
-        if (r === "inbox" && window.MutationObserver) {
+        if (window.MutationObserver) {
           try {
             if (settleMo) settleMo.disconnect();
+            if (settleTick) clearInterval(settleTick);
             var last = Date.now(), t0 = last;
             settleMo = new MutationObserver(function () { last = Date.now(); });
             settleMo.observe(document.body || document.documentElement,
               { childList: true, subtree: true });
-            var tick = setInterval(function () {
+            var tick = settleTick = setInterval(function () {
               var now = Date.now();
               if (now - last > 180 || now - t0 > 2000) {
                 clearInterval(tick);
                 if (settleMo) { settleMo.disconnect(); settleMo = null; }
+                sizeInboxTitle();
                 try {
                   window.webkit.messageHandlers.konvoStore.postMessage(
-                    { cmd: "route", id: 0, productId: "inbox-settled" });
+                    { cmd: "route", id: 0, productId: r + "-settled" });
+                  // The letterbox above and below the webview is native and
+                  // CSS cannot reach it. Hand it the page's own background
+                  // so the app reads as one surface instead of a page with
+                  // black bars around it.
+                  window.webkit.messageHandlers.konvoStore.postMessage(
+                    { cmd: "bg", id: 0,
+                      productId: getComputedStyle(document.body).backgroundColor });
                 } catch (e) {}
               }
             }, 90);
@@ -172,12 +258,121 @@
       }
     }
   }
-  var lastRoute = null, settleMo = null;
+  var lastRoute = null, settleMo = null, settleTick = null;
+  // Every screen change gets the same push, wherever it goes - a DM, a
+  // profile from a DM, a profile from search. pushState is Instagram's
+  // forward navigation and popstate is a back; the native side owns the
+  // animation, so this only has to say which way. Full page loads (not
+  // SPA) fire neither and simply do not animate.
+  // Search mode is a route the URL never changes for, so the class carries
+  // it: focusing a search box unhides Instagram's own way back out.
+  function keepSearchBack(input) {
+    var box = input.getBoundingClientRect();
+    var mid = box.top + box.height / 2;
+    var arrows = document.querySelectorAll(
+      "a:has(svg[aria-label='Back']),[role='button']:has(svg[aria-label='Back'])");
+    for (var i = 0; i < arrows.length; i++) {
+      // Same row as the field it belongs to. The header's escape arrow
+      // sits a row above and stays hidden.
+      var r = arrows[i].getBoundingClientRect();
+      var same = Math.abs(r.top + r.height / 2 - mid) < box.height;
+      arrows[i].classList.toggle("im-keep-back", same);
+    }
+  }
+  document.addEventListener("focusin", function (e) {
+    var t = e.target;
+    if (!t || (t.tagName !== "INPUT" && t.getAttribute("role") !== "textbox")) return;
+    document.documentElement.classList.add("im-searching");
+    // Instagram renders the search-mode back arrow a beat after focus, and
+    // sometimes re-renders it again; one shot missed it.
+    [60, 250, 600].forEach(function (ms) {
+      setTimeout(function () { keepSearchBack(t); }, ms);
+    });
+  }, true);
+  document.addEventListener("focusout", function () {
+    setTimeout(function () {
+      var a = document.activeElement;
+      if (a && (a.tagName === "INPUT" || a.getAttribute("role") === "textbox")) return;
+      document.documentElement.classList.remove("im-searching");
+      var kept = document.querySelectorAll(".im-keep-back");
+      for (var i = 0; i < kept.length; i++) kept[i].classList.remove("im-keep-back");
+    }, 0);
+  }, true);
+
+  var isPhone = /iPhone|iPad|iPod/.test(navigator.userAgent);
+
+  // Which destinations are worth a slide: a conversation, and a person's
+  // profile. Settings, Edit profile, activity, posts - those are places a
+  // button opens, not screens you walk into, and animating everything made
+  // the app feel like it was constantly sliding.
+  // Trailing slash OPTIONAL: Instagram pushes a profile as "/name/" from
+  // some controls and "/name" from others (measured on device), and
+  // requiring the slash silently dropped half the profile taps into the
+  // no-animation path.
+  function worthSliding(p) {
+    if (/^\/direct\/t\//.test(p)) return true;
+    return /^\/[A-Za-z0-9._]+\/?$/.test(p) &&
+      !/^\/(accounts|explore|direct|p|reel|reels|stories|about|legal|challenge)(\/|$)/
+        .test(p);
+  }
+  // A tap on a back arrow always pops (right to left), whatever Instagram's
+  // router calls it - their Message button replays as a back, and a back
+  // arrow sometimes replays as a push.
+  var lastBackTap = 0;
+  // The tap must land ON the arrow, not merely inside something that
+  // contains one: Instagram's thread header puts the back arrow and the
+  // friend's name in the same control, so a "contains" test counted
+  // opening their profile as pressing back and slid the wrong way.
+  document.addEventListener("click", function (e) {
+    var svg = e.target.closest && e.target.closest("svg");
+    if (svg && svg.getAttribute("aria-label") === "Back") {
+      lastBackTap = Date.now();
+    }
+  }, true);
+  function navFor(dir) {
+    var p = location.pathname;
+    if (Date.now() - lastBackTap < 800) { lastBackTap = 0; return "pop"; }
+    // A conversation and a profile are both places you go INTO, whatever
+    // Instagram's router replays them as - opening someone's profile from
+    // the top of a chat came through as a back and slid the wrong way.
+    if (/^\/direct\/t\//.test(p) || worthSliding(p)) return "push";
+    return "push-silent";
+  }
+
+  var navSuppress = 0;
+  function nav(dir) {
+    if (!isPhone) return;
+    // One tap, one animation: spaGo raises both events.
+    if (navSuppress && Date.now() - navSuppress < 400) return;
+    navSuppress = Date.now();
+    try {
+      window.webkit.messageHandlers.konvoStore.postMessage(
+        { cmd: "nav", id: 0, productId: dir });
+    } catch (e) {}
+  }
   var push = history.pushState.bind(history);
-  history.pushState = function () { push.apply(null, arguments); setTimeout(enforce, 0); };
+  history.pushState = function () {
+    push.apply(null, arguments);
+    setTimeout(function () {
+      // Opening a post is not a screen you walk into sideways - the photo
+      // belongs to the profile behind it, so no slide. It still has to be
+      // STACKED though: without a picture of the profile underneath it,
+      // swiping back out of a post revealed whatever was one level deeper
+      // and stuttered while the real page caught up.
+      nav(navFor("push"));
+      enforce();
+    }, 0);
+  };
   var replace = history.replaceState.bind(history);
   history.replaceState = function () { replace.apply(null, arguments); setTimeout(enforce, 0); };
-  window.addEventListener("popstate", enforce);
+  window.addEventListener("popstate", function () {
+    // Direction follows what the user did, not what Instagram's router
+    // did. Opening a conversation from a profile's Message button is a
+    // step INTO something even though their router replays it as a back,
+    // and animating that leftwards feels like the app went backwards.
+    setTimeout(function () { nav(navFor("pop")); }, 0);
+    enforce();
+  });
   document.addEventListener("DOMContentLoaded", enforce);
   setInterval(enforce, 800); // SPA belt-and-braces: some route changes skip history APIs
 
@@ -325,9 +520,13 @@
     '[aria-label="Open app"]',
     // Mobile web: the inbox back arrow escapes to the feed; the thread view
     // arrow (same label) must survive, hence the route-scoped class.
-    'html.im-inbox a:has(svg[aria-label="Back"])',
-    'html.im-inbox div[role="button"]:has(svg[aria-label="Back"])',
-    'html.im-inbox [role="button"]:has(svg[aria-label="Back"])',
+    // The inbox back arrow escapes to the feed, so it goes. Search mode
+    // renders a SECOND, identical-looking arrow beside the search field
+    // which is the way out of search; the focus handler tags that one
+    // .im-keep-back by its row, and only it survives.
+    'html.im-inbox a:has(svg[aria-label="Back"]):not(.im-keep-back)',
+    'html.im-inbox div[role="button"]:has(svg[aria-label="Back"]):not(.im-keep-back)',
+    'html.im-inbox [role="button"]:has(svg[aria-label="Back"]):not(.im-keep-back)',
     // Message Requests tab in the inbox header
     'a[href="/direct/requests/"]',
     'a[href^="/direct/requests"]',
@@ -354,7 +553,22 @@
   // rather than gone - the face still shows, the tap goes nowhere, and
   // profiles stay something you reach through a deliberate "View profile".
   style.textContent = css.join(',') + '{display:none !important;}' +
-    "a:has(img[alt$='profile picture']){pointer-events:none !important;}";
+    // The rule that made every avatar inert is GONE: it dated from when
+    // profiles were unreachable, and profiles are a deliberate doorway now.
+    // It was also killing taps on the notes tray, which is built out of
+    // avatars - so liking a friend's note did nothing.
+    // Two lines that stop the app reading as a web page: the grey flash
+    // WebKit paints under every tap is the loudest browser tell there is,
+    // and manipulation drops the wait-for-double-tap-zoom delay so taps
+    // land immediately. Pinch zoom on photos still works.
+    "*{-webkit-tap-highlight-color:transparent}" +
+    "html{touch-action:manipulation}" +
+    // No browser callout menus on app chrome: long-pressing an avatar or
+    // a button in a native app does not offer Save Image or Copy Link.
+    // Message TEXT is deliberately untouched - codes and addresses have to
+    // stay selectable.
+    "img,svg,[role='button'],[role='link'],a{-webkit-touch-callout:none}" +
+    "svg,[role='button']{-webkit-user-select:none}";
   (document.head || document.documentElement).appendChild(style);
 
   // The phone inbox has no tab bar at all - Instagram's mobile-web DM layout
@@ -371,17 +585,89 @@
       '#im-heart{display:none;position:fixed;right:16px;bottom:24px;width:44px;height:44px;' +
       'border-radius:50%;background:rgba(38,38,38,.92);color:#f5f5f7;z-index:2147483000;' +
       'align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.4)}' +
-      'html.im-inbox #im-heart{display:flex}';
+      'html.im-inbox #im-heart{display:flex}' +
+      '#im-me{display:none;position:fixed;right:16px;bottom:80px;width:44px;height:44px;' +
+      'border-radius:50%;background:rgba(38,38,38,.92);color:#f5f5f7;z-index:2147483000;' +
+      'align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.4)}' +
+      'html.im-inbox #im-me{display:flex}';
+    // Our buttons are plain anchors, and an anchor is a FULL PAGE LOAD:
+    // Instagram's entire bundle again, seconds of waiting, and the trip
+    // back reloads whatever you came from. Instagram's own links go
+    // through its router instead, so hand the tap to a matching link of
+    // theirs when the page has one; the anchor href stays as the fallback.
+    // Drive Instagram's own router instead of following the link: an
+    // anchor is a full page load - their entire bundle again, seconds of
+    // waiting, and the trip back reloads whatever you came from. A
+    // pushState plus a popstate makes their SPA render the route in place
+    // (measured on device: /accounts/activity/ came back as a rendered
+    // /notifications/ in ~1s with no reload).
+    // ponytail: if a route ever ignores the event the URL changes with
+    // nothing drawn, so a real navigation follows half a second later.
+    function spaGo(href, e) {
+      e.preventDefault();
+      var before = document.body ? document.body.innerText.slice(0, 80) : "";
+      history.pushState({}, "", href);
+      dispatchEvent(new PopStateEvent("popstate", { state: {} }));
+      setTimeout(function () {
+        var now = document.body ? document.body.innerText.slice(0, 80) : "";
+        if (now === before) location.assign(href);
+      }, 500);
+    }
     var heart = document.createElement("a");
     heart.id = "im-heart";
-    heart.href = "/accounts/activity/";
+    // /notifications/ is the phone route; /accounts/activity/ is desktop.
+    heart.href = /iPhone|iPad|iPod/.test(navigator.userAgent)
+      ? "/notifications/" : "/accounts/activity/";
     heart.setAttribute("aria-label", "Notifications");
+    heart.addEventListener("click", function (e) { spaGo(heart.href, e); });
     heart.innerHTML =
       "<svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
       " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
       "<path d='M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0" +
       "-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z'/></svg>";
     (document.body || document.documentElement).appendChild(heart);
+
+    // Your own profile, the one doorway the cage never offered. Instagram
+    // needs the username in the path and the session endpoint that used to
+    // supply it answers 400 to this webview, so read it off the inbox
+    // header's account switcher and remember it. Unknown username falls
+    // back to Edit profile, which needs no username at all.
+    // ponytail: a text-shaped guess at the header; corrections ride the
+    // cage-patch, and the fallback is always a real destination.
+    function findMe() {
+      try { if (localStorage.konvoMe) return localStorage.konvoMe; } catch (e) {}
+      // Instagram's mobile inbox header is not a <header>, so go by
+      // position instead of tag: the account switcher is the only
+      // username-shaped leaf in the top strip of the page. Runs on tap,
+      // never on a frame, and the answer is cached for good.
+      var els = document.querySelectorAll("span,div,h1");
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (el.childElementCount) continue;
+        var t = (el.textContent || "").trim();
+        if (!/^[A-Za-z0-9._]{2,30}$/.test(t)) continue;
+        var r = el.getBoundingClientRect();
+        if (r.width === 0 || r.top < 0 || r.top > 130) continue;
+        try { localStorage.konvoMe = t; } catch (e) {}
+        return t;
+      }
+      return "";
+    }
+    var me = document.createElement("a");
+    me.id = "im-me";
+    me.href = "/accounts/edit/";
+    me.setAttribute("aria-label", "Your profile");
+    me.innerHTML =
+      "<svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
+      " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>" +
+      "<path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/>" +
+      "<circle cx='12' cy='7' r='4'/></svg>";
+    me.addEventListener("click", function (e) {
+      var u = findMe();
+      me.href = u ? "/" + u + "/" : "/accounts/edit/";
+      spaGo(me.href, e);
+    });
+    (document.body || document.documentElement).appendChild(me);
   }
 
 
@@ -394,6 +680,9 @@
   // not an equality: the live tab renders a pending count ("Requests (2)"),
   // which an exact match missed entirely.
   function hideRequests() {
+    // Inbox-only: the Requests tab exists nowhere else, and this scan reads
+    // textContent off every leaf - the most expensive thing the cage does.
+    if (!atInbox()) return;
     var leaves = document.querySelectorAll("span,div,a");
     for (var i = 0; i < leaves.length; i++) {
       var el = leaves[i];
@@ -432,11 +721,12 @@
   // separates it is position: chrome sits outside <main>, content inside it.
   // The profile header and every face in a thread are inside <main>.
   function hideProfileLink() {
-    var a = document.querySelectorAll("a[href]");
-    for (var i = 0; i < a.length; i++) {
-      if (!a[i].closest("main") && a[i].querySelector("img[alt$='profile picture']")) {
-        a[i].style.display = "none";
-      }
+    // Start from the handful of profile-picture images, not from every
+    // anchor on the page: same result, ~50x fewer nodes walked.
+    var pics = document.querySelectorAll("img[alt$='profile picture']");
+    for (var i = 0; i < pics.length; i++) {
+      var a = pics[i].closest("a[href]");
+      if (a && !a.closest("main")) a.style.display = "none";
     }
   }
   // A link someone sends in a DM opens nowhere: Instagram marks it
@@ -521,8 +811,11 @@
   // touches the URL. So a path test alone misses the phone entirely - hence the
   // second test. A <video> filling the viewport is the player; a video bubble
   // inside a thread is not, so threads keep scrolling normally.
-  // ponytail: re-queries the videos on each gesture event. Cache it on
-  // touchstart if a thread full of clips ever feels sticky.
+  // Answered ONCE per gesture, at touchstart, and reused for every move in
+  // that drag. It used to run per move event - a querySelectorAll plus a
+  // getBoundingClientRect per video, sixty times a second, on every scroll
+  // in the app - which is the most expensive thing a finger could trigger.
+  var reeling = false, reelKnown = false;
   function watchingReel() {
     if (/^\/reel\//.test(location.pathname)) return true;
     // A post page is not the reel player, however tall its video renders:
@@ -539,15 +832,29 @@
   // OWN touch handlers, so suppressing the browser's default scroll leaves the
   // swipe working. The event has to never reach them, which is what capture +
   // stopImmediatePropagation does.
-  ["wheel", "touchmove", "pointermove"].forEach(function (t) {
+  // pointermove is gone on purpose: iOS fires it alongside touchmove, so
+  // it doubled the work for nothing.
+  document.addEventListener("touchstart", function () {
+    reeling = watchingReel();
+    reelKnown = true;
+  }, { capture: true, passive: true });
+  document.addEventListener("touchend", function () {
+    reelKnown = false;
+  }, { capture: true, passive: true });
+  ["wheel", "touchmove"].forEach(function (t) {
     document.addEventListener(t, function (e) {
-      if (!watchingReel()) return;
+      // A real drag always opens with touchstart, so the answer is already
+      // cached; anything arriving without one (wheel, synthetic events)
+      // still gets the real check rather than a stale false.
+      if (!(t === "touchmove" && reelKnown ? reeling : watchingReel())) return;
       e.preventDefault();
       e.stopImmediatePropagation();
     }, { capture: true, passive: false });
   });
   document.addEventListener("keydown", function (e) {
-    if (watchingReel() && /^(Arrow(Up|Down)|Page(Up|Down)|Home|End)$/.test(e.key)) {
+    // Key test FIRST: watchingReel() forces layout, and this fires on
+    // every character typed into a message.
+    if (/^(Arrow(Up|Down)|Page(Up|Down)|Home|End)$/.test(e.key) && watchingReel()) {
       e.preventDefault();
       e.stopImmediatePropagation();
     }
@@ -633,19 +940,25 @@
     // Monthly story. Money truth lives in RevenueCat behind the bridge.
     // Every visible word is Matthew's - do not edit copy here.
     //
-    // Thread text reads small and light next to the native app: bump the
-    // message text. The selector is a guess at Instagram's markup; a miss
-    // changes nothing, and corrections ride the remote cage-patch css
-    // channel with no app update.
+    // Message text weight only. SIZE is handled natively by page zoom in
+    // KonvoStore (mobile web renders smaller than the native app across
+    // the board - bubbles, avatars, rows - and zoom scales all of it
+    // together instead of one guessed selector at a time).
     style.textContent +=
-      "div[role='row'] div[dir='auto']{font-size:16px;font-weight:500;}";
+      "div[role='row'] div[dir='auto']{font-weight:500;}";
     // Friends' stories are kept, and the inbox story rings are the only way
     // in - three testers asked for a feature that was already there. Louder
     // rings, no new UI: Instagram draws them as a canvas behind the avatar.
     // ponytail: a selector guess like the rest; corrections ride cage-patch.
-    style.textContent +=
-      "div:has(> canvas) > canvas{filter:saturate(1.4) brightness(1.2);" +
-      "transform:scale(1.05)}";
+    // Scoped to the inbox route: an unscoped div:has(...) makes the engine
+    // test every div in the document on every DOM change.
+    // Scale only, no filter: a filter on every ring is a repaint through
+    // the filter pipeline on each frame of an inbox scroll, and scrolling
+    // is exactly where "less smooth than Instagram" gets noticed.
+    // Plain selector, no :has(): the subject there was bare `div`, so the
+    // engine re-tested every div in the document on each mutation. The
+    // only canvases on the inbox ARE the story rings.
+    style.textContent += "html.im-inbox canvas{transform:scale(1.06)}";
     style.textContent +=
       '#im-pay{--bg:#fff;--ink:#141d33;--mut:#5d6478;--line:#d9d9de;' +
       '--chip:#f2f2f4;--icbg:#eef3ff;--accent:#0a5cf0}' +
@@ -1254,7 +1567,33 @@
     ensure();
   })();
 
+  // Both sweeps are whole-document scans (one of them reads textContent off
+  // every span/div/a), and Instagram mutates the DOM on every keystroke,
+  // scroll tick and presence ping. Running them per mutation was free on a
+  // fast phone and visible jank on an older one, so mutations only ever
+  // SCHEDULE a sweep: at most one per frame, and never more than one per
+  // 400ms. The CSS rules hide the same doorways instantly anyway; these
+  // scans are the fallback for markup the selectors miss.
+  var sweepPending = false, sweptAt = 0;
   function sweep() { hideRequests(); hideProfileLink(); }
-  new MutationObserver(sweep).observe(document.documentElement, { childList: true, subtree: true });
+  function scheduleSweep() {
+    if (sweepPending) return;
+    sweepPending = true;
+    var wait = Math.max(0, 400 - (Date.now() - sweptAt));
+    setTimeout(function () {
+      // Idle time when the engine offers it: a scan that lands mid-scroll
+      // or mid-keystroke is exactly the frame the user feels. The timeout
+      // guarantees it still runs on a busy page.
+      var run = function () {
+        sweepPending = false;
+        sweptAt = Date.now();
+        sweep();
+      };
+      if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 1200 });
+      else requestAnimationFrame(run);
+    }, wait);
+  }
+  new MutationObserver(scheduleSweep)
+    .observe(document.documentElement, { childList: true, subtree: true });
   sweep();
 })();
