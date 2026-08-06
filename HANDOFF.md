@@ -1,168 +1,144 @@
-# Konvo handoff (from the Aug 3, 2026 session)
+# Konvo handoff (Aug 6, 2026)
 
-Repo: `/Users/matthewchan/Instamessages`. Matthew runs `/ponytail:ponytail ultra`
-on coding tasks and `/grill-me` when he pastes big specs. Hard rules: never
-commit or push without his explicit word (pushes deploy the site to prod),
-never use em dashes in user-facing copy, never invent social proof or any
-claim the app cannot back up.
+Repo: `/Users/matthewchan/Instamessages`. Matthew runs `/ponytail:ponytail
+ultra` on coding tasks. Hard rules: **never commit or push without his
+explicit word**, never use em dashes in user-facing copy, never invent social
+proof. His memory files in `~/.claude/projects/-Users-matthewchan-Instamessages/memory/`
+carry the standing decisions - read `MEMORY.md` first.
 
-## Where things stand
+## What Konvo is
 
-The v2 onboarding + paywall is **implemented and running on his iPhone**
-(Matty16E), rebuilt many times today. Everything is **uncommitted** in the
-working tree, deliberately. All tests pass:
+An iOS app that wraps instagram.com in a WKWebView and deletes everything
+except messages. The pitch, in his words: every screen time app gives you a
+switch you own, and a switch you own is one you flip at 11pm. Konvo has no
+setting to negotiate with, and it **replaces** Instagram rather than
+restricting it - Instagram comes off the phone.
 
-```
-cd wrapper/test && python3 extract.py && node --check cage.js \
-  && node test_cage.js && node test_onboarding.js
-```
+## Where things stand right now
 
-`extract.py` also guards the raw-string trap: the two-char sequence `"#`
-inside CAGE_SCRIPT closes the Rust raw string. Injected HTML/CSS uses
-single-quoted attributes; a `querySelector("#id")` will break the build.
+**Branch `konvo-onboarding-v2`, 6 commits, nothing pushed.** Working tree has
+uncommitted changes (the `konvo-free` mode and version bump, below).
 
-## The two halves of the flow
+- **TestFlight: build 41 is live and APPROVED** for both groups. Build 42 was
+  built but never uploaded - the session pivoted to the App Store.
+- **App Store: v1.0 was REJECTED** (guideline 2.1). The reviewer could not
+  sign in: Instagram challenged the login and asked for a code they had no way
+  to retrieve. The rejected binary was 1.0 (6), months old.
+- **A free v1.0.0 (42) store build was compiling when the session ended.**
+  Verify the artifact before uploading: `CFBundleShortVersionString` 1.0.0,
+  `CFBundleVersion` 42, `konvoBeta=true` absent, `__konvoFree` present.
 
-**Pre-login — `wrapper/dist/index.html`** (bundled, paints from disk):
-S1 intro > S2 motive > S3 screen-time slider > S4 messaging ranges >
-S4b "Adding it up" > **[blue-pinned dark stretch]** S5 years lost > S6
-With-Konvo columns > S7 years back > S8a/S8b hero slides > **S9 the pact
-(full-bleed blue)** > (s9t testimonials, collapsed) > S10 privacy > S11
-handoff to Instagram login.
+## The decision that shapes everything
 
-**Post-login — CAGE_SCRIPT in `wrapper/src-tauri/src/lib.rs`** (injected on
-instagram.com): S12 connected > S12b "Setting up your Konvo, {username}" >
-perks comparison table > S13 three-package paywall > S14 activation.
+**v1.0 ships FREE, no paywall. Money comes at v1.1.** At zero users the
+bottleneck is distribution, not revenue, and every IAP surface is another
+rejection vector on a version that has already been rejected once. Details and
+reasoning: memory file `konvo-monetisation-timing`.
 
-Quiz answers cross the origin boundary in a `#konvo=<motive>.<weeklyHours>`
-fragment that the cage persists into instagram.com localStorage and strips.
+Three build modes, all cargo features in `wrapper/src-tauri`:
 
-## Load-bearing mechanics (do not regress these)
+| Mode | Behaviour | Used for |
+|---|---|---|
+| default | Onboarding + paywall enforced | v1.1 |
+| `konvo-beta` | Paywall shown + "Free during beta" bypass | TestFlight |
+| `konvo-free` | Onboarding + post-login sequence, **no price, no wall** | App Store v1.0 |
 
-- **Auth gate (rebuilt Aug 3, was a money bug twice).** The paywall may
-  only rise over a real session. Gating on the `/direct/inbox/` URL alone
-  let the wall appear over a logged-out page: login looked "skipped", the
-  user paid, and dismissing revealed a login screen. The session-endpoint
-  check that replaced it never worked on device - Instagram answers 400
-  "useragent mismatch" to this webview's UA with every app id, so the wall
-  never rose at all. The gate is now the `ds_user_id` cookie (set at
-  login, cleared at logout, verified readable on device). `authed` must
-  stay a precondition in `ensure()`; the loader greeting lost its username
-  until a reliable source exists.
-- **Tap lock.** Every navigation arms `busy` (1000ms default; 2400 on S5,
-  1400 S6, 1800 S7, 3500 S4b). Automated walks must wait it out.
-- **Appearance modes** over the bridge: `light` / `dark` / `blue` / `auto`.
-  `blue` paints the native letterbox for the pact screen (CSS cannot reach
-  it). Only `auto` sets `konvoFunnelDone`, which lib.rs reads at launch to
-  skip the Light pin.
-- **`.screen.t-rise:not(.on)`** — the `:not(.on)` is load-bearing; without
-  it the whole screen sits 36px low (that was the S10 button "bug").
-- **Wall fades:** the fade lives on an inner `.imp-page` wrapper, never the
-  wall itself, or the live inbox shows through during transitions.
-- **Paywall must fit one screen** (measured: zero overflow in all four
-  states). Adding a timeline node broke this once already.
+In `konvo-free` the sequence still runs (connected, loader, "Why this one
+works", delete Instagram) and ends at the delete step, once, remembered in
+`localStorage.konvoWelcomed`.
 
-## Money
+## To get v1.0 approved (Matthew's steps, not code)
 
-- **RevenueCat** (`appl_ghuOElWpSeJyXhbJcOKQpQoRSsQ`) is the purchase layer
-  behind the unchanged JS bridge: entitlement `Pro` (capital P - the
-  dashboard identifier; the Swift checks match it exactly, RC keys are
-  case-sensitive), offering `default`,
-  products `konvo.pro.yearly` ($29.99, 14-day trial), `konvo.pro.monthly`
-  ($4.99), `konvo.pro.lifetime` ($79.99 non-consumable). Prices, per-month
-  and per-week math, SAVE %, and trial length are all computed live in
-  `KonvoStore.swift` - never hardcode money in a shipping path.
-- **Superwall** is configured with RC as its purchase controller but
-  presents nothing: the `paywall` bridge command only fires when
-  `https://konvoinstall.com/cage-patch.json` returns `{"superwall": true}`.
-  It is currently `{}`. The injected wall is always the enforcement floor.
-- The sim store (`Konvo.storekit`) only applies to Xcode-launched runs and
-  must stay in sync with ASC (it carries lifetime + the 14-day trial now).
-  Purchase sheet must say **[Environment: Xcode]**; un-buy via Xcode >
-  Debug > StoreKit > Manage Transactions.
-- **[Environment: Xcode] purchases can never unlock the app.** RevenueCat's
-  backend cannot validate Xcode-local test receipts: the sheet completes,
-  but the RC subscriber record stays empty (verified against RC's REST API
-  Aug 3), so `pro` never activates and S14 is unreachable. That is correct
-  behavior, not a bug. To test the paid path end to end: Edit Scheme > Run
-  > Options > StoreKit Configuration > **None**, sign the device into an
-  ASC sandbox tester account, and buy against the real sandbox (requires
-  the Paid Apps agreement Active - manual step 3). S14's UI alone can be
-  previewed in the capture harness without any purchase.
+1. **Demo account.** The rejection cause. Turn 2FA off on `mctestkonvo`, and
+   give the reviewer the account's **email inbox credentials** so they can
+   fetch Instagram's verification code themselves. A reply is drafted in the
+   session transcript.
+2. **Set the ASC version record to 1.0.0** (editable while rejected) so the
+   new build attaches.
+3. Attach the free build, resubmit. Products do NOT need submitting for a free
+   build - leave the "Konvo Pro" subscription group in Prepare for Submission.
+
+## Build and release mechanics (traps that cost real time)
+
+- Sideload to his phone: `cd wrapper && KONVO_BETA=1 ./sideload.sh`. It refuses
+  to install when the binary's beta-ness does not match the flag.
+- **The build number lives in `tauri.conf.json` > `bundle.iOS.bundleVersion`.**
+  `Info.plist` and `project.yml` are regenerated from it mid-build, so editing
+  those silently reverts. `--build-number` APPENDS (35 becomes "35.42") which
+  sorts LOWER than 41 - do not use it.
+- `tauri.conf.json > version` must be semver: "1.0" is rejected, "1.0.0" works.
+- **Always verify the exported IPA, never the source**, with `unzip -p` +
+  `plutil` + `strings`. That check caught three bad builds in one evening.
+- TestFlight pipeline (all scriptable with the ASC key at
+  `~/.appstoreconnect/private_keys/AuthKey_F9Z3VFTX73.p8`, issuer
+  `fadfc58a-8c12-4d69-8483-600d0aaec371`, app id 6794756261): upload with
+  `altool`, poll builds until VALID, PATCH the beta notes, POST the build to
+  group `1673c812-...` (External Friends), POST a betaAppReviewSubmission.
+  Internal group `6c78a556-...` (Friends) picks it up automatically.
+- Tests, always before a build: `cd wrapper/test && python3 extract.py &&
+  node --check cage.js && node test_cage.js && node test_onboarding.js`.
+  `extract.py` guards the raw-string trap: `"#` inside CAGE_SCRIPT closes the
+  Rust raw string, so injected HTML uses single-quoted attributes.
+
+## Hard-won facts about the app
+
+- **Signing in must be handed to NATIVE code.** A page-driven cross-origin
+  navigation to instagram.com is a universal link on iOS: with Instagram
+  installed, the system opens THEIR app and the user never signs into Konvo.
+- **Instagram answers `/api/v1/accounts/current_user/` with 400 "useragent
+  mismatch"** for this webview under every app id. The auth gate is the
+  `ds_user_id` cookie.
+- **Notifications are `/notifications/` on phones**, not `/accounts/activity/`
+  (desktop). Both floating buttons drive Instagram's own router via
+  pushState + a synthetic popstate; an anchor would be a full page reload.
+- **Instagram pushes profiles as BOTH `/name/` and `/name`.** Requiring the
+  trailing slash silently drops half of them.
+- **Its thread header puts the back arrow and the friend's name in one
+  control**, so "does this contain a back arrow" counts opening a profile as
+  pressing back.
+- **Never re-layout on keyboard frame notifications.** Growing the safe-area
+  inset fixed the emoji keyboard covering the compose bar and caused
+  distortion mid-swipe, black flashes and chat lag, because iOS fires that
+  notification continuously. It was reverted; the emoji keyboard covering the
+  compose bar is a known, accepted, cosmetic issue.
+- **Xcode-local StoreKit purchases can never unlock the app** - RevenueCat
+  cannot validate those receipts. The paid path has still never completed
+  once, in any environment. That is the biggest untested risk for v1.1.
 
 ## Analytics
 
-PostHog funnel events go through the bridge's `track` command and are
-posted natively (Instagram's CSP blocks page-side calls). **Lean payloads
-by decision: event name + screen_id only, never quiz answer values.**
-RevenueCat owns revenue events. `login_failed` was deliberately dropped as
-unobservable; `login_started` and `login_succeeded` bracket that step.
+PostHog project **543571** ("KONVO" org, key `phc_oNC3DTPBj8vt52...`). Both the
+app (native posts, because Instagram's CSP blocks page-side calls) and the
+website report there now; they used to be split across two projects.
 
-## RELEASE BLOCKERS (placeholders in code)
+Dashboard "Konvo beta": https://us.posthog.com/project/543571/dashboard/1962118
+- Onboarding, screen by screen (every screen as a funnel step)
+- Retention from `app_opened` (day 3, 5, 7, 10, 14, 21, 30 are columns)
+- Beta funnel: onboarding to price
 
-- `PROOF = []` in lib.rs and `QUOTES = []` in dist/index.html, both marked
-  `TODO: RELEASE BLOCKER`. Quote-only, no star rows (no rating exists).
-  While empty, both social-proof surfaces render nothing, which is safe.
+Events: `onboarding_screen_viewed`, `quiz_answered`, `login_started`,
+`login_succeeded`, `paywall_viewed`, `plan_selected`, `beta_free_taken`,
+`delete_prompt_viewed`, `onboarding_completed`, `app_opened`. Lean payloads by
+decision: event plus screen id, never quiz answer values.
 
-## Manual steps still on Matthew (none are code)
+## The website
 
-1. Verify `konvo.pro.lifetime` is in RevenueCat Products, attached to the
-   `pro` entitlement, and in the **current** `default` offering.
-2. ASC metadata + review screenshots for all IAPs (all "Missing Metadata");
-   they must be submitted with the binary.
-3. Paid Apps agreement must be **Active** or production products never load.
-4. App privacy labels + privacy-policy line for RevenueCat, PostHog, and
-   Superwall (Purchases, Product Interaction).
-5. Demo Instagram account in App Review notes - reviewers cannot pass login.
-6. Decide whether Superwall ships or gets cut before submission.
+`konvoinstall.com` (Next.js, this repo). The front door is now the beta funnel
+(`components/beta-funnel.tsx`): headline, one email field, then the TestFlight
+handoff, with an install guide underneath and a banner telling Instagram
+in-app-browser visitors to open in Safari. Emails go to PostHog as a person
+property. **The old marketing landing page is intact at `/classic`** and comes
+back by swapping one component in `app/page.tsx`. NOT deployed yet - the
+production `NEXT_PUBLIC_POSTHOG_KEY` on Vercel needs the KONVO key.
 
-## Beta builds
+## Open threads
 
-The `konvo-beta` cargo feature compiles a tester build: no funnel (the
-splash goes straight to Instagram, phone appearance), no paywall
-(`ensure()` sees `window.__konvoBeta`). All bug fixes ride along. It is
-a cargo FEATURE, not an env var: xcodebuild rebuilds the Build Rust
-Code phase's env from build settings, so an env var dies before cargo
-reads it - that shipped a walled "beta" once. Deliver it as
-`--features konvo-beta` on the tauri CLI, or `KONVO_BETA=1 ./sideload.sh`
-(the script appends the flag and then verifies the built binary's
-beta-ness matches, refusing a mismatch). Off by default, so a store
-build cannot ship unwalled. Never upload a beta binary to ASC as a
-store submission; TestFlight beta uploads must stamp "do not submit"
-in the build notes.
-
-## Dev loop
-
-- Xcode Run only works while `PATH="$HOME/.cargo/bin:$PATH" npm run --
-  tauri ios dev Matty16E --open --host` is alive (the Build Rust Code phase
-  phones the CLI). **The Mac's LAN IP moves** (was .1.3, now 192.168.1.2) -
-  read it from the CLI output, never assume.
-- NEVER accept Xcode's "update to recommended settings": it enables script
-  sandboxing and every build fails with EPERM.
-- Fresh onboarding = `xcrun devicectl device uninstall app --device
-  B8D54F25-B2AC-5550-BF9D-E86453EAFA13 com.matthewchan.konvo`, then Run.
-- Verify builds from the newest
-  `~/Library/Developer/Xcode/DerivedData/instamessages-wrapper-*/Logs/Build/
-  *.xcactivitylog`, never from a running process.
-- The RevenueCat/Superwall SPM packages are hand-mirrored in BOTH
-  `project.pbxproj` (live truth) and `project.yml` (future regens).
-
-## Design sheet
-
-`wrapper/onboarding-design/index.html` is **v7: real captures of the
-implemented app**, not mockups (23 frames, dist + the cage paywall run in a
-harness). The v4 art-directed mockups and the full decision log live in
-`index-v4-mockup.html` next door. Regeneration recipe is in NOTES.md: serve
-`wrapper/dist` on :8735, serve the harness on :8736 (it **fetches**
-cage.js - never inline it, escapes break), drive both with playwright-core
-at 390x844@2x, and wait out the tap locks. The harness also strips the
-cage's boot overlay, which never self-clears there because `load` fires
-before the fetched script registers its listener.
-
-## Likely next steps
-
-1. Real-device pass on the current build: pact screen fully blue, perks
-   table aligned, annual paywall on one screen ($2.50/month card), and the
-   post-purchase path landing in actual DMs.
-2. The manual App Store list above.
-3. Version bump + sideload/TestFlight, on Matthew's word only.
+1. Upload and submit the free v1.0.0 build once verified.
+2. TestFlight build 42 for testers (all of today's fixes) - never uploaded.
+3. If v1.1 charges, grandfather the free v1.0 users. Nothing implements this.
+4. `PROOF = []` in lib.rs and `QUOTES = []` in dist/index.html are release
+   blockers only if he wants testimonials; empty renders nothing, which is
+   safe and honest.
+5. Two QA findings left unfixed on purpose (narrow, and the build was about to
+   ship): the blank-snapshot guard checks nil rather than emptiness, and
+   `webView.frame` is read while a transform is in flight.

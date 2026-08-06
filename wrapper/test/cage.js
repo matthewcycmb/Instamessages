@@ -1390,8 +1390,10 @@
         "<p style='font-size:15px;line-height:1.5;color:var(--mut);margin-top:18px'>" +
         "Your account does not change. Reinstall whenever you want.</p>" +
         "</div><div class='imp-foot'>" +
-        "<button class='imp-btn' data-act='pay'>I deleted it</button>" +
-        "<div class='imp-ghost' data-act='pay'>Not yet</div></div>";
+        "<button class='imp-btn' data-act='" + (window.__konvoFree ? "welcomed" : "pay") +
+        "'>I deleted it</button>" +
+        "<div class='imp-ghost' data-act='" + (window.__konvoFree ? "welcomed" : "pay") +
+        "'>Not yet</div></div>";
     }
 
     // S14: post-purchase activation. Trial buyers get the recap and the
@@ -1517,6 +1519,11 @@
     var swPending = false, swTried = false;
     function ensure() {
       if (wall || cached() || !atInbox()) return;
+      // Free build (App Store v1.0): the welcome sequence plays once and
+      // finishes at the delete-Instagram step. No price screen, no wall.
+      try {
+        if (window.__konvoFree && localStorage.getItem("konvoWelcomed")) return;
+      } catch (e) {}
       // Verified session first, always. The check is synchronous, so the
       // wall rises in the same tick the cookie appears.
       if (!authed) { checkAuth(); if (!authed) return; }
@@ -1560,6 +1567,11 @@
           track("plan_selected", { plan: plan === "y" ? "annual"
             : plan === "m" ? "monthly" : "lifetime", screen_id: "s13_paywall" });
           setPage(pay(plan), true);
+        } else if (act === "welcomed") {
+          // Free build: the sequence is done, and it does not come back.
+          track("onboarding_completed", { screen_id: "s12c_delete" });
+          try { localStorage.setItem("konvoWelcomed", "1"); } catch (e) {}
+          dismiss();
         } else if (act === "goodbye") {
           track("delete_prompt_viewed", { screen_id: "s12c_delete" });
           swap(goodbyePage());

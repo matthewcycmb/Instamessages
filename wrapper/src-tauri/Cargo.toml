@@ -17,6 +17,12 @@ tauri-build = { version = "2", features = [] }
 # CLI's --features flag is the channel that survives that boundary.
 [features]
 konvo-beta = []
+# konvo-free: the App Store v1.0. Onboarding and the post-login sequence run
+# in full - including the delete-Instagram step, which IS the product
+# argument - but no price screen and no wall. Monetisation is banked for
+# v1.1: RevenueCat, the products and the paywall are all built and tested,
+# and turning them on is this flag plus a review.
+konvo-free = []
 
 [dependencies]
 tauri = { version = "2", features = ["devtools", "macos-private-api", "tray-icon", "image-png"] }

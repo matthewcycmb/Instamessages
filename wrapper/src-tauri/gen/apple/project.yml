@@ -69,7 +69,7 @@ targets:
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         CFBundleShortVersionString: 0.1.0
-        CFBundleVersion: "0.1.0"
+        CFBundleVersion: "42"
     entitlements:
       path: instamessages-wrapper_iOS/instamessages-wrapper_iOS.entitlements
     scheme:
