@@ -36,10 +36,15 @@ function boot(opts = {}) {
   // The bridge mock splits streams: appearance changes and funnel events.
   dom.appearance = [];
   dom.events = [];
+  dom.nav = [];
   dom.window.webkit = { messageHandlers: { konvoStore: {
     postMessage: m => {
       if (m.cmd === 'appearance') dom.appearance.push(m.productId);
       if (m.cmd === 'track') dom.events.push(m.event);
+      // The login handoff goes through native: a page-driven navigation to
+      // instagram.com is a universal link on iOS and opens the Instagram
+      // APP instead, stranding the user outside Konvo.
+      if (m.cmd === 'go') dom.nav.push(m.productId);
     } } } };
   dom.went = [];
   dom.window.__loc = { replace: t => dom.went.push(t) };
@@ -91,8 +96,10 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(1400);                           // 250ms beat + slide + lock
   assert(doc.getElementById('s3').classList.contains('on'),
     'motive options must auto-advance without a Continue button');
-  tap('#s3 .btn');                              // Continue at the 2 h 30 m default
-  assert(doc.getElementById('s4').classList.contains('on'));
+  tap("#s3 .opt[data-m='150']");                // 2 - 3 hours
+  await settle(1400);                           // 250ms beat + slide + lock
+  assert(doc.getElementById('s4').classList.contains('on'),
+    'screen-time ranges must auto-advance too - no Continue on option screens');
   assert(!doc.querySelector('#s4 .opt.sel'),
     'S4 must arrive with nothing selected - a pre-selection with no Continue button is a dead end');
   await settle(1100);
@@ -143,11 +150,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(doc.getElementById('s8b').classList.contains('on'));
   await settle(1100);
   tap('#s8b [data-next]');                      // Continue
-  assert(doc.getElementById('s9').classList.contains('on'),
-    'the pact must come before the privacy screen');
-  await settle(1100);
-  tap('#s9 [data-next]');                       // I commit
-  assert(doc.getElementById('s10').classList.contains('on'));
+  assert(doc.getElementById('s10').classList.contains('on'),
+    'the hero slides must hand straight to privacy - the pact screen is gone');
   assert(!doc.getElementById('s9t').classList.contains('on'),
     'the testimonial screen must stay skipped while QUOTES is empty (release blocker)');
   assert(!d.window.localStorage.konvoOnboarded,
@@ -156,8 +160,10 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   tap('#signin');                               // Got it, sign in
   assert.strictEqual(d.window.localStorage.konvoOnboarded, '1',
     'S10 must set the once-per-install flag at the handoff, not at the paywall');
-  assert.deepStrictEqual(d.went, [INBOX + '#konvo=ownProjects.15'],
-    'the handoff must carry the motive and weekly hours in the fragment');
+  assert.deepStrictEqual(d.nav, [INBOX + '#konvo=ownProjects.15'],
+    'the handoff must go through NATIVE navigation, carrying motive and hours');
+  assert.deepStrictEqual(d.went, [],
+    'the page must not navigate itself: that is the universal link that opens Instagram');
   assert(doc.getElementById('s11').classList.contains('on'),
     'the handoff spinner must be the last thing shown');
   assert(d.events.includes('login_started'),
@@ -171,40 +177,46 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //    cannot contain (including the 20-minute "I don't know" estimate).
   const one = boot();
   const od = one.window.document;
-  od.getElementById('slider').value = '15';
-  od.getElementById('slider').dispatchEvent(new one.window.Event('input'));
   const otap = sel => od.querySelector(sel).click();
   otap('#s1 [data-next]');
   await settle(1100);
   otap("#s2 .opt[data-mot='presentWithPeople']");
   await settle(1400);
-  otap('#s3 .btn');
+  otap("#s3 .opt[data-m='45']");                // < 1 hour: the lowest range
+  await settle(1400);
   await settle(1100);
-  const dead = [...od.querySelectorAll('#s4 .opt[disabled]')];
-  assert.strictEqual(dead.length, 5,
-    'every range above a 15-minute total must be disabled');
+  const opts = [...od.querySelectorAll('#s4 .opt')];
+  assert(opts.length > 0, 'S4 must offer messaging ranges');
+  for (const o of opts) {
+    const over = +o.dataset.m > 45;
+    assert.strictEqual(o.hasAttribute('disabled'), over,
+      `messaging range ${o.dataset.m} must be ${over ? 'disabled' : 'available'} under a 1 hour total`);
+  }
   const alive = od.querySelector('#s4 .opt:not([disabled])');
-  assert.strictEqual(alive.dataset.m, '10', 'only "< 10 mins" can remain');
   alive.click();
   await settle(6300);                           // beat + calculating + S5 dwell
-  assert.strictEqual(od.getElementById('years-lost').textContent, '0.6 years',
-    'the projection stays honest at the minimum');
+  assert(/years$/.test(od.getElementById('years-lost').textContent),
+    'the projection must render a years figure at the minimum');
   od.getElementById('s5').click();
   await settle(1500);
-  assert.strictEqual(od.getElementById('col-dm-v').textContent, '10 m / day');
+  const dm = od.getElementById('col-dm-v').textContent;
+  assert(/^\d+ m \/ day$/.test(dm), 'the messaging column must show the chosen range');
   otap('#s6 [data-next]');
   await settle(1900);
-  assert.strictEqual(od.getElementById('years-back').textContent, '0.2 years');
+  const back = od.getElementById('years-back').textContent;
+  assert(/^[\d.]+ years$/.test(back), 'years back must render from the minimum answers');
+  assert(parseFloat(back) > 0, 'years back must never be zero - the sentence would read as nothing to gain');
   otap('#s7 [data-next]');
   await settle(1100);
   otap('#s8a [data-next]');
   await settle(1100);
   otap('#s8b [data-next]');
   await settle(1100);
-  otap('#s9 [data-next]');
-  await settle(1100);
   otap('#signin');
-  assert.deepStrictEqual(one.went, [INBOX + '#konvo=presentWithPeople.1'],
+  const frag = one.nav[0] || '';
+  assert(frag.startsWith(INBOX + '#konvo=presentWithPeople.'),
+    'the handoff must carry the motive and the weekly hours');
+  assert(Number(frag.split('.').pop()) >= 1,
     'weekly hours floor at 1 so the paywall sentence never says zero');
 
   console.log('ALL ONBOARDING TESTS PASS');

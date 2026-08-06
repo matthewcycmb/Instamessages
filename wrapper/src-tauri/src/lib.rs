@@ -235,6 +235,7 @@ const CAGE_SCRIPT: &str = r#"
     if (r !== lastRoute) {
       lastRoute = r;
       titleSized = false;
+      if (r !== "inbox" && titleMo) { titleMo.disconnect(); titleMo = null; }
       if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
         try {
           window.webkit.messageHandlers.konvoStore.postMessage(
@@ -244,7 +245,7 @@ const CAGE_SCRIPT: &str = r#"
         // mutations quiet for a beat, capped hard - so the back-swipe
         // holds its snapshot until the crossfade can land on a finished
         // inbox instead of a mid-render skeleton.
-        if (window.MutationObserver) {
+        if (r === "inbox" && window.MutationObserver) {
           try {
             if (settleMo) settleMo.disconnect();
             if (settleTick) clearInterval(settleTick);
@@ -299,8 +300,10 @@ const CAGE_SCRIPT: &str = r#"
   }
   document.addEventListener("focusin", function (e) {
     var t = e.target;
-    if (!t || (t.tagName !== "INPUT" && t.getAttribute("role") !== "textbox")) return;
-    document.documentElement.classList.add("im-searching");
+    // Inbox only, and real inputs only: Instagram's message composer is a
+    // role=textbox, so this used to fire on every tap into a chat and run
+    // three document-wide :has() scans while the keyboard animated.
+    if (!t || t.tagName !== "INPUT" || !atInbox()) return;
     // Instagram renders the search-mode back arrow a beat after focus, and
     // sometimes re-renders it again; one shot missed it.
     [60, 250, 600].forEach(function (ms) {
@@ -310,8 +313,7 @@ const CAGE_SCRIPT: &str = r#"
   document.addEventListener("focusout", function () {
     setTimeout(function () {
       var a = document.activeElement;
-      if (a && (a.tagName === "INPUT" || a.getAttribute("role") === "textbox")) return;
-      document.documentElement.classList.remove("im-searching");
+      if (a && a.tagName === "INPUT") return;
       var kept = document.querySelectorAll(".im-keep-back");
       for (var i = 0; i < kept.length; i++) kept[i].classList.remove("im-keep-back");
     }, 0);
@@ -330,13 +332,13 @@ const CAGE_SCRIPT: &str = r#"
   function worthSliding(p) {
     if (/^\/direct\/t\//.test(p)) return true;
     return /^\/[A-Za-z0-9._]+\/?$/.test(p) &&
-      !/^\/(accounts|explore|direct|p|reel|reels|stories|about|legal|challenge)(\/|$)/
+      !/^\/(accounts|explore|direct|p|reel|reels|stories|about|legal|challenge|notifications)(\/|$)/
         .test(p);
   }
   // A tap on a back arrow always pops (right to left), whatever Instagram's
   // router calls it - their Message button replays as a back, and a back
   // arrow sometimes replays as a push.
-  var lastBackTap = 0;
+  var lastBackTap = 0, ownButtonAt = 0;
   // The tap must land ON the arrow, not merely inside something that
   // contains one: Instagram's thread header puts the back arrow and the
   // friend's name in the same control, so a "contains" test counted
@@ -349,6 +351,8 @@ const CAGE_SCRIPT: &str = r#"
   }, true);
   function navFor(dir) {
     var p = location.pathname;
+    // Konvo's own buttons: open, do not travel.
+    if (Date.now() - ownButtonAt < 800) { ownButtonAt = 0; return "push-silent"; }
     if (Date.now() - lastBackTap < 800) { lastBackTap = 0; return "pop"; }
     // A conversation and a profile are both places you go INTO, whatever
     // Instagram's router replays them as - opening someone's profile from
@@ -377,8 +381,11 @@ const CAGE_SCRIPT: &str = r#"
       // STACKED though: without a picture of the profile underneath it,
       // swiping back out of a post revealed whatever was one level deeper
       // and stuttered while the real page caught up.
-      nav(navFor("push"));
+      // enforce() FIRST: it sets the thread zoom, and changing the page
+      // scale after the native slide has started makes the incoming screen
+      // pop mid-animation.
       enforce();
+      nav(navFor("push"));
     }, 0);
   };
   var replace = history.replaceState.bind(history);
@@ -388,8 +395,8 @@ const CAGE_SCRIPT: &str = r#"
     // did. Opening a conversation from a profile's Message button is a
     // step INTO something even though their router replays it as a back,
     // and animating that leftwards feels like the app went backwards.
-    setTimeout(function () { nav(navFor("pop")); }, 0);
     enforce();
+    setTimeout(function () { nav(navFor("pop")); }, 0);
   });
   document.addEventListener("DOMContentLoaded", enforce);
   setInterval(enforce, 800); // SPA belt-and-braces: some route changes skip history APIs
@@ -434,6 +441,9 @@ const CAGE_SCRIPT: &str = r#"
       // exist in the Superwall dashboard; flipping it back off is the
       // kill switch if a remote paywall misbehaves.
       if (p.superwall) window.__konvoSW = true;
+      // {"betaFree": false} withdraws the free-during-beta button
+      // from tester builds without shipping anything.
+      if (p.betaFree === false) window.__konvoNoFree = true;
       if (p.sendSel) SEND_SEL = p.sendSel;
       enforce();
     } catch (e) {}
@@ -623,6 +633,7 @@ const CAGE_SCRIPT: &str = r#"
     // nothing drawn, so a real navigation follows half a second later.
     function spaGo(href, e) {
       e.preventDefault();
+      ownButtonAt = Date.now();
       var before = document.body ? document.body.innerText.slice(0, 80) : "";
       history.pushState({}, "", href);
       dispatchEvent(new PopStateEvent("popstate", { state: {} }));
@@ -924,7 +935,17 @@ const CAGE_SCRIPT: &str = r#"
   // "at the inbox on an iPhone" already means onboarding is done.
   if (/iPhone|iPad|iPod/.test(navigator.userAgent)) (function () {
     function cached() {
-      try { return !!localStorage.getItem("konvoPaid"); } catch (e) { return false; }
+      try {
+        if (localStorage.getItem("konvoPaid")) return true;
+        // Granted by a beta build and NEVER touched by the entitlement
+        // sync below, which legitimately reports "not entitled" and would
+        // otherwise replay the whole paywall sequence on every launch.
+        return !!(window.__konvoBeta && !window.__konvoNoFree &&
+          localStorage.getItem("konvoBetaFree"));
+      } catch (e) { return false; }
+    }
+    function grantBeta() {
+      try { localStorage.setItem("konvoBetaFree", "1"); } catch (e) {}
     }
     function setCache(v) {
       try {
@@ -1127,24 +1148,24 @@ const CAGE_SCRIPT: &str = r#"
         (last ? ";border-radius:0 0 12px 12px" : "") + "'>" + CKBLUE + "</span></div>";
     }
     function perksPage() {
-      return "<div class='imp-mid' style='justify-content:flex-start;padding:70px 20px 0'>" +
-        "<h2 style='font-size:26px'>What changes with Konvo</h2>" +
+      return "<div class='imp-mid' style='padding:24px 20px'>" +
+        "<h2 style='font-size:26px'>Why this one works</h2>" +
         "<div style='display:flex;align-items:flex-end;margin-top:28px'>" +
         "<span style='flex:1;font-size:13px;font-weight:600;color:var(--mut)'>" +
         "What you get</span>" +
         "<span style='width:74px;flex:none;text-align:center;font-size:10.5px;" +
         "font-weight:700;letter-spacing:0.03em;white-space:nowrap;" +
-        "color:var(--mut);padding-bottom:10px'>WITHOUT</span>" +
+        "color:var(--mut);padding-bottom:10px'>LIMIT APPS</span>" +
         "<span style='width:74px;flex:none;display:flex;justify-content:center;" +
         "padding:9px 0;background:#eef3ff;border-radius:12px 12px 0 0'>" +
         "<span style='background:var(--accent);color:#fff;font-size:10px;" +
         "font-weight:700;letter-spacing:0.06em;padding:4px 9px;border-radius:999px'>" +
         "KONVO</span></span></div>" +
-        perkRow("Your DMs and Stories", true, false) +
-        perkRow("No Feed, Reels or Explore", false, false) +
-        perkRow("Nothing pulling you into a scroll", false, false) +
-        perkRow("Hours back every week", false, false) +
-        perkRow("Instagram on your terms", false, true) +
+        perkRow("Feed and Reels are gone, not blocked", false, false) +
+        perkRow("No limit to snooze or switch off", false, false) +
+        perkRow("Instagram comes off your phone", false, false) +
+        perkRow("Going back takes a decision", false, false) +
+        perkRow("Full DMs, Stories and notifications", false, true) +
         "</div>" +
         "<div class='imp-foot' style='padding:14px 24px 30px'>" +
         "<div style='display:flex;align-items:center;justify-content:center;gap:8px;" +
@@ -1152,7 +1173,7 @@ const CAGE_SCRIPT: &str = r#"
         "<span style='width:18px;height:18px;border-radius:50%;background:var(--accent);" +
         "display:inline-flex;align-items:center;justify-content:center'>" + CHECK +
         "</span>No commitment. Cancel anytime.</div>" +
-        "<button class='imp-btn' data-act='pay'>Continue</button></div>";
+        "<button class='imp-btn' data-act='goodbye'>Continue</button></div>";
     }
 
     // TODO: RELEASE BLOCKER - PROOF must stay empty until real TestFlight
@@ -1344,9 +1365,51 @@ const CAGE_SCRIPT: &str = r#"
         // Restore lives in the footer row: the four-node trial timeline
         // pushed a centered one below the fold, and App Review needs it
         // findable without scrolling.
+        betaFreeRow() +
         "<div class='imp-links'><span data-act='terms'>Terms of Use</span>" +
         "<span data-act='privacy'>Privacy Policy</span>" +
         "<span data-act='restore'>Restore</span></div></div>";
+    }
+
+    // Beta testers see the real price and the real screen, then take this
+    // way past it. Present only in builds compiled with konvo-beta, and
+    // withdrawable remotely; a store build has neither the markup nor the
+    // handler.
+    function betaFreeRow() {
+      if (!window.__konvoBeta || window.__konvoNoFree) return "";
+      return "<div class='imp-ghost' data-act='betafree' " +
+        "style='padding-top:14px;font-weight:600;color:var(--accent)'>" +
+        "Free during beta</div>";
+    }
+
+    // S12c: delete Instagram. Konvo does not sit alongside Instagram, it
+    // takes its place - and a phone with both installed just relapses to the
+    // feed. Instructions only: no app can delete another, and pretending
+    // otherwise would be a button that lies.
+    function goodbyePage() {
+      return "<div class='imp-mid' style='padding:24px 24px;text-align:center'>" +
+        "<span style='width:78px;height:78px;border-radius:20px;align-self:center;" +
+        "background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);display:inline-flex;" +
+        "align-items:center;justify-content:center;position:relative;" +
+        "box-shadow:0 12px 30px rgba(180,40,80,.28)'>" +
+        "<svg width='40' height='40' viewBox='0 0 24 24' fill='none' stroke='#fff' " +
+        "stroke-width='2'><rect x='3' y='3' width='18' height='18' rx='5.5'/>" +
+        "<circle cx='12' cy='12' r='4'/>" +
+        "<circle cx='17.2' cy='6.8' r='1.1' fill='#fff' stroke='none'/></svg>" +
+        "<span style='position:absolute;top:-7px;right:-7px;width:28px;height:28px;" +
+        "border-radius:50%;background:#ff3b30;border:3px solid var(--bg);" +
+        "display:inline-flex;align-items:center;justify-content:center'>" +
+        "<span style='width:12px;height:2.5px;background:#fff;border-radius:2px'>" +
+        "</span></span></span>" +
+        "<h2 style='font-size:28px;margin-top:28px'>Delete Instagram</h2>" +
+        "<p style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:12px'>" +
+        "Konvo is where your messages live now. Leave Instagram on your phone " +
+        "and you will open it.</p>" +
+        "<p style='font-size:15px;line-height:1.5;color:var(--mut);margin-top:18px'>" +
+        "Your account does not change. Reinstall whenever you want.</p>" +
+        "</div><div class='imp-foot'>" +
+        "<button class='imp-btn' data-act='pay'>I deleted it</button>" +
+        "<div class='imp-ghost' data-act='pay'>Not yet</div></div>";
     }
 
     // S14: post-purchase activation. Trial buyers get the recap and the
@@ -1415,6 +1478,22 @@ const CAGE_SCRIPT: &str = r#"
       }, 850);
     }
     function buy(btn, productId) {
+      // Beta builds cannot complete a purchase - App Store products do not
+      // load until the Paid Apps agreement is active - so the main CTA
+      // would spin and strand the tester on the wall. Let it through to
+      // the inbox instead, and record WHICH plan they chose: that tap is
+      // the pricing signal the whole exercise exists for.
+      if (window.__konvoBeta && !window.__konvoNoFree) {
+        track("beta_free_taken", {
+          plan: productId.indexOf("yearly") > 0 ? "annual"
+            : productId.indexOf("monthly") > 0 ? "monthly" : "lifetime",
+          via: "cta",
+          screen_id: "s13_paywall",
+        });
+        grantBeta();
+        dismiss();
+        return;
+      }
       btn.disabled = true;
       storekit("purchase", productId, function (res) {
         btn.disabled = false;
@@ -1455,8 +1534,7 @@ const CAGE_SCRIPT: &str = r#"
     }
     var swPending = false, swTried = false;
     function ensure() {
-      // __konvoBeta: compile-time beta builds (KONVO_BETA=1) never wall.
-      if (window.__konvoBeta || wall || cached() || !atInbox()) return;
+      if (wall || cached() || !atInbox()) return;
       // Verified session first, always. The check is synchronous, so the
       // wall rises in the same tick the cookie appears.
       if (!authed) { checkAuth(); if (!authed) return; }
@@ -1500,9 +1578,18 @@ const CAGE_SCRIPT: &str = r#"
           track("plan_selected", { plan: plan === "y" ? "annual"
             : plan === "m" ? "monthly" : "lifetime", screen_id: "s13_paywall" });
           setPage(pay(plan), true);
+        } else if (act === "goodbye") {
+          track("delete_prompt_viewed", { screen_id: "s12c_delete" });
+          swap(goodbyePage());
         } else if (act === "pay") {
           track("paywall_viewed", { variant: "default", screen_id: "s13_paywall" });
           swap(pay("y"));
+        } else if (act === "betafree") {
+          // Beta only: unlock without charging, and record that the price
+          // was seen and declined - which is the whole point of showing it.
+          track("beta_free_taken", { via: "escape", screen_id: "s13_paywall" });
+          grantBeta();
+          dismiss();
         } else if (act === "notready") {
           // The x does not dismiss - it concedes: reveal the softer path
           // and flip to the Monthly story.
@@ -1577,6 +1664,16 @@ const CAGE_SCRIPT: &str = r#"
       setCache(!!res.entitled);
       if (res.entitled) dismiss();
     });
+    // Retention: fired once per launch, never per navigation.
+    // sessionStorage dies with the webview session, so a relaunch counts and
+    // moving between screens does not.
+    try {
+      if (!sessionStorage.konvoOpened) {
+        sessionStorage.konvoOpened = "1";
+        track("app_opened");
+      }
+    } catch (e) {}
+
     // A paying user never sees a wall, so the phone rules immediately.
     if (cached()) goAuto();
     // Same belt-and-braces cadence as enforce(): the inbox is reached by SPA
@@ -1712,21 +1809,22 @@ pub fn run() {
             // launch. The splash paints from disk on the first frame, then
             // navigates; the in-page boot overlay takes over seamlessly at
             // instagram's document-start.
-            // The konvo-beta cargo feature ships the caged app with no
-            // funnel and no wall, for beta testers: the prelude marks
-            // onboarding done before the splash reads the flag (index.html
-            // then goes straight to the inbox, appearance handed to the
-            // phone), and ensure() sees __konvoBeta and never raises the
-            // paywall. Off by default - a store build cannot ship unwalled.
+            // The konvo-beta cargo feature marks a tester build. Testers now
+            // walk the REAL funnel and see the REAL paywall - skipping both
+            // taught us nothing: 18 testers produced zero onboarding and zero
+            // pricing data. What the flag buys them is a "Free during beta"
+            // button on the wall, so nobody is charged.
+            //
+            // The safety is structural, not a switch someone has to remember:
+            // the bypass is compiled in ONLY under this feature, so a store
+            // build does not contain it and no remote config can conjure it.
+            // The cage-patch can still switch it OFF mid-beta
+            // ({"betaFree": false}) if a build ever leaks.
             // A feature, not an env var: xcodebuild rebuilds the script
             // phase env from build settings, so an env var dies before
             // cargo; --features rides the tauri CLI all the way through.
             let cage: std::borrow::Cow<str> = if cfg!(feature = "konvo-beta") {
-                format!(
-                    "window.__konvoBeta=true;\
-                     try{{localStorage.konvoOnboarded=\"1\"}}catch(e){{}}\n{CAGE_SCRIPT}"
-                )
-                .into()
+                format!("window.__konvoBeta=true;\n{CAGE_SCRIPT}").into()
             } else {
                 CAGE_SCRIPT.into()
             };

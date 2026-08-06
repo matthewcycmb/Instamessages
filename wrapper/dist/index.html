@@ -295,17 +295,15 @@
     <div class="body">
       <h2>What&rsquo;s your average screen time on Instagram per day?</h2>
       <p class="sub">Best guess is fine.</p>
-      <div style="flex: 1; display: flex; flex-direction: column;
-           justify-content: center">
-        <div id="mins" style="font-size: 44px; font-weight: 700;
-             letter-spacing: -0.04em; text-align: center">2 h 30 m</div>
-        <input type="range" id="slider" min="15" max="480" step="15" value="150"
-               aria-label="Daily Instagram time">
-        <div style="display: flex; justify-content: space-between;
-             font-size: 13px; color: var(--mut)"><span>15 min</span><span>8 h +</span></div>
+      <div class="opts">
+        <button class="opt" data-m="45">&lt; 1 hour</button>
+        <button class="opt" data-m="90">1 - 2 hours</button>
+        <button class="opt" data-m="150">2 - 3 hours</button>
+        <button class="opt" data-m="210">3 - 4 hours</button>
+        <button class="opt" data-m="300">&gt; 4 hours</button>
+        <button class="opt" data-m="150">Not sure</button>
       </div>
     </div>
-    <div class="foot"><button class="btn" data-next="s4">Continue</button></div>
   </div>
 
   <div class="screen" id="s4">
@@ -431,52 +429,7 @@
     <div class="hero"><img src="phone-thread.webp" alt=""></div>
     <div class="herofoot">
       <div class="dots"><i></i><i class="on"></i></div>
-      <button class="btn" data-next="s9">Continue</button>
-    </div>
-  </div>
-
-  <!-- Flat accent, not a gradient: the native letterbox paints one solid
-       colour, and a gradient would seam against it at the safe area. -->
-  <div class="screen t-fade" id="s9" style="background: #0a5cf0; color: #fff">
-    <div class="body mid" style="padding: 0 28px">
-      <h2 style="font-size: 30px; letter-spacing: -0.035em; line-height: 1.18;
-          text-align: center">Make a commitment pact<br>before you start</h2>
-      <div style="display: flex; flex-direction: column; gap: 18px;
-           margin-top: 34px">
-        <div class="pactline"><span class="pactck"><svg width="12" height="12"
-          viewBox="0 0 24 24" fill="none" stroke="#0a5cf0" stroke-width="3.6"
-          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>Today
-          I put an end to my scrolling addiction.</span></div>
-        <div class="pactline"><span class="pactck"><svg width="12" height="12"
-          viewBox="0 0 24 24" fill="none" stroke="#0a5cf0" stroke-width="3.6"
-          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>Instagram
-          is for my people, not for the algorithm.</span></div>
-        <div class="pactline"><span class="pactck"><svg width="12" height="12"
-          viewBox="0 0 24 24" fill="none" stroke="#0a5cf0" stroke-width="3.6"
-          stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><span>I&rsquo;ll
-          reply, then get back to my life.</span></div>
-      </div>
-      <button id="commit" data-next="s10" aria-label="Tap to commit"
-        style="align-self: center; margin: 40px 0 0; width: 96px; height: 96px;
-        border: 0; border-radius: 28px; background: #fff; cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
-        box-shadow: 0 12px 30px rgba(4,30,80,0.28)">
-        <svg width="46" height="46" viewBox="0 0 24 24" fill="none"
-          stroke="#0a5cf0" stroke-width="1.7" stroke-linecap="round"
-          stroke-linejoin="round">
-          <path d="M12 11v3.5a5 5 0 0 1-.6 2.4"/>
-          <path d="M8.6 8.9a4 4 0 0 1 6.4 3.2v2a9 9 0 0 1-.5 3"/>
-          <path d="M5.6 12a7 7 0 0 1 3-5.8"/>
-          <path d="M12 5a7 7 0 0 1 7 7v2.5"/>
-          <path d="M6 15.5V12"/><path d="M9 19.5a12 12 0 0 0 1.2-3"/>
-          <path d="M17.6 18.5a15 15 0 0 0 .8-2.5"/></svg>
-      </button>
-      <p style="text-align: center; font-size: 17px; font-weight: 600;
-         margin-top: 18px">Tap to commit</p>
-      <p id="pactdate" style="text-align: center; font-size: 13.5px;
-         line-height: 1.5; color: rgba(255,255,255,0.72); margin-top: 26px;
-         padding: 12px 16px; border-radius: 12px;
-         background: rgba(255,255,255,0.12)"></p>
+      <button class="btn" data-next="s10">Continue</button>
     </div>
   </div>
 
@@ -556,7 +509,6 @@
       qd.textContent = "“" + QUOTES[qi].q + "” - " + QUOTES[qi].name;
       qbox.appendChild(qd);
     }
-    document.querySelector("#s9 [data-next]").dataset.next = "s9t";
   }
 
   // Funnel events, fire-and-forget through the bridge. Lean payloads by
@@ -576,8 +528,10 @@
       new Date().toLocaleDateString(undefined, { month: "long", day: "numeric" }) + ".";
   } catch (e) {}
 
-  var slider = document.getElementById("slider");
-  function mins() { return +slider.value; }
+  function mins() {
+    var sel = document.querySelector("#s3 .opt.sel");
+    return sel ? +sel.dataset.m : 150;
+  }
   function msgMins() {
     var sel = document.querySelector("#s4 .opt.sel");
     return sel ? +sel.dataset.m : 20;
@@ -587,13 +541,6 @@
     var h = Math.floor(m / 60), r = m % 60;
     return h ? (r ? h + " h " + r + " m" : h + " h") : r + " m";
   }
-  function sync() {
-    document.getElementById("mins").textContent = fmt(mins());
-    var p = ((mins() - 15) / (480 - 15)) * 100;
-    slider.style.background = "linear-gradient(90deg, var(--accent) " + p +
-      "%, var(--track) " + p + "%)";
-  }
-  slider.addEventListener("input", sync);
 
   // The disclosed projection (sheet header, locked): full 24 h days over the
   // next 60 years, one decimal. years = mins/1440*60.
@@ -609,7 +556,7 @@
   var DARK = { s5: 1, s6: 1, s7: 1 };
   // The pact fills the whole phone, letterbox included - only the native
   // side can paint that, so the screen announces itself as "blue".
-  var BLUE = { s9: 1 };
+  var BLUE = {};
   function setMode(m) {
     if (m === mode) return;
     mode = m;
@@ -744,11 +691,16 @@
       motive = opt.dataset.mot;
       motivePhrase = opt.textContent.trim().toLowerCase();
     }
-    track("quiz_answered",
-      { question: screen === "s2" ? "motive" : "messaging", screen_id: screen });
+    track("quiz_answered", {
+      question: screen === "s2" ? "motive"
+        : screen === "s3" ? "screen_time" : "messaging",
+      screen_id: screen,
+    });
     // Tap-to-select auto-advances after a beat; no Continue on option
     // screens (approved: one subtle haptic, ~250ms, advance).
-    setTimeout(function () { show(screen === "s2" ? "s3" : "s4b"); }, 250);
+    setTimeout(function () {
+      show(screen === "s2" ? "s3" : screen === "s3" ? "s4" : "s4b");
+    }, 250);
   });
 
   document.getElementById("signin").addEventListener("click", function () {
@@ -761,9 +713,20 @@
     // instagram.com origin; CAGE_SCRIPT persists this fragment into that
     // origin's localStorage at document-start and strips it.
     var frag = motive ? "#konvo=" + motive + "." + weeklyHours() : "";
-    location.replace("https://www.instagram.com/direct/inbox/" + frag);
+    var url = "https://www.instagram.com/direct/inbox/" + frag;
+    // Hand the navigation to native. A page-driven cross-origin navigation
+    // to instagram.com is a universal link on iOS: with Instagram installed,
+    // the system opens THEIR app and the tester never signs into Konvo.
+    // A native load carries no such rule. The location.replace stays as the
+    // fallback for the Mac and for any build without the bridge.
+    try {
+      window.webkit.messageHandlers.konvoStore.postMessage(
+        { cmd: "go", id: 0, productId: url });
+      setTimeout(function () { location.replace(url); }, 1200);
+    } catch (e) {
+      location.replace(url);
+    }
   });
 
-  sync();
 })();
 </script>

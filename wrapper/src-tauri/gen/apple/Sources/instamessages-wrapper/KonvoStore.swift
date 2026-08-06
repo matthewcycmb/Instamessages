@@ -143,6 +143,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
     // gesture below needs it.
     private static var keyboardNudgeInstalled = false
     private static var keyboardTop: CGFloat = .greatestFiniteMagnitude
+    private static var resizeWork: DispatchWorkItem?
     private static func installKeyboardNudge(_ webView: WKWebView) {
         guard !keyboardNudgeInstalled else { return }
         keyboardNudgeInstalled = true
@@ -155,10 +156,19 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                 as? NSValue)?.cgRectValue {
                 Self.keyboardTop = frame.minY
             }
-            webView?.evaluateJavaScript(
-                "window.visualViewport&&window.visualViewport.dispatchEvent(new Event('resize'));"
-                    + "window.dispatchEvent(new Event('resize'))",
-                completionHandler: nil)
+            // Coalesced: keyboardDidChangeFrame fires continuously while a
+            // finger drags the keyboard away, and each dispatch relayouts
+            // the whole thread.
+            Self.resizeWork?.cancel()
+            let work = DispatchWorkItem { [weak webView] in
+                webView?.evaluateJavaScript(
+                    "window.visualViewport&&window.visualViewport"
+                        + ".dispatchEvent(new Event('resize'));"
+                        + "window.dispatchEvent(new Event('resize'))",
+                    completionHandler: nil)
+            }
+            Self.resizeWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: work)
             // A KEYBOARD THAT GREW (text -> emoji) is not re-inset by
             // WebKit: the page keeps the short keyboard's offset and the
             // compose bar ends up hidden behind the tall one. Scroll by the
@@ -166,15 +176,18 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             // ponytail: moves the webview's own scroll view; if Instagram
             // ever composes inside an inner scroller this needs the focused
             // element's scroll parent instead.
-            // ONLY a keyboard that was already on screen and got taller
-            // (text -> emoji). A dismissed keyboard parks its frame off the
-            // bottom, so "grew" on the next appearance is the whole
-            // keyboard height.
+            // Resizing the PAGE for the keyboard is reverted, deliberately.
+            // Growing the bottom safe-area inset did put the compose bar
+            // above the emoji keyboard - and it re-laid out the whole thread
+            // on every keyboard frame notification, which iOS fires
+            // continuously through swipes and interactive dismissals. The
+            // result was distortion mid-swipe, a black flash on dismiss, and
+            // general lag in chats: a structural bug traded for a cosmetic
+            // one. Build 41 was better, and this is build 41's behaviour.
             //
-            // Ask the page to keep the FOCUSED field visible rather than
-            // scrolling by a pixel guess: scrolling blind by the growth
-            // overshot on pages shorter than the offset and pushed their
-            // headers off the top of the screen.
+            // The emoji keyboard covering the compose bar is a known,
+            // narrow, cosmetic issue. It stays until there is a fix that
+            // does not touch layout on every frame.
             let grew = was - Self.keyboardTop
             guard was < UIScreen.main.bounds.height - 1, grew > 1 else { return }
             webView?.evaluateJavaScript(
@@ -195,6 +208,9 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
     // True while the back-swipe owns the screen, so the push animation
     // never fires on the route change the gesture itself caused.
     fileprivate static var swiping = false
+    // Set when a swipe commits: the navigation it triggers reports back
+    // through JS a few hundred ms later, and that report must not animate.
+    fileprivate static var swipeSettleUntil: Date = .distantPast
 
     // Opening a thread is a push, not a cut: the inbox holds the screen
     // while Instagram renders, then the thread slides in from the right
@@ -376,6 +392,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                 if commit {
                     // The small confirmation buzz a native back-swipe has.
                     KonvoStore.haptic.impactOccurred()
+                    KonvoStore.swipeSettleUntil = Date().addingTimeInterval(1.2)
                     // The revealed screen is now the current one.
                     if !KonvoStore.snapStack.isEmpty { KonvoStore.snapStack.removeLast() }
                     // Navigate now, once; the thread slides off and the
@@ -567,6 +584,20 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             return
         }
 
+        // Navigate from native. The page cannot do this itself: iOS treats a
+        // cross-origin navigation to instagram.com as a universal link and
+        // opens the installed Instagram app instead, which strands the user
+        // outside Konvo having never logged in. Loads issued here are exempt.
+        if cmd == "go" {
+            if let url = URL(string: productId),
+               url.host?.hasSuffix("instagram.com") == true {
+                DispatchQueue.main.async { [weak webView] in
+                    webView?.load(URLRequest(url: url))
+                }
+            }
+            return
+        }
+
         // The page's own background colour, painted onto the native
         // letterbox the webview cannot reach. Fire-and-forget.
         if cmd == "bg" {
@@ -592,7 +623,11 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         // back-swipe owns its own animation, so it opts out.
         if cmd == "nav" {
             DispatchQueue.main.async { [weak webView] in
-                guard !Self.swiping, let wv = webView else { return }
+                // Suppressed during the gesture AND through the round-trip
+                // it causes, or the swipe animates twice.
+                guard !Self.swiping,
+                      Date() > Self.swipeSettleUntil,
+                      let wv = webView else { return }
                 if productId == "push-silent" {
                     // Stack it without animating: the back-swipe still
                     // needs a picture of the screen underneath.
@@ -787,7 +822,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         var properties = props
         properties["platform"] = "ios"
         let payload: [String: Any] = [
-            "api_key": "phc_vHYU7La5Cvdd8XRF5GN2LcnGH8r7nBbnRA7mVSdEfqxs",
+            "api_key": "phc_oNC3DTPBj8vt52LGeHikaZ4WeSiZS69M3tsM2PcZRDvp",
             "event": event,
             "distinct_id": Purchases.shared.appUserID,
             "properties": properties,

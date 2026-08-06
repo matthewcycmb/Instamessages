@@ -367,23 +367,37 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     takes money from someone who then lands on a login page.
   assert(!wallOut.window.document.getElementById('im-pay'),
     'no verified Instagram session, no paywall - ever');
-  assert(!wallBeta.window.document.getElementById('im-pay'),
-    'a KONVO_BETA build must never raise the wall');
+  //     Beta builds now walk the SAME wall as everyone else - skipping it
+  //     produced zero pricing data from eighteen testers. What they get is
+  //     an escape hatch, and it exists only in a beta binary: a store build
+  //     has no such markup and no handler, so no remote config can conjure
+  //     one.
+  assert(wallBeta.window.document.getElementById('im-pay'),
+    'a beta build must raise the real wall - that is where the pricing data comes from');
   await settle(2600);  // the loader (auth tick + slow cadence + crossfade)
   assert(/Setting up your Konvo/.test(payText()),
     'connected must auto-advance into the honest loader');
   assert(/Friends' stories kept/.test(payText()),
     'every loader line is a real cage rule');
   await settle(5200);  // ~7.6s in: the perks comparison
-  assert(/What changes with Konvo/.test(payText()),
-    'the loader must auto-advance into the perks comparison');
-  assert(/Nothing pulling you into a scroll/.test(payText()),
-    'every perk row is a true structural claim');
+  assert(/Why this one works/.test(payText()),
+    'the loader must auto-advance into the comparison');
+  assert(/Going back takes a decision/.test(payText()),
+    'every row is a true structural claim');
   const wtap = act => {
     const el = wdoc.querySelector(`[data-act='${act}']`);
     assert(el, `the ${act} control must exist on the current page`);
     el.dispatchEvent(new wallFresh.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   };
+  // Perks now lead through the delete-Instagram step: Konvo replaces
+  // Instagram rather than sitting beside it, and the ask lands right after
+  // the comparison that justifies it.
+  wtap('goodbye');
+  await settle(400);
+  assert(/Delete Instagram/.test(payText()),
+    'the perks page must lead to the delete step');
+  assert(/Your account does not change/.test(payText()),
+    'the delete step must say nothing is lost - it is a true claim and it defuses the ask');
   wtap('pay');
   await settle(450);   // crossfade
   assert(/How your free trial works/.test(payText()),
@@ -463,6 +477,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const ldoc0 = live.window.document;
   const ltap = act => ldoc0.querySelector(`[data-act='${act}']`).dispatchEvent(
     new live.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  // Same route as a real user: perks -> delete step -> price.
+  ltap('goodbye');
+  await settle(400);
   ltap('pay');
   await settle(450);
   const ltext = ldoc0.getElementById('im-pay').textContent;
@@ -490,6 +507,10 @@ process.on('exit', () => open.forEach(d => d.window.close()));
       lifetime: { price: '$79.99' } },
   }) });
   await settle(8400);
+  // Perks -> delete step -> price, as a real user walks it.
+  noTrial.window.document.querySelector("[data-act='goodbye']").dispatchEvent(
+    new noTrial.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(400);
   noTrial.window.document.querySelector("[data-act='pay']").dispatchEvent(
     new noTrial.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(450);
@@ -507,6 +528,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(8400);
   assert.strictEqual(quiz.window.localStorage.getItem('konvoQuiz'), 'ownProjects.15',
     'the fragment must persist into instagram.com-origin storage');
+  quiz.window.document.querySelector("[data-act='goodbye']").dispatchEvent(
+    new quiz.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(400);
   quiz.window.document.querySelector("[data-act='pay']").dispatchEvent(
     new quiz.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(450);
@@ -526,6 +550,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const bdoc = buyer.window.document;
   const btap = act => bdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new buyer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  btap('goodbye');
+  await settle(400);
   btap('pay');
   await settle(450);
   btap('buy-y');
@@ -564,6 +590,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(8400);
   const ftap = act => lifer.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new lifer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  ftap('goodbye');
+  await settle(400);
   ftap('pay');
   await settle(450);
   ftap('pk-l');
@@ -586,6 +614,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(8400);
   const mtap = act => monthlyBuy.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new monthlyBuy.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  mtap('goodbye');
+  await settle(400);
   mtap('pay');
   await settle(450);
   mtap('pk-m');
@@ -606,6 +636,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const ldoc = lapsed.window.document;
   assert(ldoc.getElementById('im-pay'),
     'a lapsed subscription must bring the wall back despite the cache');
+  ldoc.querySelector("[data-act='goodbye']").dispatchEvent(
+    new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(400);
   ldoc.querySelector("[data-act='pay']").dispatchEvent(
     new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(450);
