@@ -112,6 +112,13 @@ beta_matches() {  # $1 = ipa; succeeds if the binary's beta-ness matches KONVO_B
 IPA=$(ls -t src-tauri/gen/apple/build/*/*.ipa 2>/dev/null | head -1)
 NEED_BUILD=0
 if [ -z "$IPA" ] || [ "$NEW" = 1 ] || ! profile_has_all "$IPA" || ! beta_matches "$IPA"; then NEED_BUILD=1; fi
+# The checks above prove signing and beta-ness, not freshness: a stale IPA
+# that passed both got silently reinstalled through an hour of debugging
+# while every source edit stayed on the Mac.
+if [ "$NEED_BUILD" = 0 ] && [ -n "$(find src-tauri/src src-tauri/gen/apple/Sources src-tauri/gen/apple/project.yml src-tauri/tauri.conf.json dist -type f -newer "$IPA" 2>/dev/null | head -1)" ]; then
+  echo "Source is newer than the IPA; rebuilding."
+  NEED_BUILD=1
+fi
 
 if [ "$CHECK" = "--check" ]; then
   echo "Pre-flight only. Would build: $([ $NEED_BUILD = 1 ] && echo yes || echo no)."
