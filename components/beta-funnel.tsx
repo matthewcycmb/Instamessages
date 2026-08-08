@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { track } from "@/lib/analytics";
+import { TESTFLIGHT_URL as TESTFLIGHT } from "@/lib/links";
 import posthog from "posthog-js";
 
 /**
@@ -13,11 +14,9 @@ import posthog from "posthog-js";
  * layout exists to hand people back to their phone, since there is nothing
  * to install on a Mac.
  *
- * The old marketing landing page is untouched in components/landing.tsx and
- * still reachable at /classic.
+ * Not currently routed: the landing page is the front door again (app/page.tsx).
+ * Swap the component there to bring this back.
  */
-
-export const TESTFLIGHT = "https://testflight.apple.com/join/SH37gxDw";
 
 const INK = "#0f1b33";
 const MUT = "#5a6478";
@@ -211,6 +210,7 @@ export function BetaFunnel({
         </div>
 
         {device === "ios" && <HowTo />}
+        <Security />
 
         <footer
           style={{
@@ -361,6 +361,45 @@ function HowTo() {
           </li>
         ))}
       </ol>
+    </section>
+  );
+}
+
+/**
+ * The most common tester objection, answered where they can link it. Every
+ * claim here is checkable: the sign-in page is Instagram's, and the session
+ * appears in Instagram's own "Where you're logged in" list.
+ */
+function Security() {
+  const points: [string, string][] = [
+    [
+      "You sign in on Instagram's own page",
+      "When you tap sign in, Konvo opens Instagram's real sign-in page, the same one Safari shows. Your password goes to Instagram, not to us.",
+    ],
+    [
+      "Konvo has no server",
+      "There is no Konvo account and no Konvo database. Your Instagram session lives only on your phone, exactly like it does in Safari.",
+    ],
+    [
+      "You stay in control",
+      "Your Konvo session shows up in Instagram's settings under “Where you're logged in”, and you can log it out from there any time, like any other device.",
+    ],
+  ];
+  return (
+    <section id="security" style={{ marginTop: 56 }}>
+      <h2 style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.02em", margin: "0 0 18px" }}>
+        Is it safe to log in?
+      </h2>
+      <div style={{ display: "grid", gap: 14, maxWidth: 560 }}>
+        {points.map(([title, body]) => (
+          <div key={title}>
+            <span style={{ display: "block", fontSize: 16, fontWeight: 600 }}>{title}</span>
+            <span style={{ display: "block", fontSize: 15, color: MUT, marginTop: 2, lineHeight: 1.5 }}>
+              {body}
+            </span>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

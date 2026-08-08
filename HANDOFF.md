@@ -1,4 +1,4 @@
-# Konvo handoff (Aug 6, 2026)
+# Konvo handoff (Aug 7, 2026)
 
 Repo: `/Users/matthewchan/Instamessages`. Matthew runs `/ponytail:ponytail
 ultra` on coding tasks. Hard rules: **never commit or push without his
@@ -14,19 +14,24 @@ switch you own, and a switch you own is one you flip at 11pm. Konvo has no
 setting to negotiate with, and it **replaces** Instagram rather than
 restricting it - Instagram comes off the phone.
 
-## Where things stand right now
+## Where things stand right now (Aug 7 evening)
 
-**Branch `konvo-onboarding-v2`, 6 commits, nothing pushed.** Working tree has
-uncommitted changes (the `konvo-free` mode and version bump, below).
+**Branch `konvo-onboarding-v2`.** Working tree has uncommitted changes: the
+Aug 7 nav fixes, s10 trust copy, the website security section, and
+`bundleVersion` 43. `sideload.sh` is STAGED for its own commit (the
+permission layer would not let the agent run `git commit`; Matthew runs it).
 
-- **TestFlight: build 41 is live and APPROVED** for both groups. Build 42 was
-  built but never uploaded - the session pivoted to the App Store.
-- **App Store: v1.0 was REJECTED** (guideline 2.1). The reviewer could not
-  sign in: Instagram challenged the login and asked for a code they had no way
-  to retrieve. The rejected binary was 1.0 (6), months old.
-- **A free v1.0.0 (42) store build was compiling when the session ended.**
-  Verify the artifact before uploading: `CFBundleShortVersionString` 1.0.0,
-  `CFBundleVersion` 42, `konvoBeta=true` absent, `__konvoFree` present.
+- **TestFlight: build 43 (1.0.0) is IN_BETA_TESTING** for External Friends
+  and live for internal Friends. It carries every Aug 7 fix. Build 41 is
+  obsolete; "TestFlight 42" never happened (42 became the store build).
+- **App Store: 1.0.0 (42), the free `konvo-free` build, is
+  WAITING_FOR_REVIEW** - resubmitted Aug 6 with the demo-account fix. The
+  version record was renamed 1.0 -> 1.0.0 via the API so the build attached.
+  Decision: do NOT swap in a fixed build; a missing animation is not a
+  rejection risk and swapping forfeits queue position. When 42 is approved,
+  cut **1.0.1 (build 44, `konvo-free`)** with the Aug 7 fixes.
+- **Build numbers 42 and 43 are burned** on ASC. Next upload of any kind
+  is 44.
 
 ## The decision that shapes everything
 
@@ -62,6 +67,21 @@ works", delete Instagram) and ends at the delete step, once, remembered in
 
 - Sideload to his phone: `cd wrapper && KONVO_BETA=1 ./sideload.sh`. It refuses
   to install when the binary's beta-ness does not match the flag.
+- **The stale-IPA trap (fixed Aug 7, the fix is the staged commit).** The
+  script used to rebuild only on profile/beta drift, so it reinstalled one
+  stale IPA through seven "builds" while every source edit stayed on the
+  Mac - three bug reports that day were phantoms. It now also rebuilds when
+  any source is newer than the IPA. Even so: after any build, verify the
+  IPA's mtime moved before believing a test.
+- **Debugging on device: NSLog is invisible** (not in `devicectl --console`,
+  not in idevicesyslog, and `log collect --device` needs sudo the session
+  cannot type). What works: append lines to a file in Documents from Swift,
+  then `xcrun devicectl device copy from --domain-type appDataContainer
+  --domain-identifier com.matthewchan.konvo --source Documents/<f> --destination <f>`.
+  That file log is how the slide bug was finally caught in one look.
+- **ASC write-lag:** a freshly VALID build 404s on group-attach POSTs
+  ("no resource of type builds") for up to ~30 min while GETs see it fine.
+  Retry every minute; the betaAppReviewSubmission POST works immediately.
 - **The build number lives in `tauri.conf.json` > `bundle.iOS.bundleVersion`.**
   `Info.plist` and `project.yml` are regenerated from it mid-build, so editing
   those silently reverts. `--build-number` APPENDS (35 becomes "35.42") which
@@ -123,22 +143,66 @@ decision: event plus screen id, never quiz answer values.
 
 ## The website
 
-`konvoinstall.com` (Next.js, this repo). The front door is now the beta funnel
-(`components/beta-funnel.tsx`): headline, one email field, then the TestFlight
-handoff, with an install guide underneath and a banner telling Instagram
-in-app-browser visitors to open in Safari. Emails go to PostHog as a person
-property. **The old marketing landing page is intact at `/classic`** and comes
-back by swapping one component in `app/page.tsx`. NOT deployed yet - the
-production `NEXT_PUBLIC_POSTHOG_KEY` on Vercel needs the KONVO key.
+`konvoinstall.com` (Next.js, this repo). The front door is the landing page
+(`components/landing.tsx`) again, and its two "Download beta" buttons open a
+two-step modal: email, then the TestFlight link. Emails go to PostHog as a
+person property (`beta_email_submitted`, then `beta_testflight_opened`). The
+install steps and the FAQ were rewritten for the iPhone beta on Aug 8, since
+they still described the Mac app and the Chrome extension. The stripped beta
+funnel is intact but unrouted in `components/beta-funnel.tsx` and comes back
+by swapping the component in `app/page.tsx`; `/classic` was deleted when the
+landing page took the front door back. **Still not deployed** - check that the
+production `NEXT_PUBLIC_POSTHOG_KEY` on Vercel is the KONVO one, or the emails
+land in the old project.
+
+## The Aug 7 nav fixes (what changed and why)
+
+Tester-visible bugs, all fixed and verified via the device file-log:
+
+1. **Chat taps did not slide after a back-swipe.** The 1.2s post-swipe settle
+   window swallowed EVERY nav report; a real tap ~0.9s after a swipe (normal
+   inbox rhythm) died there. Now one-shot: it eats exactly the swipe's own
+   round-trip report (which navFor can classify as anything, even "push"
+   back into a profile) and closes. Checked BEFORE the swiping guard, since
+   the round-trip usually lands mid-slide.
+2. **JS nav dedupe ate real taps too:** the 400ms window now only drops
+   reports for the SAME pathname (one action, one destination).
+3. **Back-swipe revealed a garbled headerless copy of the chat.** The stack
+   picture was snapshotted ~80ms after the tap, when Instagram had already
+   half-painted the thread. Now `tapDismiss` snapshots on the raw tap frame
+   (pre-router) into `settledSnap` + `tapSnapAt`; pushIntoThread prefers a
+   tap snapshot under 1s old over live pixels.
+
+Instagram fires BOTH the Navigation API and pushState on this build, so the
+history hooks still work; a `navigate` listener is NOT needed (probed Aug 7,
+then removed).
+
+The black-void-on-swipe-after-backgrounding bug (fallback underlay is
+`.systemBackground`, pure black in dark mode, when the purge emptied the
+stack) was diagnosed, fixed, then REVERTED at Matthew's request. If it comes
+back: the one-liner is `wv.backgroundColor ?? .systemBackground` at the
+fallback in `edgeBack .began`.
+
+## Trust work (from tester feedback, Aug 7)
+
+Security fear ("scary to put my IG info into the app") answered three ways,
+grilled and approved: s10 copy is now blunt ("Konvo does not collect your
+Instagram information"), konvoinstall.com has an "Is it safe to log in?"
+section (`#security`, in beta-funnel.tsx), and a reply draft went to Matthew.
+All claims checkable; the session appears in Instagram's "Where you're
+logged in", which is the escape hatch the copy points at.
 
 ## Open threads
 
-1. Upload and submit the free v1.0.0 build once verified.
-2. TestFlight build 42 for testers (all of today's fixes) - never uploaded.
-3. If v1.1 charges, grandfather the free v1.0 users. Nothing implements this.
-4. `PROOF = []` in lib.rs and `QUOTES = []` in dist/index.html are release
+1. **When 1.0.0 (42) is approved: build 1.0.1 (44, `konvo-free`), verify
+   inside the IPA, upload, attach, submit.** The Aug 7 fixes are not in the
+   store build under review.
+2. If v1.1 charges, grandfather the free v1.0 users. Nothing implements this.
+3. `PROOF = []` in lib.rs and `QUOTES = []` in dist/index.html are release
    blockers only if he wants testimonials; empty renders nothing, which is
    safe and honest.
-5. Two QA findings left unfixed on purpose (narrow, and the build was about to
-   ship): the blank-snapshot guard checks nil rather than emptiness, and
-   `webView.frame` is read while a transform is in flight.
+4. Two QA findings left unfixed on purpose (narrow): the blank-snapshot guard
+   checks nil rather than emptiness, and `webView.frame` is read while a
+   transform is in flight.
+5. Production `NEXT_PUBLIC_POSTHOG_KEY` on Vercel still needs the KONVO key
+   before the site (with the new security section) deploys.

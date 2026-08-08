@@ -13,3 +13,9 @@ export const CHROME_STORE_URL: string | null =
 // that pattern - do not bring it back; notarization is the real fix.
 export const MAC_ZIP =
   "https://github.com/matthewcycmb/instamessages/releases/download/mac-preview/Konvo-mac.zip";
+
+// The iOS beta is the only thing being recruited for right now, so every
+// "Download beta" button on the site points straight at TestFlight. Public
+// join link for the External Friends group; Apple's page handles the rest
+// (installs TestFlight, redeems the code).
+export const TESTFLIGHT_URL = "https://testflight.apple.com/join/SH37gxDw";

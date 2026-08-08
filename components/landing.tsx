@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChromeLogo, DownloadModal } from "./download-modal";
+import { DownloadModal } from "./download-modal";
+import { track } from "@/lib/analytics";
 
 /**
  * Landing page (design 10a). The mock was drawn on a 1200px canvas with bare
@@ -13,8 +14,13 @@ const SHELL = 1200;
 const NAVLINK: React.CSSProperties = { color: "inherit", textDecoration: "none", cursor: "pointer" };
 
 
-export function Landing() {
+export function Landing({ inAppBrowser = false }: { inAppBrowser?: boolean }) {
   const [open, setOpen] = useState(false);
+
+  function openModal() {
+    track("beta_cta_clicked");
+    setOpen(true);
+  }
 
   return (
     <div style={{ width: "100%", background: "#fff", display: "flex", flexDirection: "column", overflow: "hidden", color: "#0f1b33" }}>
@@ -74,7 +80,7 @@ export function Landing() {
               <br />
               No feed, no stories, no reels, no explore.
             </p>
-            <DownloadButton onClick={() => setOpen(true)} big glow />
+            <DownloadButton onClick={openModal} big glow />
           </div>
           <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
             <img
@@ -89,21 +95,15 @@ export function Landing() {
       {/* setup steps */}
       <Section id="how" eyebrow="GETTING STARTED" title="Setup takes about two minutes." sub="You do it once and that's it.">
         <div className="lp-row" style={{ alignItems: "stretch" }}>
-          <StepCard n={1} title="Download the app" body="Konvo is a Mac app. It signs into the Instagram account you already have and shows your messages.">
+          <StepCard n={1} title="Get the beta" body="Konvo is on iPhone. Leave your email and the TestFlight link installs it.">
             <Chip>
               <span style={{ width: 17, height: 17, borderRadius: 5, background: "#0a5cf0", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                 <ChatGlyph size={10} stroke="#fff" width="2.8" />
               </span>
-              Konvo for Mac
+              Konvo for iPhone
             </Chip>
           </StepCard>
-          <StepCard n={2} title="Add the extension" body="The app can't block instagram.com in your browser. The extension can.">
-            <Chip>
-              <ChromeLogo size={17} />
-              Add to Chrome
-            </Chip>
-          </StepCard>
-          <StepCard n={3} title="Sign in with Instagram" body="Konvo only asks for your messages. It can't post, follow, or see your feed.">
+          <StepCard n={2} title="Sign in with Instagram" body="You sign in on Instagram's own page. Konvo opens your messages and nothing else.">
             <Chip>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f1b33" strokeWidth="1.8">
                 <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -111,6 +111,16 @@ export function Landing() {
                 <circle cx="17.5" cy="6.5" r="1" fill="#0f1b33" stroke="none" />
               </svg>
               Continue with Instagram
+            </Chip>
+          </StepCard>
+          <StepCard n={3} title="Delete Instagram" body="Konvo replaces it. Your account, your messages and your followers stay exactly where they are.">
+            <Chip>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0f1b33" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18" />
+                <path d="M8 6V4h8v2" />
+                <path d="M6 6l1 14h10l1-14" />
+              </svg>
+              Off the phone
             </Chip>
           </StepCard>
         </div>
@@ -197,8 +207,10 @@ export function Landing() {
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33" }}>Message your friends.</div>
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0a5cf0" }}>Skip the rest of Instagram.</div>
         </div>
-        <DownloadButton onClick={() => setOpen(true)} />
+        <DownloadButton onClick={openModal} />
       </div>
+
+      {open && <DownloadModal onClose={() => setOpen(false)} inAppBrowser={inAppBrowser} />}
 
       {/* footer */}
       <div className="lp-foot" style={{ width: "100%", boxSizing: "border-box", borderTop: "1px solid #e9ecf2", padding: "48px 24px 24px", maxWidth: SHELL, margin: "0 auto" }}>
@@ -227,7 +239,6 @@ export function Landing() {
         <span>Not affiliated with Instagram.</span>
       </div>
 
-      {open && <DownloadModal onClose={() => setOpen(false)} />}
     </div>
   );
 }
@@ -243,8 +254,12 @@ const CARD: React.CSSProperties = {
 
 const FAQ = [
   {
-    q: "Why do I need an extension?",
-    a: "The app can only block Instagram inside the app. Most people open instagram.com in a browser without thinking about it, so the extension blocks it there too.",
+    q: "What is TestFlight?",
+    a: "Apple's own app for trying apps before they are on the App Store. The link opens it, you tap Accept, and Konvo installs like any other app. If you don't have TestFlight, the link installs it first.",
+  },
+  {
+    q: "Is it safe to log in?",
+    a: "You sign in on Instagram's own page, the same one Safari shows, so your password goes to Instagram and not to us. There is no Konvo account and no Konvo database: the session lives on your phone. It shows up in Instagram's settings under Where you're logged in, and you can log it out from there any time.",
   },
   {
     q: "Do I lose my account?",
@@ -252,16 +267,17 @@ const FAQ = [
   },
   {
     q: "Can I turn it off?",
-    a: "Yes, in a few seconds. Quit the app or switch off the extension and Instagram works like it did before.",
+    a: "Yes, in a few seconds. Delete Konvo and install Instagram again, and you are back where you started.",
   },
   {
     q: "Will people know I'm using it?",
     a: "No. Your messages send and read from your account, same as always.",
   },
   {
-    q: "Does Konvo work on Windows?",
-    a: "Not yet. Mac today, Windows and iPhone next. The extension works in any Chrome, on any operating system.",
+    q: "Does Konvo work on Android?",
+    a: "Not yet. iPhone today, Android next. Leave your email and you'll hear when it's ready.",
   },
+
 ];
 
 function Faq({ q, a }: { q: string; a: string }) {
@@ -397,7 +413,7 @@ function DownloadButton({ onClick, big, glow }: { onClick: () => void; big?: boo
           : "0 8px 20px rgba(20,60,150,0.22), inset 0 1px 0 rgba(255,255,255,0.28)",
       }}
     >
-      Download Konvo
+      Download beta
       <svg width={big ? 19 : 18} height={big ? 19 : 18} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M5 12h14" />
         <path d="m12 5 7 7-7 7" />
