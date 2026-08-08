@@ -361,12 +361,16 @@ const CAGE_SCRIPT: &str = r#"
     return "push-silent";
   }
 
-  var navSuppress = 0;
+  var navSuppress = 0, navPath = "";
   function nav(dir) {
     if (!isPhone) return;
-    // One tap, one animation: spaGo raises both events.
-    if (navSuppress && Date.now() - navSuppress < 400) return;
+    // One tap, one animation: spaGo raises both events - for the SAME
+    // destination. A different path inside the window is a fresh tap
+    // (swipe back, then straight into the next chat) and must report.
+    if (navSuppress && Date.now() - navSuppress < 400 &&
+        location.pathname === navPath) return;
     navSuppress = Date.now();
+    navPath = location.pathname;
     try {
       window.webkit.messageHandlers.konvoStore.postMessage(
         { cmd: "nav", id: 0, productId: dir });

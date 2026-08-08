@@ -225,6 +225,8 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
     fileprivate static var snapStack: [UIView] = []
     // The current screen, captured while it was idle - see pushIntoThread.
     fileprivate static var settledSnap: UIView?
+    // When settledSnap was refreshed by a raw tap; fresh beats live pixels.
+    fileprivate static var tapSnapAt = Date.distantPast
     private static var firstNavDone = false
 
     // Five full-screen snapshots is 55-75MB on a modern iPhone, held for
@@ -266,7 +268,13 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         // The stored idle snapshot is only right for the FIRST navigation
         // of a session, where a live capture comes back empty. After that
         // it is stale the moment the user scrolls, so take live pixels.
-        let live = firstNavDone ? webView.snapshotView(afterScreenUpdates: false) : nil
+        // A tap snapshot under a second old is the screen being left,
+        // guaranteed pre-navigation; live pixels by now can already be the
+        // destination mid-render. Older than that, live pixels win - a
+        // stored picture goes stale the moment the user scrolls.
+        let tapFresh = Date().timeIntervalSince(tapSnapAt) < 1.0
+        let live = (firstNavDone && !tapFresh)
+            ? webView.snapshotView(afterScreenUpdates: false) : nil
         guard let host = webView.superview,
               let current = live ?? settledSnap
                 ?? webView.snapshotView(afterScreenUpdates: false)
@@ -435,8 +443,18 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             }
         }
         @objc func tapDismiss(_ g: UITapGestureRecognizer) {
-            guard let wv = webView,
-                  KonvoStore.keyboardTop < UIScreen.main.bounds.height,
+            guard let wv = webView else { return }
+            // The screen as it stands ON the tap frame, before Instagram's
+            // router paints anything. The nav report lands ~80ms after the
+            // tap (device log, Aug 7), and a snapshot taken then catches
+            // the destination mid-render - headerless, pre-zoom - which
+            // the next back-swipe then reveals as a garbled "inbox".
+            if let s = wv.snapshotView(afterScreenUpdates: false) {
+                s.frame = wv.frame
+                KonvoStore.settledSnap = s
+                KonvoStore.tapSnapAt = Date()
+            }
+            guard KonvoStore.keyboardTop < UIScreen.main.bounds.height,
                   g.location(in: nil).y < KonvoStore.keyboardTop - 96
             else { return }
             wv.endEditing(true)
@@ -621,13 +639,23 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         // Every SPA navigation animates the same way, wherever it goes:
         // forward slides in from the right, back from the left. The
         // back-swipe owns its own animation, so it opts out.
+
         if cmd == "nav" {
             DispatchQueue.main.async { [weak webView] in
-                // Suppressed during the gesture AND through the round-trip
-                // it causes, or the swipe animates twice.
-                guard !Self.swiping,
-                      Date() > Self.swipeSettleUntil,
-                      let wv = webView else { return }
+                // After a swipe commits, exactly ONE report - the swipe's
+                // own round-trip, whatever navFor calls it - is swallowed,
+                // then the window closes. A blanket 1.2s window ate the
+                // "push" of every chat tapped within a second of a
+                // back-swipe, which is how an inbox is actually used
+                // (device log, Aug 7). Checked before the swiping guard:
+                // the round-trip usually lands mid-slide, and it must
+                // consume the window even then.
+                guard let wv = webView else { return }
+                if Date() < Self.swipeSettleUntil {
+                    Self.swipeSettleUntil = .distantPast
+                    return
+                }
+                guard !Self.swiping else { return }
                 if productId == "push-silent" {
                     // Stack it without animating: the back-swipe still
                     // needs a picture of the screen underneath.
