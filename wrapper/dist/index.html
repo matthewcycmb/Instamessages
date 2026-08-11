@@ -13,9 +13,10 @@
        quiz. The flag lives on this tauri:// origin and is wiped only by app
        deletion, which is exactly once-per-install.
 
-     The S2 motive and the computed weekly hours ride to the paywall in the
-     URL fragment (#konvo=<motive>.<hours>); CAGE_SCRIPT persists it into
-     instagram.com-origin localStorage at document-start and strips the hash.
+     The motive question was removed on Aug 11, so nothing rides to the
+     paywall in the #konvo= fragment any more. CAGE_SCRIPT still reads that
+     fragment and still has motiveLine(): both are inert until something
+     sets a motive again.
 
      The paywall (S12-S14) is NOT here: it runs on the instagram.com origin,
      injected by CAGE_SCRIPT after login. -->
@@ -186,6 +187,11 @@
   .done .check svg { display: block }
   @keyframes pop { from { transform: scale(0.55); opacity: 0 } }
   .pop { animation: pop .55s cubic-bezier(0.34, 1.56, 0.64, 1) both }
+  /* The projection waits for S5's slow fade to mostly land. The delay lives
+     here, not in a timer: fill-mode both holds the from-state through it, so
+     the number is invisible until it pops. Setting it from a setTimeout drew
+     the final number for half a second, then collapsed and re-popped it. */
+  #years-lost.pop { animation-delay: .5s }
   .lead { font-size: 22px; font-weight: 600; letter-spacing: -0.02em }
   .bignum { font-size: 64px; font-weight: 700; letter-spacing: -0.05em;
             line-height: 0.95; color: var(--daccent); white-space: nowrap }
@@ -200,7 +206,11 @@
   .trust .ic { width: 34px; height: 34px; flex: none; border-radius: 10px;
                background: var(--icbg); display: inline-flex; align-items: center;
                justify-content: center; color: var(--accent) }
-  #s1 { background: url('welcome-bg.jpg') center/cover }
+  /* Pure white at y=0 so it meets the native letterbox (root view,
+     .systemBackground) with no seam - CSS cannot paint above the webview,
+     so the page has to come to it. */
+  #s1 { background: linear-gradient(180deg, #fff 0, rgba(255,255,255,0) 120px),
+        url('welcome-bg.jpg') center/cover }
   .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 470px;
           background: linear-gradient(180deg, rgba(255,255,255,0) 0%,
           rgba(255,255,255,0.82) 46%, rgba(255,255,255,0.95) 100%) }
@@ -261,34 +271,14 @@
       <p style="font-size: 17px; line-height: 1.5; color: var(--mut);
          margin: 14px 0 28px; max-width: 32ch">Your DMs and friends&rsquo;
          Stories still work.</p>
-      <button class="btn" data-next="s2">Get started</button>
-    </div>
-  </div>
-
-  <div class="screen" id="s2">
-    <div class="chrome">
-      <div class="track"><div class="fill" style="width: 33%"></div></div>
-      <button class="back" data-back="s1" aria-label="Back"><svg width="10"
-        height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-    </div>
-    <div class="body">
-      <h2>Why do you want to<br>scroll less?</h2>
-      <p class="sub">I want to&hellip;</p>
-      <div class="opts">
-        <button class="opt" data-mot="schoolOrWork">Get school or work done</button>
-        <button class="opt" data-mot="ownProjects">Work on my own projects</button>
-        <button class="opt" data-mot="presentWithPeople">Be more present with people</button>
-        <button class="opt" data-mot="sleepOnTime">Go to sleep on time</button>
-        <button class="opt" data-mot="lessDistracted">Feel less distracted</button>
-      </div>
+      <button class="btn" data-next="s3">Get started</button>
     </div>
   </div>
 
   <div class="screen" id="s3">
     <div class="chrome">
-      <div class="track"><div class="fill" style="width: 66%"></div></div>
-      <button class="back" data-back="s2" aria-label="Back"><svg width="10"
+      <div class="track"><div class="fill" style="width: 50%"></div></div>
+      <button class="back" data-back="s1" aria-label="Back"><svg width="10"
         height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     </div>
@@ -400,8 +390,7 @@
            align-items: center; justify-content: center; text-align: center">
         <p class="lead">Konvo could help you get back</p>
         <div class="bignum" id="years-back" style="margin: 18px 0">5.4 years</div>
-        <p class="lead" id="motive-line" style="max-width: 26ch">of your life
-           to achieve your dreams and work on my own projects.</p>
+        <p class="lead" style="max-width: 26ch">of your life.</p>
       </div>
     </div>
     <div class="foot"><button class="btn" data-next="s8a">See what stays</button></div>
@@ -489,11 +478,8 @@
 (function () {
   if (!document.documentElement.classList.contains("onboard")) return;
 
-  // Quiz state. The motive is stored as its stable value, never the display
-  // string; the phrase for S7 is the option text lowercased (approved
-  // mapping). M is the messaging range's upper bound; "I don't know" is a
+  // Quiz state. M is the messaging range's upper bound; "I don't know" is a
   // transparent 20-minute estimate.
-  var motive = "", motivePhrase = "";
 
   // TODO: RELEASE BLOCKER - QUOTES stays empty until real TestFlight quotes
   // exist (locked rule: no invented social proof). Entries like
@@ -544,11 +530,9 @@
   }
 
   // The disclosed projection (sheet header, locked): full 24 h days over the
-  // next 60 years, one decimal. years = mins/1440*60.
-  function years(m) { return (m / 1440 * 60).toFixed(1).replace(/\.0$/, ""); }
-  function weeklyHours() {
-    return Math.max(1, Math.round((Math.max(0, mins() - msgMins())) * 7 / 60));
-  }
+  // next 60 years. years = mins/1440*60, always rounded UP - "6.3 years" reads
+  // as arithmetic to argue with, a whole number reads as the point.
+  function years(m) { return Math.ceil(m / 1440 * 60); }
 
   // The funnel's appearance: light, except the S5-S7 dark stretch. The
   // bridge pins the letterbox and status bar to match; silent no-op without
@@ -636,13 +620,12 @@
   function reveal() {
     var y = document.getElementById("years-lost");
     y.textContent = years(mins()) + " years";
+    // Remove, force reflow, re-add: the standard restart. The wait is the
+    // CSS animation-delay now, so a re-entry cannot stack timers or land a
+    // stale pop on a screen the user has already left.
     y.classList.remove("pop");
-    // The pop waits for the slow fade to mostly land, so the number is the
-    // last thing that arrives.
-    setTimeout(function () {
-      void y.offsetWidth;
-      y.classList.add("pop");
-    }, 500);
+    void y.offsetWidth;
+    y.classList.add("pop");
   }
 
   function columns() {
@@ -662,9 +645,6 @@
     y.classList.remove("pop");
     void y.offsetWidth;
     y.classList.add("pop");
-    document.getElementById("motive-line").textContent =
-      "of your life to achieve your dreams and " +
-      (motivePhrase || "feel less distracted") + ".";
   }
 
   document.addEventListener("click", function (e) {
@@ -688,19 +668,14 @@
     // re-schedule the advance.
     busy = Date.now() + 1250;
     var screen = opt.closest(".screen").id;
-    if (screen === "s2") {
-      motive = opt.dataset.mot;
-      motivePhrase = opt.textContent.trim().toLowerCase();
-    }
     track("quiz_answered", {
-      question: screen === "s2" ? "motive"
-        : screen === "s3" ? "screen_time" : "messaging",
+      question: screen === "s3" ? "screen_time" : "messaging",
       screen_id: screen,
     });
     // Tap-to-select auto-advances after a beat; no Continue on option
     // screens (approved: one subtle haptic, ~250ms, advance).
     setTimeout(function () {
-      show(screen === "s2" ? "s3" : screen === "s3" ? "s4" : "s4b");
+      show(screen === "s3" ? "s4" : "s4b");
     }, 250);
   });
 
@@ -710,11 +685,7 @@
     // killed app mid-login must never replay the quiz.
     try { localStorage.konvoOnboarded = "1"; } catch (e) {}
     show("s11");
-    // The motive and weekly hours personalize the paywall on the
-    // instagram.com origin; CAGE_SCRIPT persists this fragment into that
-    // origin's localStorage at document-start and strips it.
-    var frag = motive ? "#konvo=" + motive + "." + weeklyHours() : "";
-    var url = "https://www.instagram.com/direct/inbox/" + frag;
+    var url = "https://www.instagram.com/direct/inbox/";
     // Hand the navigation to native. A page-driven cross-origin navigation
     // to instagram.com is a universal link on iOS: with Instagram installed,
     // the system opens THEIR app and the tester never signs into Konvo.

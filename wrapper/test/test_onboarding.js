@@ -1,9 +1,9 @@
 // Exercises the bundled onboarding page (wrapper/dist/index.html): the
-// once-per-install gate, the Mac bypass, the full v2 walk (S1 -> S2 motive
-// -> S3 slider -> S4 ranges -> S5/S6/S7 dark impact -> S8a/S8b -> S10
-// privacy) with the sheet's disclosed math, the S4 gating rule, the tap
-// lock that stops spam-throughs, and the flag + #konvo fragment being set
-// at the login handoff, not later.
+// once-per-install gate, the Mac bypass, the full v2 walk (S1 -> S3 ranges
+// -> S4 ranges -> S5/S6/S7 dark impact -> S8a/S8b -> S10 privacy) with the
+// sheet's disclosed math, the S4 gating rule, the tap lock that stops
+// spam-throughs, and the once-per-install flag being set at the login
+// handoff, not later. The S2 motive screen was removed on Aug 11.
 //
 //   node test_onboarding.js          (jsdom already installed for test_cage)
 //
@@ -81,21 +81,18 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(doc.getElementById('s1').classList.contains('on'), 'S1 must be showing');
 
   // 4. The whole walk with the sheet's own example numbers (2 h 30 m total,
-  //    10-20 messaging): 6.3 years lost, 5.4 back, 15 hours a week, and the
-  //    motive sentence built from the S2 option lowercased. Every wait sits
-  //    past the tap lock (600ms per slide, longer on the reveals).
+  //    10-20 messaging): 7 years lost, 6 back. Every wait sits past the tap
+  //    lock (600ms per slide, longer on the reveals).
   const tap = sel => {
     const el = doc.querySelector(sel);
     assert(el, sel + ' must exist');
     el.click();
   };
   tap('#s1 [data-next]');                       // Get started
-  assert(doc.getElementById('s2').classList.contains('on'));
-  await settle(1100);
-  tap("#s2 .opt[data-mot='ownProjects']");
-  await settle(1400);                           // 250ms beat + slide + lock
   assert(doc.getElementById('s3').classList.contains('on'),
-    'motive options must auto-advance without a Continue button');
+    'Get started must open the screen-time question directly - no motive screen');
+  assert(!doc.getElementById('s2'), 'the motive screen must be gone from the document');
+  await settle(1100);
   tap("#s3 .opt[data-m='150']");                // 2 - 3 hours
   await settle(1400);                           // 250ms beat + slide + lock
   assert(doc.getElementById('s4').classList.contains('on'),
@@ -116,8 +113,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the calculating beat must auto-advance into the dark reveal');
   assert(doc.querySelector('#s4b .pill:last-child').classList.contains('done'),
     'every calculating pill must complete before the reveal');
-  assert.strictEqual(doc.getElementById('years-lost').textContent, '6.3 years',
-    '150 min over full days across 60 years is 6.3 to one decimal');
+  assert.strictEqual(doc.getElementById('years-lost').textContent, '7 years',
+    '150 min over full days across 60 years is 6.25, and the figure rounds up');
   assert.deepStrictEqual(d.appearance, ['dark'],
     'entering S5 must pin the letterbox dark');
 
@@ -135,11 +132,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(1500);                           // past the S6 dwell
   tap('#s6 [data-next]');                       // See what changes
   assert(doc.getElementById('s7').classList.contains('on'));
-  assert.strictEqual(doc.getElementById('years-back').textContent, '5.4 years',
-    '130 protectable minutes is 5.4 years to one decimal');
-  assert.strictEqual(doc.getElementById('motive-line').textContent,
-    'of your life to achieve your dreams and work on my own projects.',
-    'the S7 payoff must be the complete sentence with the S2 option lowercased');
+  assert.strictEqual(doc.getElementById('years-back').textContent, '6 years',
+    '130 protectable minutes is 5.42 years, and the figure rounds up');
   await settle(1900);                           // past the S7 dwell
   tap('#s7 [data-next]');                       // See what stays
   assert(doc.getElementById('s8a').classList.contains('on'));
@@ -160,16 +154,16 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   tap('#signin');                               // Got it, sign in
   assert.strictEqual(d.window.localStorage.konvoOnboarded, '1',
     'S10 must set the once-per-install flag at the handoff, not at the paywall');
-  assert.deepStrictEqual(d.nav, [INBOX + '#konvo=ownProjects.15'],
-    'the handoff must go through NATIVE navigation, carrying motive and hours');
+  assert.deepStrictEqual(d.nav, [INBOX],
+    'the handoff must go through NATIVE navigation, straight to the inbox');
   assert.deepStrictEqual(d.went, [],
     'the page must not navigate itself: that is the universal link that opens Instagram');
   assert(doc.getElementById('s11').classList.contains('on'),
     'the handoff spinner must be the last thing shown');
   assert(d.events.includes('login_started'),
     'the handoff must track login_started');
-  assert(d.events.filter(e => e === 'quiz_answered').length === 3,
-    'all three quiz answers must be tracked (lean payloads, no values)');
+  assert(d.events.filter(e => e === 'quiz_answered').length === 2,
+    'both remaining quiz answers must be tracked (lean payloads, no values)');
   assert(d.events.includes('onboarding_screen_viewed'),
     'screen views must be tracked');
 
@@ -180,11 +174,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const otap = sel => od.querySelector(sel).click();
   otap('#s1 [data-next]');
   await settle(1100);
-  otap("#s2 .opt[data-mot='presentWithPeople']");
-  await settle(1400);
   otap("#s3 .opt[data-m='45']");                // < 1 hour: the lowest range
   await settle(1400);
-  await settle(1100);
   const opts = [...od.querySelectorAll('#s4 .opt')];
   assert(opts.length > 0, 'S4 must offer messaging ranges');
   for (const o of opts) {
@@ -204,7 +195,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   otap('#s6 [data-next]');
   await settle(1900);
   const back = od.getElementById('years-back').textContent;
-  assert(/^[\d.]+ years$/.test(back), 'years back must render from the minimum answers');
+  assert(/^\d+ years$/.test(back),
+    'years back must render from the minimum answers, as a whole number');
   assert(parseFloat(back) > 0, 'years back must never be zero - the sentence would read as nothing to gain');
   otap('#s7 [data-next]');
   await settle(1100);
@@ -213,11 +205,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   otap('#s8b [data-next]');
   await settle(1100);
   otap('#signin');
-  const frag = one.nav[0] || '';
-  assert(frag.startsWith(INBOX + '#konvo=presentWithPeople.'),
-    'the handoff must carry the motive and the weekly hours');
-  assert(Number(frag.split('.').pop()) >= 1,
-    'weekly hours floor at 1 so the paywall sentence never says zero');
+  assert.strictEqual(one.nav[0], INBOX,
+    'the handoff goes straight to the inbox - the motive fragment is gone');
 
   console.log('ALL ONBOARDING TESTS PASS');
   process.exit(0);
