@@ -36,6 +36,11 @@ function boot(path, html, opts = {}) {
   // paying user relies on; `bridge` stands in for KonvoStore.swift and gets
   // every postMessage the wall sends, replying via __konvoStoreReply.
   if (opts.paid) dom.window.localStorage.setItem('konvoPaid', '1');
+  // Free builds prepend window.__konvoFree=true. welcomed/betaFree are the
+  // two markers that mean "this person has already seen the sequence".
+  if (opts.free) dom.window.__konvoFree = true;
+  if (opts.welcomed) dom.window.localStorage.setItem('konvoWelcomed', '1');
+  if (opts.betaFree) dom.window.localStorage.setItem('konvoBetaFree', '1');
   if (opts.patch) dom.window.localStorage.setItem('konvoPatch', JSON.stringify(opts.patch));
   if (opts.bridge) dom.window.webkit = { messageHandlers: { konvoStore: {
     postMessage: m => opts.bridge(m, dom) } } };
@@ -350,6 +355,13 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const wallThread = boot('/direct/t/123/', '');
   const wallOut = boot('/direct/inbox/', '', { loggedOut: true });
   const wallBeta = boot('/direct/inbox/', '', { beta: true });
+  //     An update must never replay the welcome sequence. The free build
+  //     reads konvoWelcomed, but a tester arriving from a beta build has
+  //     only konvoBetaFree: the same fact under the other variant's name.
+  //     Reading one alone sent every existing tester back through it.
+  const wallFreeNew = boot('/direct/inbox/', '', { free: true });
+  const wallFreeDone = boot('/direct/inbox/', '', { free: true, welcomed: true });
+  const wallFreeFromBeta = boot('/direct/inbox/', '', { free: true, betaFree: true });
   await settle(1300);   // auth check, then the next ensure tick
   const wdoc = wallFresh.window.document;
   const payText = () => wdoc.getElementById('im-pay').textContent;
@@ -374,6 +386,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     one.
   assert(wallBeta.window.document.getElementById('im-pay'),
     'a beta build must raise the real wall - that is where the pricing data comes from');
+  assert(wallFreeNew.window.document.getElementById('im-pay'),
+    'a first-run free build must still play the welcome sequence');
+  assert(!wallFreeDone.window.document.getElementById('im-pay'),
+    'konvoWelcomed must keep the sequence away after an update');
+  assert(!wallFreeFromBeta.window.document.getElementById('im-pay'),
+    'a tester updating from a beta build must NOT be sent through it again');
   await settle(2600);  // the loader (auth tick + slow cadence + crossfade)
   assert(/Setting up your Konvo/.test(payText()),
     'connected must auto-advance into the honest loader');

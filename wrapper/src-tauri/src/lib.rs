@@ -1543,8 +1543,14 @@ const CAGE_SCRIPT: &str = r#"
       if (wall || cached() || !atInbox()) return;
       // Free build (App Store v1.0): the welcome sequence plays once and
       // finishes at the delete-Instagram step. No price screen, no wall.
+      // konvoBetaFree counts as welcomed. A tester updating from a beta
+      // build has only that key - the two variants recorded the same fact
+      // ("this person has been through the sequence") under different
+      // names - so reading one alone replayed the whole thing for every
+      // existing tester on the update that switched variants.
       try {
-        if (window.__konvoFree && localStorage.getItem("konvoWelcomed")) return;
+        if (window.__konvoFree && (localStorage.getItem("konvoWelcomed") ||
+            localStorage.getItem("konvoBetaFree"))) return;
       } catch (e) {}
       // Verified session first, always. The check is synchronous, so the
       // wall rises in the same tick the cookie appears.
