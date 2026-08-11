@@ -42,3 +42,4 @@ next-env.d.ts
 wrapper/src-tauri/target
 extension/_metadata/
 .gstack/
+.env.local

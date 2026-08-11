@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PostHogProvider } from "@/components/posthog-provider";
+import { HumanBehaviorInit } from "./HumanBehaviorInit";
 
 export const metadata: Metadata = {
   title: "Konvo",
@@ -26,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
+        <HumanBehaviorInit />
         <PostHogProvider>{children}</PostHogProvider>
       </body>
     </html>
