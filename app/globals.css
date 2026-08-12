@@ -142,11 +142,11 @@ html {
     align-items: center;
     text-align: center;
     gap: 0;
-    padding: 64px 24px 0;
+    padding: 76px 24px 0;
   }
   .lp-hero-copy { width: 100%; display: flex; flex-direction: column; align-items: center; }
   .lp-h1 {
-    font-size: clamp(30px, 11.4vw - 6px, 44px);
+    font-size: clamp(30px, 11.8vw - 6px, 44px);
     line-height: 1.08;
     letter-spacing: -0.045em;
     color: #f6f8fc;
@@ -154,20 +154,21 @@ html {
   .lp-lede {
     display: block;
     margin: 18px 0 0;
-    max-width: 30ch;
-    font-size: 16px;
+    max-width: 34ch;
+    text-wrap: balance;
+    font-size: clamp(13px, 3.9vw, 16px);
     line-height: 1.5;
     color: #98a4bb;
   }
   .lp-hero-copy > a,
-  .lp-hero-copy > button { margin-top: 30px; }
+  .lp-hero-copy > button { margin-top: 26px; }
 
   /* Cropped by the band, not floating in it: the cut is what makes it feel
      placed, and it implies there is more of the app below the fold. */
-  .lp-hero-art { display: block; width: 100%; margin-top: 40px; padding-bottom: 26px; }
-  .lp-mocks { display: flex; justify-content: center; }
+  .lp-hero-art { display: block; width: 100%; margin-top: 28px; padding-bottom: 22px; }
+  .lp-mocks { display: flex; justify-content: center; width: 100%; }
   .lp-mocks img {
-    width: 62%;
+    width: 78%;
     height: auto;
     display: block;
     filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.55));
@@ -197,20 +198,6 @@ html {
   .lp-compare .lp-listrow:last-child { border-bottom: 0; }
   .lp-compare .lp-listmark { width: 16px; height: 16px; margin-top: 1px; }
   .lp-compare .lp-listlabel { font-size: 13.5px; line-height: 1.35; }
-  .lp-hero-art { display: block; }
-  /* The renders are cropped to the devices now, so the images ARE the
-     phones - no tile, no card, and no crop to fight. Capped and centred so
-     the pair reads as one hero image instead of two columns of furniture. */
-  /* One phone, large. Two of them split a 390pt screen into a pair too
-     small to read; a single device at ~62% of the width is legible and
-     carries the hero on its own. */
-  .lp-mocks { display: flex; justify-content: center; }
-  .lp-mocks img {
-    width: 62%;
-    height: auto;
-    display: block;
-    filter: drop-shadow(0 18px 34px rgba(20, 50, 110, 0.26));
-  }
 }
 
 body {

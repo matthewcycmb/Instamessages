@@ -74,9 +74,9 @@ export function Landing({
         <div className="lp-hero-row" style={{ flex: 1, maxWidth: SHELL, margin: "0 auto", width: "100%", boxSizing: "border-box", position: "relative" }}>
           <div className="lp-hero-copy">
             <h1 className="lp-h1" style={{ fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.05, margin: 0 }}>
-              Instagram without
+              Use Instagram
               <br />
-              the feed and reels.
+              only for messaging
             </h1>
             {/* The paragraph is desktop-only. On a phone the headline already
                 says it, and a second wall of text pushed the button and the
@@ -87,7 +87,8 @@ export function Landing({
               No feed, no stories, no reels, no explore.
             </p>
             <p className="lp-lede">
-              Konvo removes everything except your messages.
+              Konvo blocks your Instagram feed, explore and reels pages but
+              keeps your messages.
             </p>
             <DownloadButton onClick={openModal} label={label} big glow href={ctaHref} />
           </div>
