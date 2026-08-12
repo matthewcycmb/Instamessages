@@ -420,11 +420,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(450);   // crossfade
   assert(/How your free trial works/.test(payText()),
     'Continue on the perks page must reach S13');
-  assert(/First 14 days free, then \$29\.99 a year\./.test(payText()),
+  assert(/First 14 days free, then \$19\.99 a year\./.test(payText()),
     'the headline states the real yearly charge');
-  assert(/\$2\.50/.test(payText()) && /per month/.test(payText()),
+  assert(/\$1\.67/.test(payText()) && /per month/.test(payText()),
     'the Annual card prices by the month, the number shoppers compare');
-  assert(/SAVE 50%/.test(payText()),
+  assert(/SAVE 66%/.test(payText()),
     'the honest computed discount must show on the Annual card');
   assert(/Try for \$0\.00/.test(payText()),
     'the trial CTA is Try for $0.00');
@@ -449,9 +449,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/Continue with Monthly/.test(payText()),
     'Monthly must have its own CTA');
   wtap('pk-l');
-  assert(/\$79\.99 once\. Lifetime access\./.test(payText()),
+  assert(/\$29\.99 once\. Lifetime access\./.test(payText()),
     'Lifetime states the one-time price and the exact phrase Lifetime access');
-  assert(/Pay \$79\.99 once\. That's it\./.test(payText()),
+  assert(/Pay \$29\.99 once\. That's it\./.test(payText()),
     'the Lifetime timeline is a one-step confirmation');
   assert(/Get Lifetime access/.test(payText()),
     'the Lifetime CTA');
@@ -516,6 +516,30 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(posted.includes('track:login_succeeded') &&
     posted.includes('track:paywall_viewed'),
     'the funnel events must reach the bridge');
+
+  //     Opening a conversation is the only signal that the app was USED
+  //     rather than merely launched, so it must fire once per crossing
+  //     into a thread and never on the inbox or on a repeat sweep.
+  //     enforce() runs on an 800ms interval, so every wait clears one tick.
+  const seen = [];
+  const threads = boot('/direct/inbox/', '', {
+    bridge: m => { if (m.cmd === 'track') seen.push(m.event); } });
+  const opens = () => seen.filter(e => e === 'thread_opened').length;
+  await settle(900);
+  assert(opens() === 0, 'sitting on the inbox must not count as opening a conversation');
+  threads.window.__loc.pathname = '/direct/t/12345/';
+  await settle(900);
+  assert(opens() === 1, 'entering a thread must report exactly one thread_opened');
+  await settle(900);
+  assert(opens() === 1, 'staying in the same thread must not report again');
+  threads.window.__loc.pathname = '/direct/inbox/';
+  await settle(900);
+  threads.window.__loc.pathname = '/direct/t/98765/';
+  await settle(900);
+  assert(opens() === 2, 'a second conversation must report again');
+  //     The event carries nothing identifying - no thread id, ever.
+  assert(!JSON.stringify(seen).includes('12345'),
+    'thread_opened must never carry a thread id');
 
   //     A trial-ineligible user gets the no-trial Annual story.
   const noTrial = boot('/direct/inbox/', '', { bridge: answer({

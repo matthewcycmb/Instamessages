@@ -31,6 +31,17 @@ const CAGE_SCRIPT: &str = r#"
   // already refuses subframes.
   try { if (window.self !== window.top) return; } catch (e) { return; }
 
+  // Analytics go native: Instagram's CSP blocks a page-side call to
+  // PostHog. Defined here rather than inside the paywall block because the
+  // route watcher needs it too. Event names and screen ids only, never
+  // content, never a thread id.
+  function track(event, props) {
+    try {
+      window.webkit.messageHandlers.konvoStore.postMessage(
+        { cmd: "track", id: 0, event: event, props: props || {} });
+    } catch (e) {}
+  }
+
   // The onboarding quiz's motive + weekly hours arrive in the URL fragment
   // (dist/index.html sets it at the login handoff; localStorage does not
   // cross the tauri -> instagram origin boundary). Persist into this origin
@@ -234,6 +245,12 @@ const CAGE_SCRIPT: &str = r#"
       : location.pathname.indexOf("/direct/t/") === 0 ? "thread" : "other";
     if (r !== lastRoute) {
       lastRoute = r;
+      // Reading a conversation is the product working. Launch counts alone
+      // cannot tell an open that led to a chat from one that bounced.
+      // The route watcher crosses once per navigation, so no extra guard:
+      // the app always loads the inbox, so the first crossing is never a
+      // thread, and if it ever were, that would be a thread open too.
+      if (r === "thread") track("thread_opened");
       titleSized = false;
       if (r !== "inbox" && titleMo) { titleMo.disconnect(); titleMo = null; }
       if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
@@ -1059,19 +1076,14 @@ const CAGE_SCRIPT: &str = r#"
       '#im-pay .imp-dot i{flex:none;width:44px;height:44px;border-radius:50%;' +
       'background:var(--accent);display:inline-flex;align-items:center;' +
       'justify-content:center}' +
+      '#im-pay .imp-pk u.imp-save{margin-top:5px;font-size:11.5px;font-weight:700;' +
+      'letter-spacing:.02em;color:var(--accent)}' +
       '#im-pay .imp-stem{flex:1;width:8px;border-radius:999px;' +
       'background:rgba(10,92,240,.15);margin-top:0}';
 
     // Funnel events, fire-and-forget through the bridge (Instagram's CSP
     // blocks page-side analytics). Lean payloads by decision: names and
     // screen ids only. Silent no-op without the bridge (tests, Mac).
-    function track(event, props) {
-      try {
-        window.webkit.messageHandlers.konvoStore.postMessage(
-          { cmd: "track", id: 0, event: event, props: props || {} });
-      } catch (e) {}
-    }
-
     var CHECK =
       "<svg width='11' height='11' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
       " stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'>" +
@@ -1199,10 +1211,10 @@ const CAGE_SCRIPT: &str = r#"
     // Live localized RevenueCat values (locked decision: never hardcode
     // money in shipping paths). These stand-ins render only when the bridge
     // is absent (tests, builds without the Swift class).
-    var FALLBACK = { yearly: { price: '$29.99', perWeek: '$0.58',
-                               perMonth: '$2.50', savePct: 50, trialDays: 14 },
+    var FALLBACK = { yearly: { price: '$19.99', perWeek: '$0.38',
+                               perMonth: '$1.67', savePct: 66, trialDays: 14 },
                      monthly: { price: '$4.99' },
-                     lifetime: { price: '$79.99' } };
+                     lifetime: { price: '$29.99' } };
     var P = null;
     function prod() {
       return P && P.yearly && P.monthly && P.lifetime ? P : FALLBACK;
@@ -1245,7 +1257,7 @@ const CAGE_SCRIPT: &str = r#"
     function node(icon, title, body, stem) {
       return "<div class='imp-tl'><div class='imp-dot'><i>" + icon + "</i>" +
         (stem ? "<span class='imp-stem'></span>" : "") +
-        "</div><div style='padding:4px 0 " + (stem ? "13px" : "0") + "'>" +
+        "</div><div style='padding:4px 0 " + (stem ? "30px" : "0") + "'>" +
         "<h4>" + title + "</h4><p>" + body + "</p></div></div>";
     }
     function dateIn(days) {
@@ -1254,10 +1266,14 @@ const CAGE_SCRIPT: &str = r#"
         return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
       } catch (e) { return ""; }
     }
-    function pkCard(act, on, badge, name, price, sub) {
+    function pkCard(act, on, badge, name, price, sub, save) {
+      // The saving gets its own line in the accent, not a "per month - SAVE
+      // 66%" run-on: it is the strongest number on the card and was the
+      // quietest thing on it.
       return "<div class='imp-pk" + (on ? " on" : "") + "' data-act='" + act + "'>" +
         (badge ? "<span class='imp-rec'>" + badge + "</span>" : "") +
-        "<b>" + name + "</b><i>" + price + "</i><u>" + sub + "</u></div>";
+        "<b>" + name + "</b><i>" + price + "</i><u>" + sub + "</u>" +
+        (save ? "<u class='imp-save'>" + save + "</u>" : "") + "</div>";
     }
     // S13. plan: 'y' | 'm' | 'l'. The Annual state renders the trial only
     // when RevenueCat says this user is eligible - the timeline never
@@ -1333,15 +1349,15 @@ const CAGE_SCRIPT: &str = r#"
         " stroke-width='2.2' stroke-linejoin='round'><path d='M12 4c-4.4 0-8 3-8 6.8 " +
         "0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z'/>" +
         "</svg></div></div>" +
-        "<div class='imp-mid' style='justify-content:flex-start;padding:18px 24px 0'>" +
+        "<div class='imp-mid' style='justify-content:flex-start;padding:34px 24px 0'>" +
         "<div style='text-align:center'>" +
         "<h2 style='font-size:24px'>" +
         (td ? "How your free trial works" : "How your plan works") + "</h2>" +
-        "<p style='font-size:15px;color:var(--mut);margin-top:8px'>" + head + "</p>" +
+        "<p style='font-size:15px;color:var(--mut);margin-top:14px'>" + head + "</p>" +
         (mot ? "<p style='font-size:14px;font-weight:600;color:var(--accent);" +
           "margin-top:8px'>" + mot + "</p>" : "") + "</div>" +
         proofStrip() +
-        "<div style='display:flex;gap:8px;margin:16px 0 16px'>" +
+        "<div style='display:flex;gap:8px;margin:34px 0 34px'>" +
         // The card prices annual by the month - the number a shopper
         // compares against the monthly plan. The full yearly charge is
         // stated in the line above and in the timeline. The unit label
@@ -1349,8 +1365,8 @@ const CAGE_SCRIPT: &str = r#"
         // price with "per month" would be a straight lie.
         pkCard("pk-y", plan === "y", "RECOMMENDED", "Annual",
           y.perMonth || y.price,
-          (y.perMonth ? "per month" : "per year") +
-          (sp ? " &middot; SAVE " + sp + "%" : "")) +
+          y.perMonth ? "per month" : "per year",
+          sp ? "SAVE " + sp + "%" : "") +
         pkCard("pk-m", plan === "m", "", "Monthly", m.price, "per month") +
         pkCard("pk-l", plan === "l", "", "Lifetime", l.price, "Pay once, keep it") +
         "</div>" +
