@@ -37,25 +37,14 @@ export function Landing({
   }
 
   return (
-    <div style={{ width: "100%", background: "#fff", display: "flex", flexDirection: "column", overflow: "hidden", color: "#0f1b33" }}>
+    <div className="lp-page" style={{ width: "100%" }}>
       {/* hero band (10b): fixed-height split — copy left, app shot right. */}
       <div
         className="lp-hero-band"
-        style={{
-          width: "100%",
-          // No scrim: the backdrop is a pale, even gradient, so the dark type
-          // already has contrast. The washes here were only ever compensating
-          // for photographic backgrounds.
-          backgroundImage: "url('/hero-bg.jpg')",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          display: "flex",
-          flexDirection: "column",
-          position: "relative",
-          overflow: "hidden",
-        }}
+        style={{ width: "100%" }}
       >
         <div
+          className="lp-scrim"
           style={{
             position: "absolute",
             left: 0,
@@ -75,7 +64,7 @@ export function Landing({
             <a href="#blocked" style={NAVLINK}>What&apos;s blocked</a>
             <a href="#faq" style={NAVLINK}>FAQ</a>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 9, background: "rgba(255,255,255,0.6)", border: "1px solid rgba(20,40,80,0.1)", borderRadius: 999, padding: "8px 16px", fontSize: 14, fontWeight: 500, color: "#2c3444" }}>
+          <div className="lp-betabadge" style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 999, padding: "8px 16px", fontSize: 14, fontWeight: 500 }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#30a14e" }} />
             Free while in beta
           </div>
@@ -84,10 +73,10 @@ export function Landing({
         {/* hero row */}
         <div className="lp-hero-row" style={{ flex: 1, maxWidth: SHELL, margin: "0 auto", width: "100%", boxSizing: "border-box", position: "relative" }}>
           <div className="lp-hero-copy">
-            <h1 className="lp-h1" style={{ fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.05, margin: 0, color: "#0f1b33" }}>
-              DM on Instagram
+            <h1 className="lp-h1" style={{ fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.05, margin: 0 }}>
+              Instagram without
               <br />
-              without the feed and reels.
+              the feed and reels.
             </h1>
             {/* The paragraph is desktop-only. On a phone the headline already
                 says it, and a second wall of text pushed the button and the
@@ -97,13 +86,14 @@ export function Landing({
               <br />
               No feed, no stories, no reels, no explore.
             </p>
+            <p className="lp-lede">
+              Konvo removes everything except your messages.
+            </p>
             <DownloadButton onClick={openModal} label={label} big glow href={ctaHref} />
-            <p className="lp-hint">No feed. No Reels. No Explore.</p>
           </div>
           <div className="lp-hero-art" style={{ flex: 1, display: "flex", justifyContent: "center" }}>
             <div className="lp-mocks">
-              <img src="/mock-inbox.jpg" alt="Konvo inbox on iPhone" loading="eager" />
-              <img src="/mock-thread.jpg" alt="A conversation in Konvo" loading="lazy" />
+              <img src="/mock-inbox.png" alt="Konvo inbox on iPhone" loading="eager" />
             </div>
             <img
               className="lp-macshot"
@@ -116,7 +106,7 @@ export function Landing({
       </div>
 
       {/* setup steps */}
-      <Section id="how" eyebrow="GETTING STARTED" title="Setup takes about two minutes." sub="You do it once and that's it.">
+      <Section id="how" eyebrow="GETTING STARTED" title="How to set up">
         <div className="lp-row" style={{ alignItems: "stretch" }}>
           <StepCard n={1} title="Get the beta" body="Konvo is on iPhone. Leave your email and the TestFlight link installs it.">
             <Chip>
@@ -154,10 +144,8 @@ export function Landing({
         id="blocked"
         eyebrow="WHAT CHANGES"
         title="Everything goes except your messages."
-        sub="Instagram puts your friends in the same app as the feed on purpose. That's how they keep you there. Konvo splits them up."
-        subWidth="56ch"
       >
-        <div className="lp-row" style={{ alignItems: "flex-start" }}>
+        <div className="lp-row lp-compare">
           <ListCard dot="#d64541" heading="Blocked" items={["Feed", "Stories", "Reels", "Explore", "Suggested posts"]} kind="x" />
           <ListCard
             dot="#30a14e"
@@ -168,8 +156,9 @@ export function Landing({
         </div>
       </Section>
 
-      {/* after setup */}
-      <Section eyebrow="AFTER SETUP" title="Two things change." titleMargin="12px 0 40px">
+      {/* after setup - desktop only: both panels are laptop screenshots, and
+          on a phone they stacked into two more walls of image. */}
+      <Section className="lp-aftersetup" eyebrow="AFTER SETUP" title="Two things change." titleMargin="12px 0 40px">
         <div className="lp-row">
           <div style={CARD}>
             <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: "-0.025em", color: "#0f1b33" }}>You open Konvo to talk</div>
@@ -212,7 +201,7 @@ export function Landing({
       </Section>
 
       {/* faq */}
-      <div id="faq" style={{ width: "100%", boxSizing: "border-box", padding: "84px 24px 0", maxWidth: SHELL, margin: "0 auto" }}>
+      <div id="faq" className="lp-below" style={{ width: "100%", boxSizing: "border-box", padding: "84px 24px 0", maxWidth: SHELL, margin: "0 auto" }}>
         <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#98a1b0" }}>QUESTIONS</div>
         <h2 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33", margin: "12px 0 24px" }}>
           Frequently asked questions
@@ -225,18 +214,18 @@ export function Landing({
       </div>
 
       {/* closing cta */}
-      <div className="lp-cta-row" style={{ width: "100%", boxSizing: "border-box", padding: "104px 24px", maxWidth: SHELL, margin: "0 auto" }}>
+      <div className="lp-cta-row lp-below" style={{ width: "100%", boxSizing: "border-box", padding: "104px 24px", maxWidth: SHELL, margin: "0 auto" }}>
         <div>
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33" }}>Message your friends.</div>
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0a5cf0" }}>Skip the rest of Instagram.</div>
         </div>
-        <DownloadButton onClick={openModal} label={label} />
+        <DownloadButton onClick={openModal} label={label} href={ctaHref} />
       </div>
 
       {open && <DownloadModal onClose={() => setOpen(false)} inAppBrowser={inAppBrowser} desktop={desktop} />}
 
       {/* footer */}
-      <div className="lp-foot" style={{ width: "100%", boxSizing: "border-box", borderTop: "1px solid #e9ecf2", padding: "48px 24px 24px", maxWidth: SHELL, margin: "0 auto" }}>
+      <div className="lp-foot lp-below" style={{ width: "100%", boxSizing: "border-box", borderTop: "1px solid #e9ecf2", padding: "48px 24px 24px", maxWidth: SHELL, margin: "0 auto" }}>
         <Wordmark small />
         <div className="lp-foot-cols">
           <FooterCol
@@ -257,9 +246,14 @@ export function Landing({
           />
         </div>
       </div>
-      <div style={{ width: "100%", boxSizing: "border-box", padding: "0 24px 40px", maxWidth: SHELL, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13, color: "#98a1b0" }}>
+      <div className="lp-fineprint" style={{ width: "100%", boxSizing: "border-box", padding: "0 24px 40px", maxWidth: SHELL, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 13 }}>
         <span>© 2026 Konvo</span>
-        <span>Not affiliated with Instagram.</span>
+        <span className="lp-fineprint-links">
+          <a href="/privacy" style={NAVLINK}>Privacy</a>
+          {" · "}
+          <a href="/terms" style={NAVLINK}>Terms</a>
+        </span>
+        <span className="lp-fineprint-affil">Not affiliated with Instagram.</span>
       </div>
 
     </div>
@@ -330,6 +324,7 @@ function Faq({ q, a }: { q: string; a: string }) {
 
 function Section({
   id,
+  className,
   eyebrow,
   title,
   sub,
@@ -338,6 +333,7 @@ function Section({
   children,
 }: {
   id?: string;
+  className?: string;
   eyebrow: string;
   title: string;
   sub?: string;
@@ -346,7 +342,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div id={id} style={{ width: "100%", boxSizing: "border-box", padding: "84px 24px 0", maxWidth: SHELL, margin: "0 auto", display: "flex", flexDirection: "column", alignItems: "center" }}>
+    <div id={id} className={`lp-section${className ? " " + className : ""}`} style={{ width: "100%", boxSizing: "border-box", maxWidth: SHELL, margin: "0 auto" }}>
       <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.1em", color: "#98a1b0" }}>{eyebrow}</div>
       <h2 style={{ fontSize: 34, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33", margin: titleMargin ?? "12px 0 10px", textAlign: "center" }}>
         {title}
@@ -385,14 +381,14 @@ function Chip({ children }: { children: React.ReactNode }) {
 
 function ListCard({ dot, heading, items, kind }: { dot: string; heading: string; items: string[]; kind: "x" | "check" }) {
   return (
-    <div style={{ ...CARD, padding: "26px 28px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9, paddingBottom: 8 }}>
-        <span style={{ width: 8, height: 8, borderRadius: "50%", background: dot }} />
+    <div className="lp-listcard" style={{ ...CARD, padding: "26px 28px" }}>
+      <div className="lp-listhead" style={{ display: "flex", alignItems: "center", gap: 9, paddingBottom: 8 }}>
+        <span style={{ width: 8, height: 8, flex: "none", borderRadius: "50%", background: dot }} />
         <span style={{ fontSize: 16, fontWeight: 700, color: "#0f1b33" }}>{heading}</span>
       </div>
       {items.map((label) => (
-        <div key={label} style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 0", borderBottom: "1px solid #e9ecf2" }}>
-          <span style={{ width: 19, height: 19, flex: "none", borderRadius: "50%", background: kind === "x" ? "#fdeceb" : "#e7f6ec", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+        <div key={label} className="lp-listrow" style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 0" }}>
+          <span className="lp-listmark" style={{ width: 19, height: 19, flex: "none", borderRadius: "50%", background: kind === "x" ? "#fdeceb" : "#e7f6ec", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
             {kind === "x" ? (
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#d64541" strokeWidth="3.4" strokeLinecap="round">
                 <path d="M18 6 6 18" />
@@ -404,7 +400,7 @@ function ListCard({ dot, heading, items, kind }: { dot: string; heading: string;
               </svg>
             )}
           </span>
-          <span style={{ fontSize: 16, color: "#0f1b33" }}>{label}</span>
+          <span className="lp-listlabel" style={{ fontSize: 16, color: "#0f1b33" }}>{label}</span>
         </div>
       ))}
     </div>
@@ -426,7 +422,6 @@ function DownloadButton({ onClick, label, href, big, glow }: { onClick: () => vo
         gap: 12,
         minHeight: big ? 62 : 58,
         padding: big ? "0 36px" : "0 32px",
-        marginTop: 0,
         border: 0,
         borderRadius: 14,
         background: "linear-gradient(180deg, #3d8bff 0%, #0a5cf0 100%)",
@@ -457,7 +452,10 @@ function Wordmark({ small }: { small?: boolean }) {
       <span style={{ width: box, height: box, borderRadius: small ? 6 : 7, background: "#0a5cf0", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
         <ChatGlyph size={small ? 12 : 14} stroke="#fff" width="2.6" />
       </span>
-      <span style={{ fontSize: small ? 17 : 22, fontWeight: 700, letterSpacing: small ? "-0.03em" : "-0.035em", color: small ? "#0f1b33" : "#101828" }}>
+      <span
+        className={small ? undefined : "lp-wordmark-text"}
+        style={{ fontSize: small ? 17 : 22, fontWeight: 700, letterSpacing: small ? "-0.03em" : "-0.035em", color: small ? "#0f1b33" : undefined }}
+      >
         Konvo
       </span>
     </div>
