@@ -13,6 +13,9 @@ import { Landing } from "@/components/landing";
 export default async function Home() {
   const ua = (await headers()).get("user-agent") ?? "";
   const inApp = /instagram|fbav|fban|line\/|micromessenger/i.test(ua);
+  // Desktop gets the three-step install (email, extension, platform); a phone
+  // gets the TestFlight beta, which is the only thing it can actually run.
+  const mobile = /iphone|ipad|ipod|android/i.test(ua);
 
-  return <Landing inAppBrowser={inApp} />;
+  return <Landing inAppBrowser={inApp} desktop={!mobile} />;
 }

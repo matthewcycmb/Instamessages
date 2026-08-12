@@ -5,7 +5,7 @@
  * link to whichever Google account copied it, hl forces English.
  */
 export const CHROME_STORE_URL: string | null =
-  "https://chromewebstore.google.com/detail/instachat-dms-only/idgmjfcejigebpealmimgjebhfnfjcnj";
+  "https://chromewebstore.google.com/detail/idgmjfcejigebpealmimgjebhfnfjcnj?utm_source=item-share-cb";
 
 // A plain browser download, quarantine and all: users right-click > Open past
 // Gatekeeper. The curl | bash installer (and its xattr un-quarantine) was
@@ -19,3 +19,10 @@ export const MAC_ZIP =
 // join link for the External Friends group; Apple's page handles the rest
 // (installs TestFlight, redeems the code).
 export const TESTFLIGHT_URL = "https://testflight.apple.com/join/SH37gxDw";
+
+// The desktop builds are signed but NOT notarized: Apple has not enabled the
+// notary service for this team yet (statusCode 7000, "Team is not yet
+// configured for notarization"). Until that clears, the platform rows render
+// disabled rather than handing anyone a download Gatekeeper will block.
+export const MAC_DMG: string | null = null;
+export const WINDOWS_EXE: string | null = null;

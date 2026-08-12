@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DownloadModal } from "./download-modal";
 import { track } from "@/lib/analytics";
+import { TESTFLIGHT_URL } from "@/lib/links";
 
 /**
  * Landing page (design 10a). The mock was drawn on a 1200px canvas with bare
@@ -14,11 +15,24 @@ const SHELL = 1200;
 const NAVLINK: React.CSSProperties = { color: "inherit", textDecoration: "none", cursor: "pointer" };
 
 
-export function Landing({ inAppBrowser = false }: { inAppBrowser?: boolean }) {
+export function Landing({
+  inAppBrowser = false,
+  desktop = false,
+}: {
+  inAppBrowser?: boolean;
+  desktop?: boolean;
+}) {
   const [open, setOpen] = useState(false);
+
+  const label = desktop ? "Download Konvo" : "Download beta";
+  const ctaHref = desktop ? undefined : TESTFLIGHT_URL;
 
   function openModal() {
     track("beta_cta_clicked");
+    if (!desktop) {
+      track("beta_testflight_opened");
+      return; // the anchor does the rest
+    }
     setOpen(true);
   }
 
@@ -75,18 +89,27 @@ export function Landing({ inAppBrowser = false }: { inAppBrowser?: boolean }) {
               <br />
               without the feed and reels.
             </h1>
-            <p style={{ fontSize: 20, lineHeight: 1.45, color: "#33405c", margin: "32px 0 40px" }}>
+            {/* The paragraph is desktop-only. On a phone the headline already
+                says it, and a second wall of text pushed the button and the
+                screenshots below the fold. */}
+            <p className="lp-sub" style={{ fontSize: 20, lineHeight: 1.45, color: "#33405c", margin: "32px 0 40px" }}>
               Konvo blocks everything on Instagram except your messages.
               <br />
               No feed, no stories, no reels, no explore.
             </p>
-            <DownloadButton onClick={openModal} big glow />
+            <DownloadButton onClick={openModal} label={label} big glow href={ctaHref} />
+            <p className="lp-hint">No feed. No Reels. No Explore.</p>
           </div>
-          <div style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+          <div className="lp-hero-art" style={{ flex: 1, display: "flex", justifyContent: "center" }}>
+            <div className="lp-mocks">
+              <img src="/mock-inbox.jpg" alt="Konvo inbox on iPhone" loading="eager" />
+              <img src="/mock-thread.jpg" alt="A conversation in Konvo" loading="lazy" />
+            </div>
             <img
+              className="lp-macshot"
               src="/app.png"
               alt="Konvo app"
-              style={{ width: "100%", maxWidth: 560, display: "block", borderRadius: 14, boxShadow: "0 30px 80px rgba(20,50,110,0.3)" }}
+              style={{ width: "100%", maxWidth: 560, borderRadius: 14, boxShadow: "0 30px 80px rgba(20,50,110,0.3)" }}
             />
           </div>
         </div>
@@ -207,10 +230,10 @@ export function Landing({ inAppBrowser = false }: { inAppBrowser?: boolean }) {
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33" }}>Message your friends.</div>
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0a5cf0" }}>Skip the rest of Instagram.</div>
         </div>
-        <DownloadButton onClick={openModal} />
+        <DownloadButton onClick={openModal} label={label} />
       </div>
 
-      {open && <DownloadModal onClose={() => setOpen(false)} inAppBrowser={inAppBrowser} />}
+      {open && <DownloadModal onClose={() => setOpen(false)} inAppBrowser={inAppBrowser} desktop={desktop} />}
 
       {/* footer */}
       <div className="lp-foot" style={{ width: "100%", boxSizing: "border-box", borderTop: "1px solid #e9ecf2", padding: "48px 24px 24px", maxWidth: SHELL, margin: "0 auto" }}>
@@ -259,7 +282,7 @@ const FAQ = [
   },
   {
     q: "Is it safe to log in?",
-    a: "You sign in on Instagram's own page, the same one Safari shows, so your password goes to Instagram and not to us. There is no Konvo account and no Konvo database: the session lives on your phone. It shows up in Instagram's settings under Where you're logged in, and you can log it out from there any time.",
+    a: "You sign in on Instagram's own page, the same one Safari shows, so your password goes to Instagram and not to us. There is no Konvo account and no Konvo password: the session lives on your phone, and we never store your messages. It shows up in Instagram's settings under Where you're logged in, and you can log it out from there any time.",
   },
   {
     q: "Do I lose my account?",
@@ -388,11 +411,16 @@ function ListCard({ dot, heading, items, kind }: { dot: string; heading: string;
   );
 }
 
-function DownloadButton({ onClick, big, glow }: { onClick: () => void; big?: boolean; glow?: boolean }) {
+function DownloadButton({ onClick, label, href, big, glow }: { onClick: () => void; label: string; href?: string; big?: boolean; glow?: boolean }) {
+  const Tag = href ? "a" : "button";
   return (
-    <button
+    <Tag
+      href={href}
+      target={href ? "_blank" : undefined}
+      rel={href ? "noopener" : undefined}
       onClick={onClick}
       style={{
+        textDecoration: "none",
         display: "inline-flex",
         alignItems: "center",
         gap: 12,
@@ -413,12 +441,12 @@ function DownloadButton({ onClick, big, glow }: { onClick: () => void; big?: boo
           : "0 8px 20px rgba(20,60,150,0.22), inset 0 1px 0 rgba(255,255,255,0.28)",
       }}
     >
-      Download beta
+      {label}
       <svg width={big ? 19 : 18} height={big ? 19 : 18} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M5 12h14" />
         <path d="m12 5 7 7-7 7" />
       </svg>
-    </button>
+    </Tag>
   );
 }
 
