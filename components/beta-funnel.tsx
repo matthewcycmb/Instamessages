@@ -378,7 +378,7 @@ function Security() {
     ],
     [
       "Konvo has no server",
-      "There is no Konvo account and no Konvo database. Your Instagram session lives only on your phone, exactly like it does in Safari.",
+      "There is no Konvo account and no Konvo password. Your Instagram session lives only on your phone, exactly like it does in Safari, and we never store your messages.",
     ],
     [
       "You stay in control",

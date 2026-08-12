@@ -6,7 +6,7 @@ export const metadata: Metadata = {
 };
 
 const CONTACT_EMAIL = "jchanh@gmail.com";
-const EFFECTIVE_DATE = "August 1, 2026";
+const EFFECTIVE_DATE = "August 11, 2026";
 
 // The landing page is hardcoded light (blue on white); this page follows it
 // rather than the app's dark-mode tokens, so tapping Privacy from the site
@@ -43,13 +43,37 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <Section title="What we collect">
+        <Section title="What we never collect">
           <p>
-            <span className="text-ink">Nothing.</span> Konvo has no accounts, no server-side
-            storage, and no database. Your Instagram login happens directly between you and
-            instagram.com inside the app; your credentials and messages never pass through or
-            get stored on our servers. The browser extension contains only static redirect
-            rules &mdash; it runs no code on any page, and reads and transmits no data.
+            <span className="text-ink">
+              Your Instagram password, your messages, and your contacts.
+            </span>{" "}
+            Konvo has no accounts and no login of its own. Your Instagram sign-in happens
+            directly between you and instagram.com inside the app, and that session stays on
+            your device &mdash; it never passes through or gets stored on our servers, because
+            there is no server holding it. You can end it any time from Instagram&rsquo;s own
+            &ldquo;Where you&rsquo;re logged in&rdquo; settings. The browser extension
+            contains only static redirect rules: it runs no code on any page, and reads and
+            transmits no data.
+          </p>
+        </Section>
+
+        <Section title="What we do collect">
+          <p>
+            Two things, and neither identifies you to us by name.
+          </p>
+          <p className="mt-3">
+            <span className="text-ink">Anonymous usage events.</span> Which onboarding screen
+            you reached, whether sign-in succeeded, and that the app was opened. These carry a
+            random identifier generated on your device, not your Instagram username, and never
+            the contents of anything you read or write.
+          </p>
+          <p className="mt-3">
+            <span className="text-ink">Your email address, only if you type it in.</span> The
+            app asks for one during setup and the step is skippable; if you skip it we have no
+            way to contact you and nothing is stored. If you give it, we use it to ask what you
+            think of Konvo and to tell you about changes to it. We do not sell it, and you can
+            have it deleted by emailing the address at the bottom of this page.
           </p>
         </Section>
 
@@ -65,9 +89,9 @@ export default function PrivacyPage() {
 
         <Section title="Analytics">
           <p>
-            This website (the landing page only) uses PostHog to count anonymous page visits
-            and button clicks, so we can see whether the setup steps work. The desktop app and
-            the extension contain no analytics.
+            Both this website and the iPhone app use PostHog to count anonymous visits,
+            screens reached and buttons pressed, so we can see where setup breaks. The
+            browser extension contains no analytics.
           </p>
         </Section>
 
@@ -92,6 +116,27 @@ export default function PrivacyPage() {
                 className="text-amber underline underline-offset-2"
               >
                 Apple&rsquo;s privacy policy
+              </a>
+              .
+            </li>
+            <li>
+              <span className="text-ink">PostHog</span>: receives the anonymous usage events
+              and, if you gave one, your email address, under{" "}
+              <a
+                href="https://posthog.com/privacy"
+                className="text-amber underline underline-offset-2"
+              >
+                PostHog&rsquo;s privacy policy
+              </a>
+              .
+            </li>
+            <li>
+              <span className="text-ink">RevenueCat</span>: checks subscription status under{" "}
+              <a
+                href="https://www.revenuecat.com/privacy"
+                className="text-amber underline underline-offset-2"
+              >
+                RevenueCat&rsquo;s privacy policy
               </a>
               .
             </li>
