@@ -16,8 +16,8 @@ const { JSDOM } = require('jsdom');
 
 const HTML = fs.readFileSync(__dirname + '/../dist/index.html', 'utf8');
 const SCRIPTS = [...HTML.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-assert.strictEqual(SCRIPTS.length, 2,
-  'expected exactly the branch script and the flow script');
+assert.strictEqual(SCRIPTS.length, 3,
+  'expected the branch script, the Mac welcome script and the flow script');
 
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1';
 const DESKTOP = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15';
@@ -33,6 +33,7 @@ function boot(opts = {}) {
   Object.defineProperty(dom.window.navigator, 'userAgent',
     { value: opts.ua || IPHONE, configurable: true });
   if (opts.onboarded) dom.window.localStorage.konvoOnboarded = '1';
+  if (opts.macWelcomed) dom.window.localStorage.konvoMacWelcomed = '1';
   // The bridge mock splits streams: appearance changes and funnel events.
   dom.appearance = [];
   dom.events = [];
@@ -58,14 +59,26 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
 process.on('exit', () => open.forEach(d => d.window.close()));
 
 (async () => {
-  // 1. The Mac loads this same file and must behave exactly like the old
-  //    splash: straight to the inbox, no quiz, ever. The redirect defers
-  //    until the splash has painted, hence the settle.
+  // 1. The Mac gets ONE welcome screen on a fresh install - never the phone
+  //    quiz, and never again after the first run. Before this, a Mac user
+  //    double-clicked Konvo and landed on an Instagram login with no context.
   const mac = boot({ ua: DESKTOP });
+  const macAgain = boot({ ua: DESKTOP, macWelcomed: true });
   const again = boot({ onboarded: true });
   await settle(200);
-  assert.deepStrictEqual(mac.went, [INBOX], 'the Mac must skip onboarding');
-  assert.notStrictEqual(mac.window.document.documentElement.className, 'onboard');
+  assert.deepStrictEqual(mac.went, [], 'a fresh Mac must stay on the welcome screen');
+  assert(mac.window.document.documentElement.classList.contains('macwelcome'),
+    'a fresh Mac must show the welcome screen');
+  assert(!mac.window.document.documentElement.classList.contains('onboard'),
+    'the Mac must never get the phone quiz');
+  mac.window.document.getElementById('macgo').click();
+  assert.deepStrictEqual(mac.went, [INBOX], 'Continue must hand the Mac to the inbox');
+  assert.strictEqual(mac.window.localStorage.konvoMacWelcomed, '1',
+    'the Mac flag must be set before leaving, or a quit mid-navigation replays it');
+  assert.deepStrictEqual(macAgain.went, [INBOX],
+    'a returning Mac must go straight to the inbox');
+  assert(!macAgain.window.document.documentElement.classList.contains('macwelcome'),
+    'a returning Mac must not see the welcome screen again');
 
   // 2. Once per install, hard requirement: the flag short-circuits every
   //    later launch into today's splash behavior, and unpins appearance.
@@ -89,9 +102,21 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     el.click();
   };
   tap('#s1 [data-next]');                       // Get started
-  assert(doc.getElementById('s3').classList.contains('on'),
-    'Get started must open the screen-time question directly - no motive screen');
+  assert(doc.getElementById('s1b').classList.contains('on'), 'Get started must open the email step');
   assert(!doc.getElementById('s2'), 'the motive screen must be gone from the document');
+  await settle(1100);
+  //    A bad address must not advance, and must say so.
+  doc.getElementById('email').value = 'nope';
+  tap('#emailgo');
+  assert(doc.getElementById('s1b').classList.contains('on'),
+    'an invalid email must hold the screen - a typo is a person we can never reach');
+  assert(!doc.getElementById('emailerr').hidden, 'the error must be shown');
+  doc.getElementById('email').value = 'tester@example.com';
+  doc.getElementById('email').dispatchEvent(new d.window.Event('input', { bubbles: true }));
+  assert(doc.getElementById('emailerr').hidden, 'typing must clear the error');
+  tap('#emailgo');
+  assert(doc.getElementById('s3').classList.contains('on'), 'a valid email must advance to screen time');
+  assert(d.events.includes('email_captured'), 'a submitted address must be captured');
   await settle(1100);
   tap("#s3 .opt[data-m='150']");                // 2 - 3 hours
   await settle(1400);                           // 250ms beat + slide + lock
@@ -173,6 +198,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const od = one.window.document;
   const otap = sel => od.querySelector(sel).click();
   otap('#s1 [data-next]');
+  await settle(1100);
+  //    Skipping is load-bearing: App Review 5.1.1(v) does not allow
+  //    requiring personal information the app does not need to work.
+  otap('#emailskip');
+  assert(od.getElementById('s3').classList.contains('on'), 'Skip for now must advance without an address');
   await settle(1100);
   otap("#s3 .opt[data-m='45']");                // < 1 hour: the lowest range
   await settle(1400);

@@ -32,7 +32,15 @@
   // (lib.rs). The dark S5-S7 stretch asks the bridge for "dark" and S8a
   // asks for "light" again. The Mac keeps its hardcoded dark splash.
   if (ios) document.documentElement.classList.add("ios");
-  if (ios && !done) {
+  // The Mac used to jump straight to instagram.com, so a first-time user
+  // double-clicked Konvo and landed on an Instagram login with no idea what
+  // had opened. One screen, once per install, then never again. It is NOT
+  // the phone funnel: there is no quiz and nothing to delete on a Mac.
+  var macDone = done;
+  try { macDone = macDone || !!localStorage.konvoMacWelcomed; } catch (e) {}
+  if (!ios && !macDone) {
+    document.documentElement.classList.add("macwelcome");
+  } else if (ios && !done) {
     document.documentElement.classList.add("onboard");
   } else {
     if (ios) {
@@ -104,6 +112,27 @@
     .ios:not(.onboard) .s { border-color: #2c2c2e; border-top-color: #0a84ff }
   }
 
+  /* ---- Mac welcome (one screen, desktop only) ---- */
+  .macwelcome #splash { display: none }
+  #macwelcome { display: none }
+  .macwelcome #macwelcome { display: flex; position: fixed; inset: 0;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 0; background: var(--bg); color: var(--ink); padding: 0 40px;
+    text-align: center; -webkit-user-select: none; user-select: none }
+  #macwelcome .mark { width: 62px; height: 62px; border-radius: 17px;
+    background: var(--accent); display: flex; align-items: center;
+    justify-content: center; box-shadow: 0 12px 34px rgba(10,92,240,0.28) }
+  #macwelcome h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.035em;
+    line-height: 1.15; margin: 26px 0 0; max-width: 22ch }
+  #macwelcome p { font-size: 16px; line-height: 1.5; color: var(--mut);
+    margin: 14px 0 0; max-width: 42ch }
+  #macwelcome .go { margin-top: 30px; min-height: 46px; padding: 0 26px;
+    border: 0; border-radius: 12px; background: var(--accent); color: #fff;
+    font-family: inherit; font-size: 16px; font-weight: 600; cursor: pointer;
+    box-shadow: 0 8px 18px rgba(10,92,240,0.24) }
+  #macwelcome .go:active { transform: scale(0.98) }
+  #macwelcome .fine { font-size: 13px; color: var(--mut); margin-top: 18px }
+
   /* ---- onboarding (fresh iPhone installs only) ---- */
   .onboard #splash { display: none }
   #flow { display: none }
@@ -169,6 +198,21 @@
          font-size: 17px; font-weight: 500; letter-spacing: -0.015em;
          line-height: 1.35; transition: transform .15s ease }
   .opt:active { transform: scale(0.98) }
+  .field { width: 100%; box-sizing: border-box; min-height: 62px;
+           padding: 14px 26px; border-radius: 999px; background: var(--card);
+           color: var(--ink); border: 0; font-family: inherit;
+           box-shadow: inset 0 0 0 1.2px var(--line); font-size: 17px;
+           font-weight: 500; letter-spacing: -0.015em; outline: none;
+           -webkit-appearance: none; appearance: none }
+  .field:focus { box-shadow: inset 0 0 0 2px var(--accent) }
+  .field.bad { box-shadow: inset 0 0 0 2px #d64541 }
+  .err { font-size: 14px; color: #d64541; margin: 10px 0 0; padding: 0 8px }
+  /* Skipping must stay obviously available: App Review guideline 5.1.1(v)
+     does not allow requiring personal information the app does not need. */
+  .skip { display: block; width: 100%; margin: 14px 0 0; background: none;
+          border: 0; padding: 6px; font-family: inherit; font-size: 15.5px;
+          font-weight: 500; color: var(--mut); cursor: pointer }
+  .skip:active { opacity: 0.5 }
   .opt.sel { background: var(--chip); box-shadow: inset 0 0 0 2px var(--accent) }
   .opt[disabled] { opacity: 0.35; pointer-events: none }
   .spin { width: 30px; height: 30px; flex: none; border-radius: 50%;
@@ -250,6 +294,17 @@
   <div class="w">Konvo</div>
 </div>
 
+<div id="macwelcome">
+  <span class="mark"><svg width="33" height="33" viewBox="0 0 24 24" fill="none"
+    stroke="#fff" stroke-width="2.2" stroke-linejoin="round"><path d="M12 4c-4.4 0-8 3-8 6.8 0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z"/></svg></span>
+  <h1>Instagram, with only the messages.</h1>
+  <p>Konvo opens Instagram&rsquo;s own site with the feed, Reels and Explore
+     removed. Your DMs and friends&rsquo; Stories work exactly as they do now.</p>
+  <button class="go" id="macgo">Continue with Instagram</button>
+  <p class="fine">You sign in on Instagram&rsquo;s own page. Konvo never sees
+     your password.</p>
+</div>
+
 <div id="flow">
 
   <div class="screen on" id="s1">
@@ -271,14 +326,37 @@
       <p style="font-size: 17px; line-height: 1.5; color: var(--mut);
          margin: 14px 0 28px; max-width: 32ch">Your DMs and friends&rsquo;
          Stories still work.</p>
-      <button class="btn" data-next="s3">Get started</button>
+      <button class="btn" data-next="s1b">Get started</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s1b">
+    <div class="chrome">
+      <div class="track"><div class="fill" style="width: 33%"></div></div>
+      <button class="back" data-back="s1" aria-label="Back"><svg width="10"
+        height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    </div>
+    <div class="body">
+      <h2>What&rsquo;s your email?</h2>
+      <p class="sub">Enter your email to get started with Konvo.</p>
+      <form id="emailform" novalidate>
+        <input class="field" id="email" type="email" inputmode="email"
+          autocomplete="email" autocapitalize="off" autocorrect="off"
+          spellcheck="false" placeholder="you@email.com">
+        <p class="err" id="emailerr" hidden>That email doesn&rsquo;t look right.</p>
+      </form>
+    </div>
+    <div class="foot">
+      <button class="btn" id="emailgo">Continue</button>
+      <button class="skip" id="emailskip">Skip for now</button>
     </div>
   </div>
 
   <div class="screen" id="s3">
     <div class="chrome">
-      <div class="track"><div class="fill" style="width: 50%"></div></div>
-      <button class="back" data-back="s1" aria-label="Back"><svg width="10"
+      <div class="track"><div class="fill" style="width: 66%"></div></div>
+      <button class="back" data-back="s1b" aria-label="Back"><svg width="10"
         height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     </div>
@@ -451,7 +529,7 @@
           <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"
             fill="none" stroke="currentColor" stroke-width="2.2"
             stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><path d="m4.5 4.5 15 15"/></svg></span>
-          <span>No Konvo server, no Konvo database</span>
+          <span>Your messages are never stored by us</span>
         </div>
         <div class="trust">
           <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"
@@ -473,6 +551,17 @@
   </div>
 
 </div>
+
+<script>
+(function () {
+  if (!document.documentElement.classList.contains("macwelcome")) return;
+  document.getElementById("macgo").addEventListener("click", function () {
+    // Set before leaving: a quit mid-navigation must not replay the screen.
+    try { localStorage.konvoMacWelcomed = "1"; } catch (e) {}
+    location.replace("https://www.instagram.com/direct/inbox/");
+  });
+})();
+</script>
 
 <script>
 (function () {
@@ -678,6 +767,46 @@
       show(screen === "s3" ? "s4" : "s4b");
     }, 250);
   });
+
+  // The email step. Optional by policy and by taste: Konvo has no accounts,
+  // so this is a way to reach people for feedback and nothing else. It is
+  // the one place the lean-payload rule bends - PostHog's $set rides inside
+  // properties, which the native bridge forwards verbatim, so no Swift
+  // change and still no Konvo backend.
+  (function () {
+    var form = document.getElementById("emailform");
+    var input = document.getElementById("email");
+    var err = document.getElementById("emailerr");
+
+    function leave(kind, value) {
+      track(kind, { screen_id: "s1b" });
+      if (value) track("email_captured", { screen_id: "s1b", $set: { email: value } });
+      show("s3");
+    }
+    function submit() {
+      var value = (input.value || "").trim();
+      // One check at the trust boundary; a typo here is a person we can
+      // never reach, and there is no second chance to ask.
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
+        err.hidden = false;
+        input.classList.add("bad");
+        input.focus();
+        return;
+      }
+      input.blur();
+      leave("email_submitted", value);
+    }
+    input.addEventListener("input", function () {
+      err.hidden = true;
+      input.classList.remove("bad");
+    });
+    form.addEventListener("submit", function (e) { e.preventDefault(); submit(); });
+    document.getElementById("emailgo").addEventListener("click", submit);
+    document.getElementById("emailskip").addEventListener("click", function () {
+      input.blur();
+      leave("email_skipped");
+    });
+  })();
 
   document.getElementById("signin").addEventListener("click", function () {
     track("login_started", { screen_id: "s10" });
