@@ -43,3 +43,7 @@ wrapper/src-tauri/target
 extension/_metadata/
 .gstack/
 .env.local
+
+# local agent tooling state (daemon pids, logs, metrics, vendored skills)
+.claude-flow/
+.claude/
