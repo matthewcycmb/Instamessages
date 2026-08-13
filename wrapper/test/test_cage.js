@@ -349,7 +349,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     S13 three-package paywall, on real timers. The Mac never does, a
   //     cached konvoPaid suppresses it with no bridge round-trip, and it
   //     only rises at the inbox, never over a thread.
-  const wallFresh = boot('/direct/inbox/', '');
+  const wallFresh = boot('/direct/inbox/', '', { hash: '#konvo=15' });
   const wallDesk = boot('/direct/inbox/', '', { ua: DESKTOP });
   const wallPaid = boot('/direct/inbox/', '', { paid: true });
   const wallThread = boot('/direct/t/123/', '');
@@ -416,11 +416,24 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the perks page must lead to the delete step');
   assert(/Your account does not change/.test(payText()),
     'the delete step must say nothing is lost - it is a true claim and it defuses the ask');
+  //     Then what the trial is FOR, before the price. The hours are the
+  //     user's own quiz answer, carried across the origin boundary.
+  wtap('impact');
+  await settle(450);
+  assert(/Start your Free Week/.test(payText()),
+    'the impact page opens on the free week');
+  assert(/reclaim 15 hours a week/.test(payText()),
+    "the impact page must use the visitor's own number from the quiz");
+  assert(/Stay connected/.test(payText()) && /Reclaim your focus/.test(payText())
+    && /Never get distracted/.test(payText()),
+    'all three impact claims must render');
+  assert(!/reviews|ratings|users|\d+K\+/i.test(payText()),
+    'the impact page must invent no social proof - there is none to show');
   wtap('pay');
   await settle(450);   // crossfade
   assert(/How your free trial works/.test(payText()),
     'Continue on the perks page must reach S13');
-  assert(/First 14 days free, then \$19\.99 a year\./.test(payText()),
+  assert(/First 7 days free, then \$19\.99 a year\./.test(payText()),
     'the headline states the real yearly charge');
   assert(/\$1\.67/.test(payText()) && /per month/.test(payText()),
     'the Annual card prices by the month, the number shoppers compare');
@@ -432,7 +445,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the reassurance row sits above the CTA');
   assert(/Pay once, keep it/.test(payText()),
     'the Lifetime card carries its badge');
-  assert(/In 7 days/.test(payText()) && /In 14 days/.test(payText()),
+  assert(/In 4 days/.test(payText()) && /In 7 days/.test(payText()),
     'three nodes only: today, halfway, charge - the page must fit one screen');
   assert(!/In 12 days/.test(payText()),
     'the fourth node is gone');
@@ -460,7 +473,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(!/forever/i.test(payText()),
     'the word forever is banned copy');
   wtap('pk-y');
-  assert(/First 14 days free/.test(payText()) && /In 14 days/.test(payText()),
+  assert(/First 7 days free/.test(payText()) && /In 7 days/.test(payText()),
     'flipping back to Annual must restore the trial story');
 
   //     The x does not dismiss: it reveals the not-ready section and flips
@@ -495,9 +508,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const ldoc0 = live.window.document;
   const ltap = act => ldoc0.querySelector(`[data-act='${act}']`).dispatchEvent(
     new live.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  // Same route as a real user: perks -> delete step -> price.
+  // Same route as a real user: perks -> delete step -> impact -> price.
   ltap('goodbye');
   await settle(400);
+  ltap('impact');
+  await settle(450);
   ltap('pay');
   await settle(450);
   const ltext = ldoc0.getElementById('im-pay').textContent;
@@ -541,6 +556,72 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(!JSON.stringify(seen).includes('12345'),
     'thread_opened must never carry a thread id');
 
+  //     Updating BETWEEN build variants must not replay the sequence. The
+  //     keys are written by different builds - konvoWelcomed by the free
+  //     one, konvoBetaFree by the beta one - and each used to be invisible
+  //     to the other, so a 47->48 update walked the tester back through
+  //     "Instagram connected" and the loader.
+  const freeToBeta = boot('/direct/inbox/', '', { beta: true, welcomed: true,
+    bridge: answer({ entitlements: { entitled: false } }) });
+  const betaToFree = boot('/direct/inbox/', '', { free: true, betaFree: true,
+    bridge: answer({ entitlements: { entitled: false } }) });
+  const plainToBeta = boot('/direct/inbox/', '', { beta: true, paid: true,
+    bridge: answer({ entitlements: { entitled: true } }) });
+  await settle(3200);
+  assert(!freeToBeta.window.document.getElementById('im-pay'),
+    'free -> beta must not replay: konvoWelcomed means they have seen it');
+  assert(!betaToFree.window.document.getElementById('im-pay'),
+    'beta -> free must not replay either');
+  assert(!plainToBeta.window.document.getElementById('im-pay'),
+    'a paying user is never shown the sequence');
+
+  //     And a paying user on a FRESH install - no cache at all - must not
+  //     see a single frame while RevenueCat is still answering.
+  const paidReinstall = boot('/direct/inbox/', '', {
+    bridge: answer({ entitlements: { entitled: true } }) });
+  await settle(1600);
+  assert(!paidReinstall.window.document.getElementById('im-pay'),
+    'the sequence must wait for the receipt, not start underneath a subscriber');
+
+  //     The BETA build end to end, which is what testers actually walk:
+  //     delete step -> impact -> the real price screen -> and the CTA lets
+  //     them through to the inbox instead of touching StoreKit, because a
+  //     beta cannot complete a purchase and a spinning button strands them.
+  const betaEvents = [];
+  const betaWalk = boot('/direct/inbox/', '', { beta: true, hash: '#konvo=12',
+    bridge: (m, d) => {
+      if (m.cmd === 'track') betaEvents.push(m.event);
+      // A real device always answers this; without a reply the sequence
+      // waits out the entitlement timeout before it starts.
+      if (m.cmd === 'entitlements') d.window.__konvoStoreReply(m.id, { entitled: false });
+      if (m.cmd === 'products') d.window.__konvoStoreReply(m.id, { ok: true,
+        yearly: { price: '$19.99', perMonth: '$1.67', savePct: 66, trialDays: 7 },
+        monthly: { price: '$4.99' }, lifetime: { price: '$29.99' } });
+    } });
+  await settle(8400);
+  const btw = act => betaWalk.window.document.querySelector(`[data-act='${act}']`)
+    .dispatchEvent(new betaWalk.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  const btext = () => betaWalk.window.document.getElementById('im-pay').textContent;
+  btw('goodbye');
+  await settle(400);
+  assert(/Delete Instagram/.test(btext()), 'beta reaches the delete step');
+  btw('impact');
+  await settle(450);
+  assert(/Start your Free Week/.test(btext()) && /reclaim 12 hours a week/.test(btext()),
+    'beta must show the impact screen, with this visitor\'s own hours');
+  btw('pay');
+  await settle(450);
+  assert(/How your free trial works/.test(btext()) && /\$19\.99/.test(btext()),
+    'beta must show the real price screen');
+  btw('buy-y');
+  await settle(950);   // dismiss() fades for 850ms before removing the node
+  assert(!betaWalk.window.document.getElementById('im-pay'),
+    'the CTA must let a beta tester straight through to their DMs');
+  assert(!betaEvents.includes('purchase'),
+    'and must never reach StoreKit');
+  assert(betaEvents.includes('beta_free_taken'),
+    'while still recording which plan was chosen - that tap is the pricing signal');
+
   //     A trial-ineligible user gets the no-trial Annual story.
   const noTrial = boot('/direct/inbox/', '', { bridge: answer({
     entitlements: { entitled: false },
@@ -549,12 +630,20 @@ process.on('exit', () => open.forEach(d => d.window.close()));
       lifetime: { price: '$79.99' } },
   }) });
   await settle(8400);
-  // Perks -> delete step -> price, as a real user walks it.
-  noTrial.window.document.querySelector("[data-act='goodbye']").dispatchEvent(
-    new noTrial.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  // Perks -> delete step -> impact -> price, as a real user walks it.
+  const nttap = act => noTrial.window.document.querySelector(`[data-act='${act}']`)
+    .dispatchEvent(new noTrial.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  nttap('goodbye');
   await settle(400);
-  noTrial.window.document.querySelector("[data-act='pay']").dispatchEvent(
-    new noTrial.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  nttap('impact');
+  await settle(450);
+  //     A user with no trial must not be sold one on the way in either.
+  const itext = noTrial.window.document.getElementById('im-pay').textContent;
+  assert(!/Free Week|days free/.test(itext),
+    'the impact screen must not promise a free week to someone who is ineligible');
+  assert(/Start using Konvo/.test(itext),
+    'it falls back to a headline that is true without a trial');
+  nttap('pay');
   await settle(450);
   const ntext = noTrial.window.document.getElementById('im-pay').textContent;
   assert(/How your plan works/.test(ntext) && !/days free/.test(ntext),
@@ -564,21 +653,22 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/\$2\.50\/month/.test(ntext),
     'the ineligible headline prices by the month too');
 
-  //     The #konvo fragment from the onboarding persists into this origin,
-  //     and the paywall speaks the complete motive sentence.
-  const quiz = boot('/direct/inbox/', '', { hash: '#konvo=ownProjects.15' });
+  //     The #konvo fragment from the onboarding persists into this origin.
+  //     Since the motive screen was removed it carries the weekly hours
+  //     alone, and what consumes them is the pre-paywall impact screen.
+  const quiz = boot('/direct/inbox/', '', { hash: '#konvo=9' });
   await settle(8400);
-  assert.strictEqual(quiz.window.localStorage.getItem('konvoQuiz'), 'ownProjects.15',
+  assert.strictEqual(quiz.window.localStorage.getItem('konvoQuiz'), '9',
     'the fragment must persist into instagram.com-origin storage');
-  quiz.window.document.querySelector("[data-act='goodbye']").dispatchEvent(
-    new quiz.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  const qtap = act => quiz.window.document.querySelector(`[data-act='${act}']`)
+    .dispatchEvent(new quiz.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  qtap('goodbye');
   await settle(400);
-  quiz.window.document.querySelector("[data-act='pay']").dispatchEvent(
-    new quiz.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  qtap('impact');
   await settle(450);
-  assert(/About 15 hours a week for projects you care about\./.test(
+  assert(/reclaim 9 hours a week/.test(
     quiz.window.document.getElementById('im-pay').textContent),
-    'the paywall must speak the complete motive sentence');
+    'the impact screen must speak the hours this visitor actually answered');
 
   //     A trial purchase lands on S14 activation: recap, notification ask
   //     (granted -> reminder set), then Open Konvo drops the wall.
@@ -594,6 +684,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new buyer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   btap('goodbye');
   await settle(400);
+  btap('impact');
+  await settle(450);
   btap('pay');
   await settle(450);
   btap('buy-y');
@@ -634,6 +726,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new lifer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   ftap('goodbye');
   await settle(400);
+  ftap('impact');
+  await settle(450);
   ftap('pay');
   await settle(450);
   ftap('pk-l');
@@ -658,6 +752,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new monthlyBuy.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   mtap('goodbye');
   await settle(400);
+  mtap('impact');
+  await settle(450);
   mtap('pay');
   await settle(450);
   mtap('pk-m');
@@ -681,6 +777,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   ldoc.querySelector("[data-act='goodbye']").dispatchEvent(
     new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(400);
+  ldoc.querySelector("[data-act='impact']").dispatchEvent(
+    new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(450);
   ldoc.querySelector("[data-act='pay']").dispatchEvent(
     new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(450);

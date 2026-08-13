@@ -179,8 +179,10 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   tap('#signin');                               // Got it, sign in
   assert.strictEqual(d.window.localStorage.konvoOnboarded, '1',
     'S10 must set the once-per-install flag at the handoff, not at the paywall');
-  assert.deepStrictEqual(d.nav, [INBOX],
-    'the handoff must go through NATIVE navigation, straight to the inbox');
+  assert(d.nav.length === 1 && d.nav[0].startsWith(INBOX + '#konvo='),
+    'the handoff must go through NATIVE navigation and carry the weekly hours');
+  assert(Number(d.nav[0].split('=')[1]) >= 1,
+    'weekly hours floor at 1 so the pre-paywall screen never says zero');
   assert.deepStrictEqual(d.went, [],
     'the page must not navigate itself: that is the universal link that opens Instagram');
   assert(doc.getElementById('s11').classList.contains('on'),
@@ -235,8 +237,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   otap('#s8b [data-next]');
   await settle(1100);
   otap('#signin');
-  assert.strictEqual(one.nav[0], INBOX,
-    'the handoff goes straight to the inbox - the motive fragment is gone');
+  assert(one.nav[0].startsWith(INBOX + '#konvo='),
+    'the handoff carries the hours even from the minimum answers');
 
   console.log('ALL ONBOARDING TESTS PASS');
   process.exit(0);

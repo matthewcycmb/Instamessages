@@ -622,6 +622,12 @@
   // next 60 years. years = mins/1440*60, always rounded UP - "6.3 years" reads
   // as arithmetic to argue with, a whole number reads as the point.
   function years(m) { return Math.ceil(m / 1440 * 60); }
+  // Hours a week the quiz says are recoverable: everything that is not
+  // messaging. Rides to the instagram.com origin so the pre-paywall screen
+  // can name the user's own number instead of a made-up one.
+  function weeklyHours() {
+    return Math.max(1, Math.round((Math.max(0, mins() - msgMins())) * 7 / 60));
+  }
 
   // The funnel's appearance: light, except the S5-S7 dark stretch. The
   // bridge pins the letterbox and status bar to match; silent no-op without
@@ -814,7 +820,9 @@
     // killed app mid-login must never replay the quiz.
     try { localStorage.konvoOnboarded = "1"; } catch (e) {}
     show("s11");
-    var url = "https://www.instagram.com/direct/inbox/";
+    // CAGE_SCRIPT persists this into instagram.com-origin localStorage at
+    // document-start and strips the hash.
+    var url = "https://www.instagram.com/direct/inbox/#konvo=" + weeklyHours();
     // Hand the navigation to native. A page-driven cross-origin navigation
     // to instagram.com is a universal link on iOS: with Instagram installed,
     // the system opens THEIR app and the tester never signs into Konvo.

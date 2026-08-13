@@ -955,6 +955,19 @@ const CAGE_SCRIPT: &str = r#"
   // on iOS the bundled onboarding page gates every path to the inbox, so
   // "at the inbox on an iPhone" already means onboarding is done.
   if (/iPhone|iPad|iPod/.test(navigator.userAgent)) (function () {
+    // Has this install already been through the welcome sequence? Any of
+    // the three markers counts, whichever build wrote it. They used to be
+    // read per-variant, so updating between build modes replayed the whole
+    // sequence: konvoWelcomed was invisible to a beta build and
+    // konvoBetaFree was invisible to a free one. The sequence is a
+    // once-per-install thing, not a once-per-variant thing.
+    function seenSequence() {
+      try {
+        return !!(localStorage.getItem("konvoWelcomed") ||
+          localStorage.getItem("konvoBetaFree") ||
+          localStorage.getItem("konvoPaid"));
+      } catch (e) { return false; }
+    }
     function cached() {
       try {
         if (localStorage.getItem("konvoPaid")) return true;
@@ -1212,7 +1225,7 @@ const CAGE_SCRIPT: &str = r#"
     // money in shipping paths). These stand-ins render only when the bridge
     // is absent (tests, builds without the Swift class).
     var FALLBACK = { yearly: { price: '$19.99', perWeek: '$0.38',
-                               perMonth: '$1.67', savePct: 66, trialDays: 14 },
+                               perMonth: '$1.67', savePct: 66, trialDays: 7 },
                      monthly: { price: '$4.99' },
                      lifetime: { price: '$29.99' } };
     var P = null;
@@ -1238,6 +1251,16 @@ const CAGE_SCRIPT: &str = r#"
       return "About " + q[1] + (+q[1] === 1 ? " hour" : " hours") +
         " a week " + MAP[q[0]] + ".";
     }
+
+    var MOON = "<svg width='15' height='15' viewBox='0 0 24 24' fill='none'" +
+      " stroke='currentColor' stroke-width='2.2' stroke-linecap='round'" +
+      " stroke-linejoin='round'><path d='M20 14.5A8.5 8.5 0 1 1 9.5 4a6.6 6.6 0 0 0 10.5 10.5Z'/></svg>";
+    var SHIELD = "<svg width='15' height='15' viewBox='0 0 24 24' fill='none'" +
+      " stroke='currentColor' stroke-width='2.2' stroke-linecap='round'" +
+      " stroke-linejoin='round'><path d='M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6Z'/></svg>";
+    var CHAT = "<svg width='15' height='15' viewBox='0 0 24 24' fill='none'" +
+      " stroke='currentColor' stroke-width='2.2' stroke-linejoin='round'>" +
+      "<path d='M12 4c-4.4 0-8 3-8 6.8 0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z'/></svg>";
 
     var LOCK = "<svg width='19' height='19' viewBox='0 0 24 24' fill='none' stroke='#fff'" +
       " stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>" +
@@ -1428,10 +1451,63 @@ const CAGE_SCRIPT: &str = r#"
         "<p style='font-size:15px;line-height:1.5;color:var(--mut);margin-top:18px'>" +
         "Your account does not change. Reinstall whenever you want.</p>" +
         "</div><div class='imp-foot'>" +
-        "<button class='imp-btn' data-act='" + (window.__konvoFree ? "welcomed" : "pay") +
+        "<button class='imp-btn' data-act='" + (window.__konvoFree ? "welcomed" : "impact") +
         "'>I deleted it</button>" +
-        "<div class='imp-ghost' data-act='" + (window.__konvoFree ? "welcomed" : "pay") +
+        "<div class='imp-ghost' data-act='" + (window.__konvoFree ? "welcomed" : "impact") +
         "'>Not yet</div></div>";
+    }
+
+    // S12e: what the trial is FOR, immediately before the price. Three
+    // claims, each one a thing the app actually does - no ratings, no user
+    // count, no "heal your brain". The hours are the user's own answer,
+    // carried across the origin boundary in the #konvo= fragment.
+    function reclaimHours() {
+      var n = 0;
+      try { n = parseInt(localStorage.getItem("konvoQuiz"), 10) || 0; } catch (e) {}
+      return n > 0 ? n : 0;
+    }
+    function impactRow(icon, title, body) {
+      return "<div style='display:flex;gap:14px;align-items:flex-start;" +
+        "padding:15px 0'>" +
+        "<span style='flex:none;width:26px;height:26px;border-radius:9px;" +
+        "background:var(--icbg);color:var(--accent);display:inline-flex;" +
+        "align-items:center;justify-content:center;margin-top:1px'>" + icon +
+        "</span><span style='flex:1'>" +
+        "<b style='display:block;font-size:16.5px;letter-spacing:-0.015em'>" +
+        title + "</b>" +
+        "<span style='display:block;font-size:14.5px;line-height:1.45;" +
+        "color:var(--mut);margin-top:3px'>" + body + "</span></span></div>";
+    }
+    function impactPage() {
+      var h = reclaimHours(), td = prod().yearly.trialDays || 0;
+      // Someone who is trial-ineligible must not be promised a free week.
+      var head = td ? "Start your Free Week" : "Start using Konvo";
+      var sub = h
+        ? "and reclaim " + h + " hour" + (h === 1 ? "" : "s") + " a week"
+        : "and get your evenings back";
+      return "<div class='imp-head' style='height:150px'>" +
+        "<div style='position:absolute;inset:0;background:radial-gradient(circle at 50% 30%," +
+        "rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 60%)'></div>" +
+        "<div style='position:absolute;left:50%;top:38px;transform:translateX(-50%);" +
+        "width:64px;height:64px;border-radius:18px;background:#fff;display:flex;" +
+        "align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(4,30,80,.35)'>" +
+        "<svg width='34' height='34' viewBox='0 0 24 24' fill='none' stroke='#0a5cf0' " +
+        "stroke-width='2.2' stroke-linejoin='round'><path d='M12 4c-4.4 0-8 3-8 6.8 " +
+        "0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z'/>" +
+        "</svg></div></div>" +
+        "<div class='imp-mid' style='justify-content:flex-start;padding:26px 26px 0'>" +
+        "<h2 style='font-size:26px;text-align:center;line-height:1.2'>" + head +
+        "<br>" + sub + "</h2>" +
+        "<div style='margin-top:22px'>" +
+        impactRow(CHAT, "Stay connected",
+          "Messages, requests and friends' Stories all still work.") +
+        impactRow(MOON, "Reclaim your focus",
+          "No feed, no Reels, no Explore. Nothing to fall into.") +
+        impactRow(SHIELD, "Never get distracted",
+          "There is no setting to switch off at 11pm.") +
+        "</div></div>" +
+        "<div class='imp-foot'>" +
+        "<button class='imp-btn' data-act='pay'>Continue</button></div>";
     }
 
     // S14: post-purchase activation. Trial buyers get the recap and the
@@ -1554,20 +1630,15 @@ const CAGE_SCRIPT: &str = r#"
         if (then) then();
       }, 300);
     }
-    var swPending = false, swTried = false;
+    var swPending = false, swTried = false, entitlementKnown = false;
     function ensure() {
-      if (wall || cached() || !atInbox()) return;
-      // Free build (App Store v1.0): the welcome sequence plays once and
-      // finishes at the delete-Instagram step. No price screen, no wall.
-      // konvoBetaFree counts as welcomed. A tester updating from a beta
-      // build has only that key - the two variants recorded the same fact
-      // ("this person has been through the sequence") under different
-      // names - so reading one alone replayed the whole thing for every
-      // existing tester on the update that switched variants.
-      try {
-        if (window.__konvoFree && (localStorage.getItem("konvoWelcomed") ||
-            localStorage.getItem("konvoBetaFree"))) return;
-      } catch (e) {}
+      if (wall || cached() || seenSequence() || !atInbox()) return;
+      // A paying customer must never see a frame of this. On a fresh
+      // install there is no cache yet, so without waiting for the receipt
+      // the sequence starts underneath them and only vanishes once
+      // RevenueCat answers. Hold until the verdict lands, or until the
+      // timeout gives up on it.
+      if (!entitlementKnown) return;
       // Verified session first, always. The check is synchronous, so the
       // wall rises in the same tick the cookie appears.
       if (!authed) { checkAuth(); if (!authed) return; }
@@ -1619,6 +1690,9 @@ const CAGE_SCRIPT: &str = r#"
         } else if (act === "goodbye") {
           track("delete_prompt_viewed", { screen_id: "s12c_delete" });
           swap(goodbyePage());
+        } else if (act === "impact") {
+          track("impact_viewed", { screen_id: "s12e_impact" });
+          swap(impactPage());
         } else if (act === "pay") {
           track("paywall_viewed", { variant: "default", screen_id: "s13_paywall" });
           swap(pay("y"));
@@ -1649,7 +1723,7 @@ const CAGE_SCRIPT: &str = r#"
             var n = wall && wall.querySelector('#imp-notif');
             if (n) n.innerHTML = "<p style='font-size:14px;color:var(--mut)'>" +
               (g ? "Reminder set for " +
-                   dateIn((prod().yearly.trialDays || 14) - 2) + "."
+                   dateIn((prod().yearly.trialDays || 7) - 2) + "."
                  : "You can turn notifications on in Settings anytime.") + "</p>";
           });
         } else if (act === "restore") {
@@ -1697,11 +1771,16 @@ const CAGE_SCRIPT: &str = r#"
     // directions. No reply (bridge missing, StoreKit unreachable offline)
     // changes nothing - the cache carries a paying user through airplane
     // mode, and a fresh user has no cache to be wrongly unlocked by.
+    // The verdict gates the sequence (see ensure). A missing bridge answers
+    // null immediately; a bridge that never replies is covered by the
+    // timeout, so a hung StoreKit cannot lock a new user out of onboarding.
     storekit("entitlements", null, function (res) {
+      entitlementKnown = true;
       if (!res) return;
       setCache(!!res.entitled);
       if (res.entitled) dismiss();
     });
+    setTimeout(function () { entitlementKnown = true; }, 2500);
     // Retention: fired once per launch, never per navigation.
     // sessionStorage dies with the webview session, so a relaunch counts and
     // moving between screens does not.
