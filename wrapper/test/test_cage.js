@@ -398,7 +398,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/Friends' stories kept/.test(payText()),
     'every loader line is a real cage rule');
   await settle(5200);  // ~7.6s in: the perks comparison
-  assert(/Why this one works/.test(payText()),
+  assert(/Why Konvo works/.test(payText()),
     'the loader must auto-advance into the comparison');
   assert(/Going back takes a decision/.test(payText()),
     'every row is a true structural claim');
@@ -407,22 +407,15 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     assert(el, `the ${act} control must exist on the current page`);
     el.dispatchEvent(new wallFresh.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   };
-  // Perks now lead through the delete-Instagram step: Konvo replaces
-  // Instagram rather than sitting beside it, and the ask lands right after
-  // the comparison that justifies it.
-  wtap('goodbye');
-  await settle(400);
-  assert(/Delete Instagram/.test(payText()),
-    'the perks page must lead to the delete step');
-  assert(/Your account does not change/.test(payText()),
-    'the delete step must say nothing is lost - it is a true claim and it defuses the ask');
-  //     Then what the trial is FOR, before the price. The hours are the
+  // The delete-Instagram ask is gone (Aug 16): the block replaced it, and
+  // perks lead straight to the impact screen.
+  //     What the trial is FOR, before the price. The hours are the
   //     user's own quiz answer, carried across the origin boundary.
   wtap('impact');
   await settle(450);
   assert(/Start your Free Week/.test(payText()),
     'the impact page opens on the free week');
-  assert(/reclaim 15 hours a week/.test(payText()),
+  assert(/reclaim 15 hours back/.test(payText()),
     "the impact page must use the visitor's own number from the quiz");
   assert(/Stay connected/.test(payText()) && /Reclaim your focus/.test(payText())
     && /Never get distracted/.test(payText()),
@@ -508,9 +501,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const ldoc0 = live.window.document;
   const ltap = act => ldoc0.querySelector(`[data-act='${act}']`).dispatchEvent(
     new live.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  // Same route as a real user: perks -> delete step -> impact -> price.
-  ltap('goodbye');
-  await settle(400);
+  // Same route as a real user: perks -> impact -> price.
   ltap('impact');
   await settle(450);
   ltap('pay');
@@ -602,12 +593,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const btw = act => betaWalk.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new betaWalk.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   const btext = () => betaWalk.window.document.getElementById('im-pay').textContent;
-  btw('goodbye');
-  await settle(400);
-  assert(/Delete Instagram/.test(btext()), 'beta reaches the delete step');
   btw('impact');
   await settle(450);
-  assert(/Start your Free Week/.test(btext()) && /reclaim 12 hours a week/.test(btext()),
+  assert(/Start your Free Week/.test(btext()) && /reclaim 12 hours back/.test(btext()),
     'beta must show the impact screen, with this visitor\'s own hours');
   btw('pay');
   await settle(450);
@@ -630,11 +618,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
       lifetime: { price: '$79.99' } },
   }) });
   await settle(8400);
-  // Perks -> delete step -> impact -> price, as a real user walks it.
+  // Perks -> impact -> price, as a real user walks it.
   const nttap = act => noTrial.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new noTrial.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  nttap('goodbye');
-  await settle(400);
   nttap('impact');
   await settle(450);
   //     A user with no trial must not be sold one on the way in either.
@@ -662,11 +648,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the fragment must persist into instagram.com-origin storage');
   const qtap = act => quiz.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new quiz.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  qtap('goodbye');
-  await settle(400);
   qtap('impact');
   await settle(450);
-  assert(/reclaim 9 hours a week/.test(
+  assert(/reclaim 9 hours back/.test(
     quiz.window.document.getElementById('im-pay').textContent),
     'the impact screen must speak the hours this visitor actually answered');
 
@@ -682,8 +666,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const bdoc = buyer.window.document;
   const btap = act => bdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new buyer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  btap('goodbye');
-  await settle(400);
   btap('impact');
   await settle(450);
   btap('pay');
@@ -724,8 +706,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(8400);
   const ftap = act => lifer.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new lifer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  ftap('goodbye');
-  await settle(400);
   ftap('impact');
   await settle(450);
   ftap('pay');
@@ -750,8 +730,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(8400);
   const mtap = act => monthlyBuy.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new monthlyBuy.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  mtap('goodbye');
-  await settle(400);
   mtap('impact');
   await settle(450);
   mtap('pay');
@@ -774,9 +752,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const ldoc = lapsed.window.document;
   assert(ldoc.getElementById('im-pay'),
     'a lapsed subscription must bring the wall back despite the cache');
-  ldoc.querySelector("[data-act='goodbye']").dispatchEvent(
-    new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  await settle(400);
   ldoc.querySelector("[data-act='impact']").dispatchEvent(
     new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(450);
@@ -796,6 +771,210 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'a reinstalling subscriber must never see the wall');
   assert.strictEqual(reinstalled.window.localStorage.getItem('konvoPaid'), '1',
     'the launch verdict must refill the offline cache');
+
+  //     Login friction: the stages are Instagram's own routes. Each must
+  //     report once per document, never on the interval sweep, and never
+  //     for a signed-in visit - that is navigation, not friction.
+  const stages = [];
+  const stageBridge = m => {
+    if (m.cmd === 'track' && m.event === 'login_step') stages.push(m.props.stage);
+  };
+  const chal = boot('/challenge/', '', { loggedOut: true, bridge: stageBridge });
+  await settle(900);
+  assert.deepStrictEqual(stages, ['challenge'],
+    'a logged-out challenge page must report login_step:challenge once');
+  await settle(900);
+  assert.deepStrictEqual(stages, ['challenge'],
+    'the interval sweep must not repeat the stage');
+  const twofa = boot('/accounts/login/two_factor/', '',
+    { loggedOut: true, bridge: stageBridge });
+  await settle(900);
+  assert.deepStrictEqual(stages, ['challenge', 'two_factor'],
+    'two_factor must win over its /accounts/login prefix');
+  const plainLogin = boot('/accounts/login/', '',
+    { loggedOut: true, bridge: stageBridge });
+  await settle(900);
+  assert.deepStrictEqual(stages, ['challenge', 'two_factor', 'login'],
+    'the plain login page must report as its own stage');
+  const signedChal = boot('/challenge/', '', { bridge: stageBridge });
+  await settle(900);
+  assert.deepStrictEqual(stages, ['challenge', 'two_factor', 'login'],
+    'a signed-in challenge visit must not report');
+
+  //     inbox_ready reports what a fresh sign-in actually finds: the
+  //     thread count once the inbox settles, and how long that took.
+  const ready = [];
+  const inboxed = boot('/direct/inbox/',
+    '<a href="/direct/t/111/">a</a><a href="/direct/t/222/">b</a>' +
+    '<a href="/someone/">profile</a><span id="me">matthew_c</span>',
+    { bridge: m => {
+        if (m.cmd === 'track' && m.event === 'inbox_ready') ready.push(m.props);
+      } });
+  // jsdom rects are all zero; give the username element a real one so the
+  // title finder (and the identity capture riding on it) can see it.
+  inboxed.window.document.getElementById('me').getBoundingClientRect =
+    () => ({ width: 100, top: 40 });
+  await settle(2600);   // the settle detector caps at 2s before reporting
+  assert.strictEqual(ready.length, 1, 'the settled inbox must report once');
+  assert.strictEqual(ready[0].threads, 2,
+    'only conversation rows count as threads');
+  assert(typeof ready[0].ms === 'number' && ready[0].ms >= 0,
+    'the time to settle must ride along');
+  assert(!JSON.stringify(ready).includes('111'),
+    'inbox_ready must never carry a thread id');
+  //     Identity rides the first settle: the cookie id plus the handle the
+  //     title finder located. Captured once per install, never again.
+  assert.strictEqual(ready[0].$set.ig_user_id, '1234567',
+    'the first settle must set the Instagram id');
+  assert.strictEqual(ready[0].$set.ig_username, 'matthew_c',
+    'the handle must come from the sized title element');
+  inboxed.window.__loc.pathname = '/direct/t/111/';
+  await settle(900);
+  inboxed.window.__loc.pathname = '/direct/inbox/';
+  await settle(2600);
+  assert.strictEqual(ready.length, 2, 'returning to the inbox must report again');
+  assert(!ready[1].$set, 'identity is captured once per install, not per settle');
+
+  //     The DM composer must autocorrect: Instagram ships it off, the
+  //     cage flips it on, and only in a thread - the inbox search box is
+  //     not ours to retrait.
+  const dmbox = boot('/direct/t/123/',
+    '<div id="cmp" role="textbox" contenteditable="true"' +
+    " autocorrect='off' autocapitalize='off' spellcheck='false'></div>");
+  await settle(900);
+  const cmp = dmbox.window.document.getElementById('cmp');
+  assert.strictEqual(cmp.getAttribute('autocorrect'), 'on',
+    'the composer must get autocorrect back');
+  assert.strictEqual(cmp.getAttribute('autocapitalize'), 'sentences',
+    'sentence capitalization comes with it');
+  assert.strictEqual(cmp.getAttribute('spellcheck'), 'true',
+    'spellcheck comes with it');
+  const searchbox = boot('/direct/inbox/',
+    '<div id="q" role="textbox" autocorrect="off"></div>');
+  await settle(900);
+  assert.strictEqual(
+    searchbox.window.document.getElementById('q').getAttribute('autocorrect'),
+    'off', 'outside a thread the cage must leave textboxes alone');
+
+  //     The block (Aug 16 order): the loader hands a supported paid build
+  //     straight to the Screen Time connect page, BEFORE perks or price.
+  //     Its button walks authorize -> pick -> shield -> notify, the
+  //     confirmation hands over to perks, and the paywall follows.
+  const cageLog = [];
+  const cageReplies = {
+    entitlements: { entitled: false },
+    products: LIVE_PRODUCTS,
+    cageStatus: { supported: true, authorized: false, picked: false, active: false },
+    cageAuthorize: { authorized: true },
+    cagePick: { count: 1 },
+    cageOn: { active: true },
+    notify: { granted: true },
+  };
+  const caged = boot('/direct/inbox/', '', { beta: true, bridge: (m, d) => {
+    cageLog.push(m.cmd === 'track' ? 'track:' + m.event : m.cmd);
+    if (m.cmd in cageReplies) d.window.__konvoStoreReply(m.id, cageReplies[m.cmd]);
+  } });
+  await settle(8400);
+  const cdoc = caged.window.document;
+  const cactap = act => cdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new caged.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert(/Connect Konvo to Screen Time/.test(cdoc.getElementById('im-pay').textContent),
+    'a supported paid build must land on the connect page after the loader');
+  assert(cageLog.includes('track:cage_pitch_viewed'), 'the connect page must be tracked');
+  assert(!cageLog.includes('cageAuthorize'),
+    'nothing native may run before the user says go');
+  cactap('cage-setup-go');
+  await settle(500);
+  const ci = s => cageLog.indexOf(s);
+  assert(ci('cageAuthorize') > -1 && ci('cagePick') > ci('cageAuthorize') &&
+    ci('cageOn') > ci('cagePick') && ci('notify') > ci('cageOn'),
+    'cage setup must run authorize, pick, shield, notify in order');
+  assert(cageLog.includes('track:cage_enabled'), 'the shield going up must be tracked');
+  assert(cdoc.documentElement.classList.contains('im-caged'),
+    'the pass button must arm in the SAME session the block goes up - the ' +
+    'boot query already answered before the cage existed');
+  assert(/Instagram is blocked/.test(cdoc.getElementById('im-pay').textContent),
+    'a completed setup must confirm the block');
+  cactap('cage-done');
+  await settle(450);
+  assert(/No commitment\. Cancel anytime\./.test(cdoc.getElementById('im-pay').textContent),
+    'the confirmation hands over to perks: setup first, sell second');
+  cactap('impact');
+  await settle(450);
+  cactap('pay');
+  await settle(450);
+  cactap('betafree');
+  await settle(950);
+  assert(!cdoc.getElementById('im-pay'),
+    'the beta unlock still drops the wall');
+
+  //     Without iOS 16 the connect page never renders: the loader lands
+  //     on perks exactly as the flow ran before the block existed.
+  const oldLog = [];
+  const oldios = boot('/direct/inbox/', '', { beta: true, bridge: (m, d) => {
+    oldLog.push(m.cmd === 'track' ? 'track:' + m.event : m.cmd);
+    const r = { entitlements: { entitled: false }, products: LIVE_PRODUCTS,
+      cageStatus: { supported: false } };
+    if (m.cmd in r) d.window.__konvoStoreReply(m.id, r[m.cmd]);
+  } });
+  await settle(8400);
+  const odoc = oldios.window.document;
+  const otap2 = act => odoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new oldios.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert(/No commitment\. Cancel anytime\./.test(odoc.getElementById('im-pay').textContent),
+    'an unsupported bridge must land on perks');
+  otap2('impact');
+  await settle(500);
+  assert(/Start your Free Week/.test(odoc.getElementById('im-pay').textContent),
+    'and continue into the impact page');
+  assert(!oldLog.includes('track:cage_pitch_viewed'),
+    'no connect event when the page never rendered');
+
+  //     The five-minute pass: visible only when caged, reason before
+  //     unlock, one a day. The relock is DeviceActivity's job and is
+  //     device-only; the contract here is the sheet's choreography.
+  const passLog = [];
+  const passed = boot('/direct/inbox/', '', { beta: true, welcomed: true,
+    bridge: (m, d) => {
+      passLog.push(m.cmd === 'track' ? 'track:' + m.event : m.cmd);
+      const r = {
+        entitlements: { entitled: false },
+        cageStatus: { supported: true, authorized: true, picked: true,
+          active: true, passAvailable: true },
+        cagePass: { granted: true },
+      };
+      if (m.cmd in r) d.window.__konvoStoreReply(m.id, r[m.cmd]);
+    } });
+  await settle(1200);
+  const pdoc = passed.window.document;
+  const ptap = el => el.dispatchEvent(
+    new passed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert(pdoc.documentElement.classList.contains('im-caged'),
+    'an active cage must mark the page');
+  ptap(pdoc.getElementById('im-pass'));
+  await settle(200);
+  assert(/Why do you want to unlock Instagram/.test(
+    pdoc.getElementById('im-pass-card').textContent),
+    'the pass sheet must open with the reason question');
+  assert(pdoc.querySelector("#im-pass-card .im-pr[data-r='post']"),
+    'posting a picture or Reel must be an offered reason');
+  const unlock = pdoc.querySelector('#im-pass-card .im-go');
+  assert(unlock.disabled, 'Unlock must wait for a reason');
+  ptap(pdoc.querySelector("#im-pass-card .im-pr[data-r='story']"));
+  assert(!unlock.disabled, 'a reason arms Unlock');
+  ptap(unlock);
+  await settle(200);
+  assert(passLog.includes('cagePass'), 'Unlock must ask the bridge for the pass');
+  assert(passLog.includes('track:pass_used'), 'the pass must be tracked');
+  assert(!pdoc.getElementById('im-pass-sheet'), 'a granted pass closes the sheet');
+
+  //     Every animation the wall declares must have its keyframes: the
+  //     loader ring shipped without im-spin for ten days and never turned.
+  for (const name of (CAGE.match(/animation:([a-z-]+)/g) || [])
+    .map(a => a.slice(10)).filter(n => n !== 'none')) {
+    assert(CAGE.includes('@keyframes ' + name),
+      `animation "${name}" must have matching @keyframes`);
+  }
 
   console.log('ALL CAGE TESTS PASS');
   process.exit(0);

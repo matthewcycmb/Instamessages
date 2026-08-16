@@ -71,15 +71,23 @@
 })();
 </script>
 <style>
-  /* The approved light mockup: the onboarding does not follow the system
-     appearance. Native pins the app Light at launch (lib.rs); the S5-S7
-     stretch pins dark via the bridge, and CAGE_SCRIPT flips native to
-     follow-system once the paywall clears. */
+  /* The onboarding follows the system appearance (decided Aug 16, replacing
+     the light-only mockup): light vars here, the whole set overridden in the
+     dark media block below. Native no longer pins Light at launch (lib.rs);
+     the S5-S7 stretch still pins dark via the bridge because those screens
+     are dark by design in both schemes. */
   :root {
     --bg: #fff; --card: #fff; --ink: #141d33; --mut: #5d6478;
     --line: #d9d9de; --chip: #f2f2f4; --icbg: #eef3ff; --accent: #0a5cf0;
     --track: rgba(20,29,51,0.12);
     --dbg: #05070A; --dink: #f5f5f7; --dmut: #8e8e93; --daccent: #0a84ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000; --card: #14171f; --ink: #f2f3f7; --mut: #9aa0ae;
+      --line: #2a2d36; --chip: #1c1f27; --icbg: #101c33; --accent: #0a84ff;
+      --track: rgba(255,255,255,0.16);
+    }
   }
   html, body { margin: 0; height: 100%; background: #000 }
   body { display: flex; flex-direction: column; align-items: center;
@@ -198,6 +206,9 @@
          font-size: 17px; font-weight: 500; letter-spacing: -0.015em;
          line-height: 1.35; transition: transform .15s ease }
   .opt:active { transform: scale(0.98) }
+  .srcic { width: 34px; height: 34px; flex: none; border-radius: 10px;
+           display: inline-flex; align-items: center; justify-content: center;
+           margin-right: 12px }
   .field { width: 100%; box-sizing: border-box; min-height: 62px;
            padding: 14px 26px; border-radius: 999px; background: var(--card);
            color: var(--ink); border: 0; font-family: inherit;
@@ -250,14 +261,12 @@
   .trust .ic { width: 34px; height: 34px; flex: none; border-radius: 10px;
                background: var(--icbg); display: inline-flex; align-items: center;
                justify-content: center; color: var(--accent) }
-  /* Pure white at y=0 so it meets the native letterbox (root view,
-     .systemBackground) with no seam - CSS cannot paint above the webview,
-     so the page has to come to it. */
-  #s1 { background: linear-gradient(180deg, #fff 0, rgba(255,255,255,0) 120px),
-        url('welcome-bg.jpg') center/cover }
-  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 470px;
-          background: linear-gradient(180deg, rgba(255,255,255,0) 0%,
-          rgba(255,255,255,0.82) 46%, rgba(255,255,255,0.95) 100%) }
+  /* Scheme-aware since Aug 16: gradients end at var(--bg) so every fade
+     lands on the page color in both schemes, and dark --bg is pure black
+     to meet the native letterbox (.systemBackground) with no seam. */
+  .fade { position: absolute; left: 0; right: 0; bottom: 0; height: 200px;
+          background: linear-gradient(180deg, transparent, var(--bg) 82%);
+          pointer-events: none }
   .dots { display: flex; gap: 7px; justify-content: center;
           margin-bottom: 18px }
   /* the pact (S9) */
@@ -268,13 +277,14 @@
             justify-content: center; margin-top: 1px }
   .dots i { width: 7px; height: 7px; border-radius: 999px; background: var(--line) }
   .dots i.on { width: 20px; background: var(--accent) }
-  /* The S8 heroes bleed under a white-gradient footer (approved sheet). */
+  /* The S8 heroes bleed under a footer wash that lands on the page color,
+     whichever scheme owns it. */
   .hero { flex: 1; min-height: 0; position: relative }
   .hero img { position: absolute; top: 10px; left: 50%;
               transform: translateX(-50%); width: min(300px, 76vw) }
   .herofoot { flex: none; padding: 22px 20px 34px;
-              background: linear-gradient(180deg, rgba(255,255,255,0) 0%,
-              #fff 34%); position: relative; z-index: 1 }
+              background: linear-gradient(180deg, transparent 0%,
+              var(--bg) 34%); position: relative; z-index: 1 }
   input[type=range] { -webkit-appearance: none; appearance: none; width: 100%;
           height: 6px; border-radius: 999px; margin: 34px 0 16px;
           background: linear-gradient(90deg, var(--accent) 29%, var(--track) 29%) }
@@ -308,7 +318,6 @@
 <div id="flow">
 
   <div class="screen on" id="s1">
-    <div class="fade"></div>
     <div style="position: relative; flex: none; padding: 20px 28px 0;
          display: flex; align-items: center; gap: 9px">
       <span style="width: 26px; height: 26px; border-radius: 8px;
@@ -319,44 +328,70 @@
       <span style="font-size: 20px; font-weight: 700;
             letter-spacing: -0.035em">Konvo</span>
     </div>
-    <div style="flex: 1"></div>
+    <div style="position: relative; flex: 1; min-height: 0; display: flex;
+         align-items: flex-start; justify-content: center; padding: 22px 0 0;
+         overflow: hidden">
+      <img src="phone-hero.png" alt="" style="max-height: 118%; max-width: 86%;
+           object-fit: contain; object-position: center top">
+      <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 46%;
+           background: linear-gradient(180deg, transparent, var(--bg) 72%)"></div>
+    </div>
     <div style="position: relative; flex: none; padding: 0 28px 40px">
       <h1 style="font-size: 30px; font-weight: 700; letter-spacing: -0.045em;
           line-height: 1.12">Instagram without the Feed, Reels or Explore.</h1>
       <p style="font-size: 17px; line-height: 1.5; color: var(--mut);
          margin: 14px 0 28px; max-width: 32ch">Your DMs and friends&rsquo;
          Stories still work.</p>
-      <button class="btn" data-next="s1b">Get started</button>
+      <button class="btn" data-next="s2a">Get started</button>
     </div>
   </div>
 
-  <div class="screen" id="s1b">
+  <div class="screen" id="s2a">
     <div class="chrome">
-      <div class="track"><div class="fill" style="width: 33%"></div></div>
       <button class="back" data-back="s1" aria-label="Back"><svg width="10"
         height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     </div>
     <div class="body">
-      <h2>What&rsquo;s your email?</h2>
-      <p class="sub">Enter your email to get started with Konvo.</p>
-      <form id="emailform" novalidate>
-        <input class="field" id="email" type="email" inputmode="email"
-          autocomplete="email" autocapitalize="off" autocorrect="off"
-          spellcheck="false" placeholder="you@email.com">
-        <p class="err" id="emailerr" hidden>That email doesn&rsquo;t look right.</p>
-      </form>
-    </div>
-    <div class="foot">
-      <button class="btn" id="emailgo">Continue</button>
-      <button class="skip" id="emailskip">Skip for now</button>
+      <h2>Where did you hear about Konvo?</h2>
+      <!-- No .sub on this screen, so the gap it would occupy is made
+           explicit to keep the headline rhythm of the quiz pages. -->
+      <div class="opts" style="margin-top: 34px">
+        <button class="opt" data-src="tiktok"><span class="srcic"
+          style="background: #0f0f0f; box-shadow: inset 0 0 0 1px var(--line)"><svg
+          width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path
+          d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18"
+          cy="16" r="3"/></svg></span>TikTok</button>
+        <button class="opt" data-src="instagram"><span class="srcic"
+          style="background: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)"><svg
+          width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff"
+          stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5.5"/><circle
+          cx="12" cy="12" r="4"/></svg></span>Instagram</button>
+        <button class="opt" data-src="friend"><span class="srcic"
+          style="background: var(--accent)"><svg width="17" height="17"
+          viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"><path
+          d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7"
+          r="4"/></svg></span>A friend</button>
+        <button class="opt" data-src="appstore"><span class="srcic"
+          style="background: #1d9bf6"><svg width="17" height="17"
+          viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round"><path
+          d="M12 4 5.5 18M12 4l6.5 14M7.5 13.5h9"/></svg></span>App Store</button>
+        <button class="opt" data-src="other"><span class="srcic"
+          style="background: #6b7280"><svg width="17" height="17"
+          viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+          stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path
+          d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>
+          </span>Somewhere else</button>
+      </div>
     </div>
   </div>
 
   <div class="screen" id="s3">
     <div class="chrome">
-      <div class="track"><div class="fill" style="width: 66%"></div></div>
-      <button class="back" data-back="s1b" aria-label="Back"><svg width="10"
+      <button class="back" data-back="s2a" aria-label="Back"><svg width="10"
         height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     </div>
@@ -376,7 +411,6 @@
 
   <div class="screen" id="s4">
     <div class="chrome">
-      <div class="track"><div class="fill" style="width: 100%"></div></div>
       <button class="back" data-back="s3" aria-label="Back"><svg width="10"
         height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
@@ -482,7 +516,7 @@
     </div>
     <div class="hero"><img src="phone-mockup.webp" alt=""></div>
     <div class="herofoot">
-      <div class="dots"><i class="on"></i><i></i></div>
+      <div class="dots"><i class="on"></i><i></i><i></i></div>
       <button class="btn" data-next="s8b">Next</button>
     </div>
   </div>
@@ -495,7 +529,45 @@
     </div>
     <div class="hero"><img src="phone-thread.webp" alt=""></div>
     <div class="herofoot">
-      <div class="dots"><i></i><i class="on"></i></div>
+      <div class="dots"><i></i><i class="on"></i><i></i></div>
+      <button class="btn" data-next="s8c">Next</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s8c">
+    <div class="body" style="flex: none; padding: 40px 24px 0">
+      <h2 style="font-size: 26px">One pass a day.</h2>
+      <p class="sub" style="margin-top: 8px">Unlock the real Instagram for
+         three minutes. Post, call, then it locks itself.</p>
+    </div>
+    <div class="hero" style="display: flex; align-items: center;
+         justify-content: center">
+      <div style="width: min(290px, 78vw); background: var(--card);
+           border: 1px solid var(--line); border-radius: 22px;
+           padding: 20px 18px; box-shadow: 0 20px 50px rgba(0,0,0,0.16)">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <span style="width: 34px; height: 34px; border-radius: 10px;
+                background: var(--icbg); color: var(--accent);
+                display: inline-flex; align-items: center;
+                justify-content: center"><svg width="18" height="18"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round"><circle cx="12"
+                cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
+          <b style="font-size: 16px">Three minutes of Instagram</b>
+        </div>
+        <div style="margin-top: 14px; padding: 12px 14px; border-radius: 12px;
+             background: var(--chip); box-shadow: inset 0 0 0 2px var(--accent);
+             font-size: 14.5px">Post a story</div>
+        <div style="margin-top: 8px; padding: 12px 14px; border-radius: 12px;
+             background: var(--chip); font-size: 14.5px;
+             color: var(--mut)">Call someone</div>
+        <div style="margin-top: 14px; padding: 13px 0; border-radius: 999px;
+             background: var(--accent); color: #fff; text-align: center;
+             font-size: 15.5px; font-weight: 700">Unlock</div>
+      </div>
+    </div>
+    <div class="herofoot">
+      <div class="dots"><i></i><i></i><i class="on"></i></div>
       <button class="btn" data-next="s10">Continue</button>
     </div>
   </div>
@@ -592,8 +664,13 @@
   // no-op without the bridge (Mac, tests without the mock).
   function track(event, props) {
     try {
+      var p = props || {};
+      // Same variant stamp as the cage: the flags come from the same
+      // initialization script, so both surfaces label events identically.
+      p.variant = window.__konvoBeta ? "beta"
+        : window.__konvoFree ? "free" : "default";
       window.webkit.messageHandlers.konvoStore.postMessage(
-        { cmd: "track", id: 0, event: event, props: props || {} });
+        { cmd: "track", id: 0, event: event, props: p });
     } catch (e) {}
   }
   track("onboarding_screen_viewed", { screen_id: "s1" });
@@ -632,7 +709,7 @@
   // The funnel's appearance: light, except the S5-S7 dark stretch. The
   // bridge pins the letterbox and status bar to match; silent no-op without
   // it (Mac, tests). konvoFunnelDone only flips on "auto" (KonvoStore).
-  var mode = "light";
+  var mode = "auto";
   var DARK = { s5: 1, s6: 1, s7: 1 };
   // The pact fills the whole phone, letterbox included - only the native
   // side can paint that, so the screen announces itself as "blue".
@@ -652,7 +729,9 @@
   // through the flow. The reveals (S5, S7) hold longer so their numbers
   // land before the screen will advance.
   var busy = 0;
-  var DWELL = { s4b: 3500, s5: 2400, s6: 1400, s7: 1800 };
+  // Trimmed by a third Aug 16: the reveals still land, but 9s of forced
+  // waiting across the walk was the only length a user could feel.
+  var DWELL = { s4b: 2300, s5: 1600, s6: 900, s7: 1200 };
   function show(id, back) {
     var next = document.getElementById(id);
     var glide = !/t-fade|t-rise/.test(next.className);
@@ -665,7 +744,7 @@
     cur = next;
     busy = Date.now() + (DWELL[id] || 1000);
     track("onboarding_screen_viewed", { screen_id: id });
-    setMode(BLUE[id] ? "blue" : DARK[id] ? "dark" : "light");
+    setMode(BLUE[id] ? "blue" : DARK[id] ? "dark" : "auto");
     if (id === "s4") gateOptions();
     if (id === "s4b") { prime(); sequence("s4b", 3400, "s5"); }
     if (id === "s5") reveal();
@@ -756,6 +835,16 @@
     }
     var opt = e.target.closest(".opt");
     if (!opt) return;
+    // Attribution first: which channel produced this install. The source
+    // value IS the point - a deliberate exception to the lean-payload
+    // rule, one enum, no free text.
+    if (opt.closest(".screen").id === "s2a") {
+      busy = Date.now() + 850;
+      opt.classList.add("sel");
+      track("attribution", { source: opt.dataset.src, screen_id: "s2a" });
+      setTimeout(function () { show("s3"); }, 250);
+      return;
+    }
     var peers = opt.parentNode.querySelectorAll(".opt");
     for (var i = 0; i < peers.length; i++) peers[i].classList.remove("sel");
     opt.classList.add("sel");
@@ -774,45 +863,10 @@
     }, 250);
   });
 
-  // The email step. Optional by policy and by taste: Konvo has no accounts,
-  // so this is a way to reach people for feedback and nothing else. It is
-  // the one place the lean-payload rule bends - PostHog's $set rides inside
-  // properties, which the native bridge forwards verbatim, so no Swift
-  // change and still no Konvo backend.
-  (function () {
-    var form = document.getElementById("emailform");
-    var input = document.getElementById("email");
-    var err = document.getElementById("emailerr");
-
-    function leave(kind, value) {
-      track(kind, { screen_id: "s1b" });
-      if (value) track("email_captured", { screen_id: "s1b", $set: { email: value } });
-      show("s3");
-    }
-    function submit() {
-      var value = (input.value || "").trim();
-      // One check at the trust boundary; a typo here is a person we can
-      // never reach, and there is no second chance to ask.
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
-        err.hidden = false;
-        input.classList.add("bad");
-        input.focus();
-        return;
-      }
-      input.blur();
-      leave("email_submitted", value);
-    }
-    input.addEventListener("input", function () {
-      err.hidden = true;
-      input.classList.remove("bad");
-    });
-    form.addEventListener("submit", function (e) { e.preventDefault(); submit(); });
-    document.getElementById("emailgo").addEventListener("click", submit);
-    document.getElementById("emailskip").addEventListener("click", function () {
-      input.blur();
-      leave("email_skipped");
-    });
-  })();
+  // The email step lived here (s1b) from Aug 11 to Aug 14, 2026. Removed:
+  // 4 of the first 5 external onboarders in the flow that contained it
+  // stalled mid-story, and the cage now identifies users by Instagram
+  // handle at the inbox instead, which covers everyone at zero screens.
 
   document.getElementById("signin").addEventListener("click", function () {
     track("login_started", { screen_id: "s10" });

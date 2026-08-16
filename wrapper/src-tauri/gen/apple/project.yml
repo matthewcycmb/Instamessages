@@ -68,10 +68,18 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        CFBundleShortVersionString: 0.1.0
-        CFBundleVersion: "42"
+        # The build patches both from tauri.conf.json; these only matter if
+        # xcodegen regenerates between builds, so keep them current-ish.
+        CFBundleShortVersionString: 1.0.0
+        CFBundleVersion: "51"
     entitlements:
       path: instamessages-wrapper_iOS/instamessages-wrapper_iOS.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        # Shared with KonvoActivityMonitor: the relock extension reads the
+        # cage selection from here with the app dead.
+        com.apple.security.application-groups:
+          - group.com.matthewchan.konvo
     scheme:
       environmentVariables:
         RUST_BACKTRACE: full
@@ -104,6 +112,14 @@ targets:
         embed: false
       - package: RevenueCat
       - package: SuperwallKit
+      # The Screen Time cage's shield extensions (custom shield UI + button
+      # handling for a caged Instagram). Both are pure Swift, no Rust.
+      - target: KonvoShieldConfig
+        embed: true
+      - target: KonvoShieldAction
+        embed: true
+      - target: KonvoActivityMonitor
+        embed: true
       - sdk: CoreGraphics.framework
       - sdk: Metal.framework
       - sdk: MetalKit.framework
@@ -119,3 +135,90 @@ targets:
         outputFiles:
           - $(SRCROOT)/Externals/x86_64/${CONFIGURATION}/libapp.a
           - $(SRCROOT)/Externals/arm64/${CONFIGURATION}/libapp.a
+
+  # Screen Time cage extensions. iOS 16 floor: individual FamilyControls
+  # authorization does not exist below it. The main app stays at 15.0 and
+  # gates the cage at runtime.
+  KonvoShieldConfig:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: ShieldConfig
+    entitlements:
+      path: ShieldConfig/KonvoShieldConfig.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+    info:
+      path: ShieldConfig/Info.plist
+      properties:
+        CFBundleDisplayName: Konvo Shield
+        CFBundleShortVersionString: 1.0.0
+        CFBundleVersion: "51"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.matthewchan.konvo.shieldconfig
+        DEVELOPMENT_TEAM: JBTFJ7JD4R
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        ENABLE_BITCODE: false
+        ARCHS: [arm64]
+  KonvoActivityMonitor:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: ActivityMonitor
+    entitlements:
+      path: ActivityMonitor/KonvoActivityMonitor.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups:
+          - group.com.matthewchan.konvo
+    info:
+      path: ActivityMonitor/Info.plist
+      properties:
+        CFBundleDisplayName: Konvo Relock
+        CFBundleShortVersionString: 1.0.0
+        CFBundleVersion: "51"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KonvoActivityMonitor
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.matthewchan.konvo.activitymonitor
+        DEVELOPMENT_TEAM: JBTFJ7JD4R
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        ENABLE_BITCODE: false
+        ARCHS: [arm64]
+  KonvoShieldAction:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "16.0"
+    sources:
+      - path: ShieldAction
+    entitlements:
+      path: ShieldAction/KonvoShieldAction.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+    info:
+      path: ShieldAction/Info.plist
+      properties:
+        CFBundleDisplayName: Konvo Shield Action
+        CFBundleShortVersionString: 1.0.0
+        CFBundleVersion: "51"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-action-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.matthewchan.konvo.shieldaction
+        DEVELOPMENT_TEAM: JBTFJ7JD4R
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1"
+        ENABLE_BITCODE: false
+        ARCHS: [arm64]

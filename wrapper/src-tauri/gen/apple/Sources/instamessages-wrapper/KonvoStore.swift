@@ -15,11 +15,15 @@
 // (URLSession) because Instagram's CSP would block the page from doing it.
 // Lean payloads by decision (Aug 3): event + screen ids, no quiz values.
 
+import DeviceActivity
+import FamilyControls
 import Foundation
+import ManagedSettings
 import RevenueCat
 import SafariServices
 import StoreKit
 import SuperwallKit
+import SwiftUI
 import UIKit
 import UserNotifications
 import WebKit
@@ -703,6 +707,57 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
 
     static func run(_ cmd: String, _ productId: String) async -> [String: Any] {
         switch cmd {
+        // ── The Screen Time cage (locked Aug 16) ──────────────────────
+        // Shields the native Instagram app so Konvo is the only window to
+        // the messages. The JS wall gates these behind Pro/beta access;
+        // the bridge stays policy-free like the rest of the protocol.
+        // iOS 16 floor: individual FamilyControls authorization does not
+        // exist below it, so 15.x answers unsupported and the offer never
+        // renders there.
+        case "cageStatus":
+            guard #available(iOS 16.0, *) else { return ["supported": false] }
+            // Belt and braces for the pass: if a pass is marked active but
+            // its window is long over (the monitor extension should have
+            // relocked; maybe it did not run), relock here on the next
+            // Konvo launch.
+            if cageDefaults.bool(forKey: "konvoPassActive"),
+               Date().timeIntervalSince1970
+                   - cageDefaults.double(forKey: "konvoPassStart") > 4 * 60 {
+                _ = cageApply()
+                cageDefaults.set(false, forKey: "konvoPassActive")
+            }
+            return [
+                "supported": true,
+                "authorized": AuthorizationCenter.shared.authorizationStatus == .approved,
+                "picked": (storedCageSelection().map(cageCount) ?? 0) > 0,
+                "active": UserDefaults.standard.bool(forKey: cageActiveKey),
+                "passAvailable": cageDefaults.string(forKey: "konvoPassDay")
+                    != Self.dayStamp(),
+            ]
+        case "cagePass":
+            guard #available(iOS 16.0, *) else { return ["granted": false] }
+            return await cagePassStart()
+        case "cageAuthorize":
+            guard #available(iOS 16.0, *) else { return ["authorized": false] }
+            do {
+                try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+                return ["authorized": true]
+            } catch {
+                return ["authorized": false]
+            }
+        case "cagePick":
+            guard #available(iOS 16.0, *) else { return ["count": 0] }
+            return ["count": await cagePick()]
+        case "cageOn":
+            guard #available(iOS 16.0, *) else { return ["active": false] }
+            return ["active": cageApply()]
+        case "cageOff":
+            // No user-facing unlock by design; this exists for the one
+            // honest reason to lift the shield without deleting Konvo -
+            // a lapsed subscription must not hold Instagram hostage.
+            guard #available(iOS 16.0, *) else { return ["active": false] }
+            cageClear()
+            return ["active": false]
         case "entitlements":
             return ["entitled": await entitled()]
         case "products":
@@ -849,6 +904,11 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
     static func track(_ event: String, _ props: [String: Any]) {
         var properties = props
         properties["platform"] = "ios"
+        // Every event carries the build number: funnels that mixed builds
+        // faked drop-offs twice (retired screens, new screens). Filtering
+        // by build kills that class; date pins never could.
+        properties["build"] =
+            Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
         let payload: [String: Any] = [
             "api_key": "phc_oNC3DTPBj8vt52LGeHikaZ4WeSiZS69M3tsM2PcZRDvp",
             "event": event,
@@ -863,5 +923,205 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
         URLSession.shared.dataTask(with: request).resume()
+    }
+
+    // ── The Screen Time cage ──────────────────────────────────────────
+    // Apple's picker is the only way to target Instagram - apps cannot
+    // name other apps - so the user taps it once and the opaque selection
+    // persists here. The shield itself is drawn by the two PlugIns
+    // (ShieldConfig / ShieldAction); iOS keeps it up with Konvo closed.
+    // Revocation always exists in Settings > Screen Time, so no copy
+    // anywhere claims the block is unbreakable.
+
+    private static let cageSelectionKey = "konvoCageSelection"
+    private static let cageActiveKey = "konvoCageActive"
+    // App group: the relock extension (KonvoActivityMonitor) reads the
+    // selection from here with the app dead. Standard defaults remain the
+    // fallback read for installs that stored the selection before the
+    // group existed.
+    static var cageDefaults: UserDefaults {
+        UserDefaults(suiteName: "group.com.matthewchan.konvo") ?? .standard
+    }
+
+    @available(iOS 16.0, *)
+    private static var cageStore: ManagedSettingsStore {
+        ManagedSettingsStore(named: .init("konvoCage"))
+    }
+
+    @available(iOS 16.0, *)
+    private static func storedCageSelection() -> FamilyActivitySelection? {
+        guard let data = cageDefaults.data(forKey: cageSelectionKey)
+            ?? UserDefaults.standard.data(forKey: cageSelectionKey)
+        else { return nil }
+        return try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+    }
+
+    @available(iOS 16.0, *)
+    private static func cageCount(_ s: FamilyActivitySelection) -> Int {
+        s.applicationTokens.count + s.categoryTokens.count + s.webDomainTokens.count
+    }
+
+    @available(iOS 16.0, *)
+    static func cageApply() -> Bool {
+        guard let s = storedCageSelection(), cageCount(s) > 0 else { return false }
+        let store = cageStore
+        store.shield.applications = s.applicationTokens.isEmpty ? nil : s.applicationTokens
+        store.shield.applicationCategories = s.categoryTokens.isEmpty
+            ? nil : .specific(s.categoryTokens)
+        UserDefaults.standard.set(true, forKey: cageActiveKey)
+        return true
+    }
+
+    @available(iOS 16.0, *)
+    static func cageClear() {
+        cageStore.clearAllSettings()
+        UserDefaults.standard.set(false, forKey: cageActiveKey)
+    }
+
+    private static func dayStamp() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: Date())
+    }
+
+    // The five-minute pass (locked Aug 16): once a day, and it relocks
+    // itself. DeviceActivity counts five minutes of actual Instagram use
+    // (threshold event); the 15-minute interval is Apple's schedule
+    // minimum and doubles as the backstop. The shield lifts, the user is
+    // handed native Instagram, and the monitor extension re-raises the
+    // shield with Konvo dead.
+    @available(iOS 16.0, *)
+    @MainActor
+    static func cagePassStart() -> [String: Any] {
+        let d = cageDefaults
+        guard d.string(forKey: "konvoPassDay") != dayStamp() else {
+            return ["granted": false, "why": "used"]
+        }
+        guard let s = storedCageSelection(), cageCount(s) > 0,
+              UserDefaults.standard.bool(forKey: cageActiveKey)
+        else { return ["granted": false, "why": "nocage"] }
+        let store = cageStore
+        store.shield.applications = nil
+        store.shield.applicationCategories = nil
+        d.set(dayStamp(), forKey: "konvoPassDay")
+        d.set(true, forKey: "konvoPassActive")
+        d.set(Date().timeIntervalSince1970, forKey: "konvoPassStart")
+        // The monitor extension reports its lifecycle to PostHog under the
+        // same person; this is how a relock that never fires becomes
+        // diagnosable instead of a mystery (first field test, Aug 16).
+        d.set(Purchases.shared.appUserID, forKey: "konvoUid")
+        let now = Date()
+        let cal = Calendar.current
+        // 16 minutes: Apple rejects schedules under 15, and exactly-15
+        // was in the first cut when the relock never fired on device
+        // (Aug 16), so both suspects changed together: a margin over the
+        // minimum, a stop before start (a leftover registration makes
+        // startMonitoring throw), and the error surfaced to analytics
+        // instead of swallowed.
+        let schedule = DeviceActivitySchedule(
+            intervalStart: cal.dateComponents(
+                [.hour, .minute, .second], from: now),
+            intervalEnd: cal.dateComponents(
+                [.hour, .minute, .second], from: now.addingTimeInterval(16 * 60)),
+            repeats: false)
+        let event = DeviceActivityEvent(
+            applications: s.applicationTokens, categories: s.categoryTokens,
+            webDomains: [], threshold: DateComponents(minute: 3))
+        let center = DeviceActivityCenter()
+        center.stopMonitoring([DeviceActivityName("konvoPass")])
+        do {
+            try center.startMonitoring(
+                DeviceActivityName("konvoPass"), during: schedule,
+                events: [DeviceActivityEvent.Name("passUsed"): event])
+        } catch {
+            track("cage_pass_monitor_error", ["err": String(describing: error)])
+        }
+        if let url = URL(string: "instagram://app") {
+            UIApplication.shared.open(url)
+        }
+        return ["granted": true]
+    }
+
+    @MainActor
+    private static func frontViewController() -> UIViewController? {
+        let windows = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }.flatMap(\.windows)
+        var vc = (windows.first { $0.isKeyWindow } ?? windows.first)?.rootViewController
+        while let presented = vc?.presentedViewController { vc = presented }
+        return vc
+    }
+
+    @available(iOS 16.0, *)
+    @MainActor
+    static func cagePick() async -> Int {
+        guard let front = frontViewController() else { return 0 }
+        return await withCheckedContinuation { (cont: CheckedContinuation<Int, Never>) in
+            var resumed = false
+            let host = UIHostingController(rootView: CagePickerSheet(
+                selection: storedCageSelection() ?? FamilyActivitySelection(),
+                finish: { sel in
+                    guard !resumed else { return }
+                    resumed = true
+                    if let sel, let data = try? JSONEncoder().encode(sel) {
+                        cageDefaults.set(data, forKey: cageSelectionKey)
+                    }
+                    front.dismiss(animated: true)
+                    let s = sel ?? storedCageSelection()
+                    cont.resume(returning: s.map(cageCount) ?? 0)
+                }))
+            // Full screen and undismissable by swipe: the only exits are
+            // Cancel and Continue, so the continuation cannot strand.
+            host.modalPresentationStyle = .fullScreen
+            host.isModalInPresentation = true
+            front.present(host, animated: true)
+        }
+    }
+}
+
+// The selection screen, modeled on the pattern Opal proved: Apple's
+// FamilyActivityPicker is a plain SwiftUI View, so it embeds inside a
+// branded scaffold - our header, our pinned Continue - while the list
+// itself stays the system's, rendered out of process and following
+// light/dark automatically. SwiftUI because the picker has no UIKit form.
+@available(iOS 16.0, *)
+private struct CagePickerSheet: View {
+    @State var selection: FamilyActivitySelection
+    let finish: (FamilyActivitySelection?) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button("Cancel") { finish(nil) }
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Select Instagram")
+                    .font(.largeTitle.bold())
+                Text("Tick it in the list. Add anything else you want blocked too.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.top, 2)
+            FamilyActivityPicker(selection: $selection)
+                .frame(maxHeight: .infinity)
+            Button { finish(selection) } label: {
+                Text("Continue")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(Color(red: 0.10, green: 0.42, blue: 0.95))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 6)
+        }
+        .background(Color(.systemBackground).ignoresSafeArea())
     }
 }

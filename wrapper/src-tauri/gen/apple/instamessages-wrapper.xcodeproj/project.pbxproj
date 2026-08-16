@@ -9,30 +9,90 @@
 /* Begin PBXBuildFile section */
 		0B57E8BB52ED4EE58F75C952 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2D83A2D0B4DA5EBDC69868F3 /* LaunchScreen.storyboard */; };
 		1296AD041CE022531D454A29 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 91C0D64ACA8C1C9FB398552C /* UIKit.framework */; };
+		1BC77504F91CF899A815E4D0 /* KonvoActivityMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 82AA7C2483CEDC84BEE9EA2A /* KonvoActivityMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		28280D382F2B2746678591EE /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2DDACEC0176375B76B272E54 /* StoreKit.framework */; };
 		2EBC7E4D7763A81BBF587444 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 2A95ADD2DFE026F76C56FE1D /* assets */; };
 		31C709A01E03514554E976AB /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D7BA748251ED6F705D73AA2A /* Metal.framework */; };
 		3274EEB8AD3B404B6E55C41F /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = A79BDBF47F2511D3579F17D6 /* main.mm */; };
 		7E4C87DD927DD830F9FDBDB8 /* KonvoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E997D26F9E699F957C6A1361 /* KonvoStore.swift */; };
+		7F43833627A6211A434791A2 /* ShieldActionExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 913B0F091B12564F24E58D6A /* ShieldActionExtension.swift */; };
 		9502D46A2189E2D60086EA26 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6E5C36DED82E23A8C7C3504 /* WebKit.framework */; };
+		9B5DF5C8CE4BA88E0FA13ACD /* KonvoLogo.png in Resources */ = {isa = PBXBuildFile; fileRef = FE982207D66EA4EFCA170A08 /* KonvoLogo.png */; };
+		9E52F315A07D999662409EEA /* ShieldConfigurationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ACD8AE68354636F98499AAA /* ShieldConfigurationExtension.swift */; };
+		ADD6433FC0CFCBAF85ACFB20 /* KonvoShieldConfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 14B65ED4CA9D52ADE94A3E7E /* KonvoShieldConfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B8F3642B8292A97F359997B7 /* SuperwallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3C6AA4416EF1ACCB09581A48 /* SuperwallKit */; };
 		BB7CE57E41D91F2C0094C7EA /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 95565E088376809829C919A9 /* Security.framework */; };
+		C06E4BDD0E62B3539BDC42A3 /* KonvoShieldAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 85782DCABFC440E74D59AE45 /* KonvoShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D48FD654380141E228F332AF /* KonvoActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E4CE2214A0F44F7EFFC81DB /* KonvoActivityMonitor.swift */; };
 		E6CCD902F98D3B0923648D73 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CBEDA7ABE5C91AD11BB61F1 /* libapp.a */; };
+		EAE5D812590C4B65838E552A /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C98BFF9272B89EC4D56B72C1 /* RevenueCat */; };
 		EDF52AAF4B39F02B1B97138F /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 974A7F7F350DA4C43394A266 /* QuartzCore.framework */; };
 		F02D75A876ED4ADCC32147FE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8DD52691ABEE23DEC0327E87 /* Assets.xcassets */; };
 		F23657B56E778145A4750D6C /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C7740352F1FBB08F13A802A3 /* CoreGraphics.framework */; };
 		F872EE291AD812280AFB7B07 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDBA0A83D3429C96EF9809F5 /* MetalKit.framework */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		2C06B2AD1FF7131BE8BDE128 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E4B999A29DD51AE95DC96581 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 933CC98DF30124D87D918770;
+			remoteInfo = KonvoShieldAction;
+		};
+		80DDBBD13B23B07C59A69BB6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E4B999A29DD51AE95DC96581 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DBE8CA8895F99977349F0B12;
+			remoteInfo = KonvoShieldConfig;
+		};
+		F70893F154E851EC6873840A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E4B999A29DD51AE95DC96581 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 122A19E5FBC8FDFE3657476C;
+			remoteInfo = KonvoActivityMonitor;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AA1ABAABB17EA53AD3B5D0B9 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				ADD6433FC0CFCBAF85ACFB20 /* KonvoShieldConfig.appex in Embed Foundation Extensions */,
+				C06E4BDD0E62B3539BDC42A3 /* KonvoShieldAction.appex in Embed Foundation Extensions */,
+				1BC77504F91CF899A815E4D0 /* KonvoActivityMonitor.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0E4CE2214A0F44F7EFFC81DB /* KonvoActivityMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KonvoActivityMonitor.swift; sourceTree = "<group>"; };
 		11689584AFCF000C22156814 /* bindings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bindings.h; sourceTree = "<group>"; };
+		14B65ED4CA9D52ADE94A3E7E /* KonvoShieldConfig.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = KonvoShieldConfig.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		1ACD8AE68354636F98499AAA /* ShieldConfigurationExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldConfigurationExtension.swift; sourceTree = "<group>"; };
 		1CBEDA7ABE5C91AD11BB61F1 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		1E6A599F9CE9A7F681077CEE /* lib.rs */ = {isa = PBXFileReference; path = lib.rs; sourceTree = "<group>"; };
 		2A95ADD2DFE026F76C56FE1D /* assets */ = {isa = PBXFileReference; lastKnownFileType = folder; path = assets; sourceTree = SOURCE_ROOT; };
 		2D83A2D0B4DA5EBDC69868F3 /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		2DDACEC0176375B76B272E54 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		32DB1EA734148A8619097C7F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		3864F9F4483FED51BCE93C50 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		454A0DCC6B6C3EB03FD1430C /* main.rs */ = {isa = PBXFileReference; path = main.rs; sourceTree = "<group>"; };
+		5228DC01E41348117DF2D314 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		631980B8B09D006028020BAB /* KonvoShieldConfig.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KonvoShieldConfig.entitlements; sourceTree = "<group>"; };
 		69AF79EFEDF2844C01710404 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		8203FC8B2E838C90E782EF8B /* KonvoActivityMonitor.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KonvoActivityMonitor.entitlements; sourceTree = "<group>"; };
+		82AA7C2483CEDC84BEE9EA2A /* KonvoActivityMonitor.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = KonvoActivityMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		85782DCABFC440E74D59AE45 /* KonvoShieldAction.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = KonvoShieldAction.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		8DD52691ABEE23DEC0327E87 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		913B0F091B12564F24E58D6A /* ShieldActionExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShieldActionExtension.swift; sourceTree = "<group>"; };
 		91C0D64ACA8C1C9FB398552C /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		95565E088376809829C919A9 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		974A7F7F350DA4C43394A266 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
@@ -40,25 +100,25 @@
 		9F41D80ACBAB45D2562597B2 /* instamessages-wrapper_iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "instamessages-wrapper_iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6E5C36DED82E23A8C7C3504 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		A79BDBF47F2511D3579F17D6 /* main.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = main.mm; sourceTree = "<group>"; };
+		A9A62CE70D2302ED1A100024 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		BE2AF5F44C34C0B8C9A7B3C2 /* instamessages-wrapper_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "instamessages-wrapper_iOS.entitlements"; sourceTree = "<group>"; };
 		C7740352F1FBB08F13A802A3 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		CDBA0A83D3429C96EF9809F5 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		D7BA748251ED6F705D73AA2A /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		DBAB0DB28E788F5B974306D0 /* KonvoShieldAction.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KonvoShieldAction.entitlements; sourceTree = "<group>"; };
 		E997D26F9E699F957C6A1361 /* KonvoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KonvoStore.swift; sourceTree = "<group>"; };
 		F0537448B6DF47CC3C5820D9 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
+		FE982207D66EA4EFCA170A08 /* KonvoLogo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = KonvoLogo.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		CA7FEED000000000000000B1 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = CA7FEED000000000000000B2 /* RevenueCat */; };
-		CA7FEED000000000000000C1 /* SuperwallKit in Frameworks */ = {isa = PBXBuildFile; productRef = CA7FEED000000000000000C2 /* SuperwallKit */; };
-
 		09C7400F58897631D969FA0C /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				E6CCD902F98D3B0923648D73 /* libapp.a in Frameworks */,
-				CA7FEED000000000000000B1 /* RevenueCat in Frameworks */,
-				CA7FEED000000000000000C1 /* SuperwallKit in Frameworks */,
+				EAE5D812590C4B65838E552A /* RevenueCat in Frameworks */,
+				B8F3642B8292A97F359997B7 /* SuperwallKit in Frameworks */,
 				F23657B56E778145A4750D6C /* CoreGraphics.framework in Frameworks */,
 				31C709A01E03514554E976AB /* Metal.framework in Frameworks */,
 				F872EE291AD812280AFB7B07 /* MetalKit.framework in Frameworks */,
@@ -107,10 +167,31 @@
 			path = "instamessages-wrapper";
 			sourceTree = "<group>";
 		};
+		5FC35548CDFE6B684B42A092 /* ActivityMonitor */ = {
+			isa = PBXGroup;
+			children = (
+				3864F9F4483FED51BCE93C50 /* Info.plist */,
+				8203FC8B2E838C90E782EF8B /* KonvoActivityMonitor.entitlements */,
+				0E4CE2214A0F44F7EFFC81DB /* KonvoActivityMonitor.swift */,
+			);
+			path = ActivityMonitor;
+			sourceTree = "<group>";
+		};
+		6F6619B6D105B17C383E9AF8 /* debug */ = {
+			isa = PBXGroup;
+			children = (
+				A9A62CE70D2302ED1A100024 /* libapp.a */,
+			);
+			path = debug;
+			sourceTree = "<group>";
+		};
 		949797467AA9EB2A3C4A84C3 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				9F41D80ACBAB45D2562597B2 /* instamessages-wrapper_iOS.app */,
+				82AA7C2483CEDC84BEE9EA2A /* KonvoActivityMonitor.appex */,
+				85782DCABFC440E74D59AE45 /* KonvoShieldAction.appex */,
+				14B65ED4CA9D52ADE94A3E7E /* KonvoShieldConfig.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -121,6 +202,27 @@
 				F0537448B6DF47CC3C5820D9 /* libapp.a */,
 			);
 			path = release;
+			sourceTree = "<group>";
+		};
+		9AF0C4082864B32C4DAC1410 /* ShieldAction */ = {
+			isa = PBXGroup;
+			children = (
+				5228DC01E41348117DF2D314 /* Info.plist */,
+				DBAB0DB28E788F5B974306D0 /* KonvoShieldAction.entitlements */,
+				913B0F091B12564F24E58D6A /* ShieldActionExtension.swift */,
+			);
+			path = ShieldAction;
+			sourceTree = "<group>";
+		};
+		A427ADE59C66465ABCB0A0E9 /* ShieldConfig */ = {
+			isa = PBXGroup;
+			children = (
+				32DB1EA734148A8619097C7F /* Info.plist */,
+				FE982207D66EA4EFCA170A08 /* KonvoLogo.png */,
+				631980B8B09D006028020BAB /* KonvoShieldConfig.entitlements */,
+				1ACD8AE68354636F98499AAA /* ShieldConfigurationExtension.swift */,
+			);
+			path = ShieldConfig;
 			sourceTree = "<group>";
 		};
 		B57AB083899B828789B0E5C1 /* instamessages-wrapper_iOS */ = {
@@ -153,6 +255,7 @@
 		C9DD15E849AF2F523E6C612E /* arm64 */ = {
 			isa = PBXGroup;
 			children = (
+				6F6619B6D105B17C383E9AF8 /* debug */,
 				99D92C3887249E59D8C00311 /* release */,
 			);
 			path = arm64;
@@ -173,8 +276,11 @@
 				8DD52691ABEE23DEC0327E87 /* Assets.xcassets */,
 				9BA88AF75493A5820B20F075 /* Konvo.storekit */,
 				2D83A2D0B4DA5EBDC69868F3 /* LaunchScreen.storyboard */,
+				5FC35548CDFE6B684B42A092 /* ActivityMonitor */,
 				1CA1A22555EB1ABFEC3CFE6B /* Externals */,
 				B57AB083899B828789B0E5C1 /* instamessages-wrapper_iOS */,
+				9AF0C4082864B32C4DAC1410 /* ShieldAction */,
+				A427ADE59C66465ABCB0A0E9 /* ShieldConfig */,
 				F005A38DC8BE828C23119EC3 /* Sources */,
 				B7E80B00CDE5E3A5521A3C3B /* src */,
 				212B99CAB10543911E48B6EB /* Frameworks */,
@@ -182,7 +288,7 @@
 			);
 			sourceTree = "<group>";
 		};
-		"TEMP_B584F7EC-5A53-4D65-A618-2900050EC168" /* x86_64 */ = {
+		"TEMP_F3811E80-5D83-4C35-99FE-E0BAA1F8DF18" /* x86_64 */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -192,6 +298,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		122A19E5FBC8FDFE3657476C /* KonvoActivityMonitor */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 01C8A31C2C52A8E72773ED49 /* Build configuration list for PBXNativeTarget "KonvoActivityMonitor" */;
+			buildPhases = (
+				B27FF0C2847DDC0BAE537B87 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KonvoActivityMonitor;
+			packageProductDependencies = (
+			);
+			productName = KonvoActivityMonitor;
+			productReference = 82AA7C2483CEDC84BEE9EA2A /* KonvoActivityMonitor.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		735DF95C8FC4A4ADB79577A0 /* instamessages-wrapper_iOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 394073D532AA8AA06DB0CA9E /* Build configuration list for PBXNativeTarget "instamessages-wrapper_iOS" */;
@@ -200,19 +323,58 @@
 				DC78608C21758A76DCD32710 /* Sources */,
 				A294BED6AC7938256A0D0F1F /* Resources */,
 				09C7400F58897631D969FA0C /* Frameworks */,
+				AA1ABAABB17EA53AD3B5D0B9 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BC07E95AE755078BFC46D7E6 /* PBXTargetDependency */,
+				BBB720F7B5194110981A038B /* PBXTargetDependency */,
+				E6FB5D85264A4970EFE6A84E /* PBXTargetDependency */,
+			);
+			name = "instamessages-wrapper_iOS";
+			packageProductDependencies = (
+				C98BFF9272B89EC4D56B72C1 /* RevenueCat */,
+				3C6AA4416EF1ACCB09581A48 /* SuperwallKit */,
+			);
+			productName = "instamessages-wrapper_iOS";
+			productReference = 9F41D80ACBAB45D2562597B2 /* instamessages-wrapper_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		933CC98DF30124D87D918770 /* KonvoShieldAction */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DB3D98C13024EF6B8871588D /* Build configuration list for PBXNativeTarget "KonvoShieldAction" */;
+			buildPhases = (
+				43740B8580CECB33EBE9685C /* Sources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = "instamessages-wrapper_iOS";
+			name = KonvoShieldAction;
 			packageProductDependencies = (
-				CA7FEED000000000000000B2 /* RevenueCat */,
-				CA7FEED000000000000000C2 /* SuperwallKit */,
 			);
-			productName = "instamessages-wrapper_iOS";
-			productReference = 9F41D80ACBAB45D2562597B2 /* instamessages-wrapper_iOS.app */;
-			productType = "com.apple.product-type.application";
+			productName = KonvoShieldAction;
+			productReference = 85782DCABFC440E74D59AE45 /* KonvoShieldAction.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		DBE8CA8895F99977349F0B12 /* KonvoShieldConfig */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 729058D3D0B2408B81E56F9D /* Build configuration list for PBXNativeTarget "KonvoShieldConfig" */;
+			buildPhases = (
+				014470B77FA7A4BE592DCD74 /* Sources */,
+				79C79C85D18A6B4E884497E3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KonvoShieldConfig;
+			packageProductDependencies = (
+			);
+			productName = KonvoShieldConfig;
+			productReference = 14B65ED4CA9D52ADE94A3E7E /* KonvoShieldConfig.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -223,7 +385,16 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					122A19E5FBC8FDFE3657476C = {
+						DevelopmentTeam = JBTFJ7JD4R;
+					};
 					735DF95C8FC4A4ADB79577A0 = {
+						DevelopmentTeam = JBTFJ7JD4R;
+					};
+					933CC98DF30124D87D918770 = {
+						DevelopmentTeam = JBTFJ7JD4R;
+					};
+					DBE8CA8895F99977349F0B12 = {
 						DevelopmentTeam = JBTFJ7JD4R;
 					};
 				};
@@ -238,8 +409,8 @@
 			mainGroup = FFDB89E8128E9A9B3A6FA620;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				CA7FEED000000000000000B3 /* XCRemoteSwiftPackageReference "purchases-ios" */,
-				CA7FEED000000000000000C3 /* XCRemoteSwiftPackageReference "Superwall-iOS" */,
+				9EE3C4CDBE57CB30935A259F /* XCRemoteSwiftPackageReference "purchases-ios" */,
+				CF5D69254653044998ACB198 /* XCRemoteSwiftPackageReference "Superwall-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 949797467AA9EB2A3C4A84C3 /* Products */;
@@ -247,11 +418,22 @@
 			projectRoot = "";
 			targets = (
 				735DF95C8FC4A4ADB79577A0 /* instamessages-wrapper_iOS */,
+				DBE8CA8895F99977349F0B12 /* KonvoShieldConfig */,
+				122A19E5FBC8FDFE3657476C /* KonvoActivityMonitor */,
+				933CC98DF30124D87D918770 /* KonvoShieldAction */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		79C79C85D18A6B4E884497E3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9B5DF5C8CE4BA88E0FA13ACD /* KonvoLogo.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A294BED6AC7938256A0D0F1F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -289,6 +471,30 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		014470B77FA7A4BE592DCD74 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9E52F315A07D999662409EEA /* ShieldConfigurationExtension.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		43740B8580CECB33EBE9685C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7F43833627A6211A434791A2 /* ShieldActionExtension.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B27FF0C2847DDC0BAE537B87 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D48FD654380141E228F332AF /* KonvoActivityMonitor.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DC78608C21758A76DCD32710 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -300,7 +506,94 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		BBB720F7B5194110981A038B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 933CC98DF30124D87D918770 /* KonvoShieldAction */;
+			targetProxy = 2C06B2AD1FF7131BE8BDE128 /* PBXContainerItemProxy */;
+		};
+		BC07E95AE755078BFC46D7E6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DBE8CA8895F99977349F0B12 /* KonvoShieldConfig */;
+			targetProxy = 80DDBBD13B23B07C59A69BB6 /* PBXContainerItemProxy */;
+		};
+		E6FB5D85264A4970EFE6A84E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 122A19E5FBC8FDFE3657476C /* KonvoActivityMonitor */;
+			targetProxy = F70893F154E851EC6873840A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		03FD566A8D4DCC2FC9565E89 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					arm64,
+				);
+				CODE_SIGN_ENTITLEMENTS = ActivityMonitor/KonvoActivityMonitor.entitlements;
+				DEVELOPMENT_TEAM = JBTFJ7JD4R;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = ActivityMonitor/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matthewchan.konvo.activitymonitor;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = debug;
+		};
+		26717EA641757D9028B7D3DE /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					arm64,
+				);
+				CODE_SIGN_ENTITLEMENTS = ActivityMonitor/KonvoActivityMonitor.entitlements;
+				DEVELOPMENT_TEAM = JBTFJ7JD4R;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = ActivityMonitor/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matthewchan.konvo.activitymonitor;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = release;
+		};
+		55A5E7F1F0B57785D31E5B3E /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					arm64,
+				);
+				CODE_SIGN_ENTITLEMENTS = ShieldAction/KonvoShieldAction.entitlements;
+				DEVELOPMENT_TEAM = JBTFJ7JD4R;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = ShieldAction/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matthewchan.konvo.shieldaction;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = release;
+		};
 		AB898EF1FC4599E1B97D54E0 /* release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -313,6 +606,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = "JBTFJ7JD4R";
 				ENABLE_BITCODE = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -333,6 +627,29 @@
 				VALID_ARCHS = arm64;
 			};
 			name = release;
+		};
+		B14637A504068332FCCD10F8 /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					arm64,
+				);
+				CODE_SIGN_ENTITLEMENTS = ShieldAction/KonvoShieldAction.entitlements;
+				DEVELOPMENT_TEAM = JBTFJ7JD4R;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = ShieldAction/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matthewchan.konvo.shieldaction;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = debug;
 		};
 		B738FD819CFD5570482CE4B0 /* debug */ = {
 			isa = XCBuildConfiguration;
@@ -397,6 +714,29 @@
 			};
 			name = debug;
 		};
+		C14F0534C108F68D15F270FB /* release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					arm64,
+				);
+				CODE_SIGN_ENTITLEMENTS = ShieldConfig/KonvoShieldConfig.entitlements;
+				DEVELOPMENT_TEAM = JBTFJ7JD4R;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = ShieldConfig/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matthewchan.konvo.shieldconfig;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = release;
+		};
 		CDE20183B5B893CDB820E58A /* release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -453,6 +793,29 @@
 			};
 			name = release;
 		};
+		EAA441B13EC40542B944319C /* debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = (
+					arm64,
+				);
+				CODE_SIGN_ENTITLEMENTS = ShieldConfig/KonvoShieldConfig.entitlements;
+				DEVELOPMENT_TEAM = JBTFJ7JD4R;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = ShieldConfig/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.matthewchan.konvo.shieldconfig;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = debug;
+		};
 		EF0EB1CF6EDA4680148B4F45 /* debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -465,6 +828,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = "JBTFJ7JD4R";
 				ENABLE_BITCODE = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -489,6 +853,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		01C8A31C2C52A8E72773ED49 /* Build configuration list for PBXNativeTarget "KonvoActivityMonitor" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				03FD566A8D4DCC2FC9565E89 /* debug */,
+				26717EA641757D9028B7D3DE /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
 		2386EE5CD8EA4B05F01B4E5C /* Build configuration list for PBXProject "instamessages-wrapper" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -507,20 +880,38 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = debug;
 		};
+		729058D3D0B2408B81E56F9D /* Build configuration list for PBXNativeTarget "KonvoShieldConfig" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EAA441B13EC40542B944319C /* debug */,
+				C14F0534C108F68D15F270FB /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
+		DB3D98C13024EF6B8871588D /* Build configuration list for PBXNativeTarget "KonvoShieldAction" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B14637A504068332FCCD10F8 /* debug */,
+				55A5E7F1F0B57785D31E5B3E /* release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		CA7FEED000000000000000B3 /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
+		9EE3C4CDBE57CB30935A259F /* XCRemoteSwiftPackageReference "purchases-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/RevenueCat/purchases-ios.git";
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 5.0.0;
 			};
 		};
-		CA7FEED000000000000000C3 /* XCRemoteSwiftPackageReference "Superwall-iOS" */ = {
+		CF5D69254653044998ACB198 /* XCRemoteSwiftPackageReference "Superwall-iOS" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/superwall/Superwall-iOS.git";
+			repositoryURL = "https://github.com/superwall/Superwall-iOS";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 4.0.0;
@@ -529,15 +920,15 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		CA7FEED000000000000000B2 /* RevenueCat */ = {
+		3C6AA4416EF1ACCB09581A48 /* SuperwallKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = CA7FEED000000000000000B3 /* XCRemoteSwiftPackageReference "purchases-ios" */;
-			productName = RevenueCat;
-		};
-		CA7FEED000000000000000C2 /* SuperwallKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CA7FEED000000000000000C3 /* XCRemoteSwiftPackageReference "Superwall-iOS" */;
+			package = CF5D69254653044998ACB198 /* XCRemoteSwiftPackageReference "Superwall-iOS" */;
 			productName = SuperwallKit;
+		};
+		C98BFF9272B89EC4D56B72C1 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9EE3C4CDBE57CB30935A259F /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCat;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

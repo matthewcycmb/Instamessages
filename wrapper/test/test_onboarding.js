@@ -102,22 +102,16 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     el.click();
   };
   tap('#s1 [data-next]');                       // Get started
-  assert(doc.getElementById('s1b').classList.contains('on'), 'Get started must open the email step');
+  assert(doc.getElementById('s2a').classList.contains('on'),
+    'Get started must land on attribution - one tap, then the quiz');
   assert(!doc.getElementById('s2'), 'the motive screen must be gone from the document');
+  assert(!doc.getElementById('s1b'), 'the email screen must be gone from the document');
   await settle(1100);
-  //    A bad address must not advance, and must say so.
-  doc.getElementById('email').value = 'nope';
-  tap('#emailgo');
-  assert(doc.getElementById('s1b').classList.contains('on'),
-    'an invalid email must hold the screen - a typo is a person we can never reach');
-  assert(!doc.getElementById('emailerr').hidden, 'the error must be shown');
-  doc.getElementById('email').value = 'tester@example.com';
-  doc.getElementById('email').dispatchEvent(new d.window.Event('input', { bubbles: true }));
-  assert(doc.getElementById('emailerr').hidden, 'typing must clear the error');
-  tap('#emailgo');
-  assert(doc.getElementById('s3').classList.contains('on'), 'a valid email must advance to screen time');
-  assert(d.events.includes('email_captured'), 'a submitted address must be captured');
-  await settle(1100);
+  tap("#s2a .opt[data-src='tiktok']");
+  await settle(1500);                           // beat + slide + nav lock
+  assert(doc.getElementById('s3').classList.contains('on'),
+    'an attribution tap must advance straight to screen time');
+  assert(d.events.includes('attribution'), 'the source must be tracked');
   tap("#s3 .opt[data-m='150']");                // 2 - 3 hours
   await settle(1400);                           // 250ms beat + slide + lock
   assert(doc.getElementById('s4').classList.contains('on'),
@@ -162,13 +156,19 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(1900);                           // past the S7 dwell
   tap('#s7 [data-next]');                       // See what stays
   assert(doc.getElementById('s8a').classList.contains('on'));
-  assert.strictEqual(d.appearance[d.appearance.length - 1], 'light',
-    'leaving the dark stretch must re-pin light');
+  assert.strictEqual(d.appearance[d.appearance.length - 1], 'auto',
+    'leaving the dark stretch must hand appearance back to the phone');
   await settle(1100);
   tap('#s8a [data-next]');                      // Next
   assert(doc.getElementById('s8b').classList.contains('on'));
   await settle(1100);
-  tap('#s8b [data-next]');                      // Continue
+  tap('#s8b [data-next]');                      // Next
+  assert(doc.getElementById('s8c').classList.contains('on'),
+    'the pass hero must follow: users must learn the five-minute unlock exists');
+  assert(/Three minutes of Instagram/.test(doc.getElementById('s8c').textContent),
+    'the pass hero must show the sheet mockup');
+  await settle(1100);
+  tap('#s8c [data-next]');                      // Continue
   assert(doc.getElementById('s10').classList.contains('on'),
     'the hero slides must hand straight to privacy - the pact screen is gone');
   assert(!doc.getElementById('s9t').classList.contains('on'),
@@ -201,11 +201,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const otap = sel => od.querySelector(sel).click();
   otap('#s1 [data-next]');
   await settle(1100);
-  //    Skipping is load-bearing: App Review 5.1.1(v) does not allow
-  //    requiring personal information the app does not need to work.
-  otap('#emailskip');
-  assert(od.getElementById('s3').classList.contains('on'), 'Skip for now must advance without an address');
-  await settle(1100);
+  otap("#s2a .opt[data-src='friend']");
+  await settle(1500);                           // beat + slide + nav lock
   otap("#s3 .opt[data-m='45']");                // < 1 hour: the lowest range
   await settle(1400);
   const opts = [...od.querySelectorAll('#s4 .opt')];
@@ -235,6 +232,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   otap('#s8a [data-next]');
   await settle(1100);
   otap('#s8b [data-next]');
+  await settle(1100);
+  otap('#s8c [data-next]');
   await settle(1100);
   otap('#signin');
   assert(one.nav[0].startsWith(INBOX + '#konvo='),
