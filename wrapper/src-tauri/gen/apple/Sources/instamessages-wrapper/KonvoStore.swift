@@ -722,7 +722,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             // Konvo launch.
             if cageDefaults.bool(forKey: "konvoPassActive"),
                Date().timeIntervalSince1970
-                   - cageDefaults.double(forKey: "konvoPassStart") > 4 * 60 {
+                   - cageDefaults.double(forKey: "konvoPassStart") > 6 * 60 {
                 _ = cageApply()
                 cageDefaults.set(false, forKey: "konvoPassActive")
             }
@@ -731,8 +731,8 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                 "authorized": AuthorizationCenter.shared.authorizationStatus == .approved,
                 "picked": (storedCageSelection().map(cageCount) ?? 0) > 0,
                 "active": UserDefaults.standard.bool(forKey: cageActiveKey),
-                "passAvailable": cageDefaults.string(forKey: "konvoPassDay")
-                    != Self.dayStamp(),
+                "passAvailable": Self.passesUsedToday() < 2,
+                "passMins": Self.passesUsedToday() == 0 ? 5 : 1,
             ]
         case "cagePass":
             guard #available(iOS 16.0, *) else { return ["granted": false] }
@@ -984,19 +984,28 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         return f.string(from: Date())
     }
 
-    // The five-minute pass (locked Aug 16): once a day, and it relocks
-    // itself. DeviceActivity counts five minutes of actual Instagram use
-    // (threshold event); the 15-minute interval is Apple's schedule
-    // minimum and doubles as the backstop. The shield lifts, the user is
-    // handed native Instagram, and the monitor extension re-raises the
-    // shield with Konvo dead.
+    // The daily passes (reshaped Aug 17 after the relock proved itself):
+    // five minutes first, then one spare minute - the user cannot see a
+    // countdown inside Instagram, so the spare covers "the relock caught
+    // me mid-story". Both relock themselves. Pass length is WALL CLOCK
+    // via the schedule warning below; the usage threshold stays
+    // registered as a spare but proved unreliable in the field (Aug 17).
+    @available(iOS 16.0, *)
+    static func passesUsedToday() -> Int {
+        let d = cageDefaults
+        return d.string(forKey: "konvoPassDay") == dayStamp()
+            ? d.integer(forKey: "konvoPassN") : 0
+    }
+
     @available(iOS 16.0, *)
     @MainActor
     static func cagePassStart() -> [String: Any] {
         let d = cageDefaults
-        guard d.string(forKey: "konvoPassDay") != dayStamp() else {
+        let used = passesUsedToday()
+        guard used < 2 else {
             return ["granted": false, "why": "used"]
         }
+        let mins = used == 0 ? 5 : 1
         guard let s = storedCageSelection(), cageCount(s) > 0,
               UserDefaults.standard.bool(forKey: cageActiveKey)
         else { return ["granted": false, "why": "nocage"] }
@@ -1004,8 +1013,16 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         store.shield.applications = nil
         store.shield.applicationCategories = nil
         d.set(dayStamp(), forKey: "konvoPassDay")
+        d.set(used + 1, forKey: "konvoPassN")
         d.set(true, forKey: "konvoPassActive")
         d.set(Date().timeIntervalSince1970, forKey: "konvoPassStart")
+        // A name per pass: stopMonitoring below fires the OLD session's
+        // intervalDidEnd, and on the spare pass that callback re-shielded
+        // Instagram one second after the unlock (field test, Aug 17,
+        // 9:13am). The extension discards boundaries whose activity is
+        // not the current name.
+        let passName = "konvoPass\(used + 1)"
+        d.set(passName, forKey: "konvoPassName")
         // The monitor extension reports its lifecycle to PostHog under the
         // same person; this is how a relock that never fires becomes
         // diagnosable instead of a mystery (first field test, Aug 16).
@@ -1018,20 +1035,27 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         // minimum, a stop before start (a leftover registration makes
         // startMonitoring throw), and the error surfaced to analytics
         // instead of swallowed.
+        // warningTime is the pass length in disguise: end minus (16 - mins)
+        // puts intervalWillEndWarning exactly `mins` after start. The
+        // Aug 17 field test showed time boundaries fire on the second
+        // while the usage threshold never fired at all.
         let schedule = DeviceActivitySchedule(
             intervalStart: cal.dateComponents(
                 [.hour, .minute, .second], from: now),
             intervalEnd: cal.dateComponents(
                 [.hour, .minute, .second], from: now.addingTimeInterval(16 * 60)),
-            repeats: false)
+            repeats: false,
+            warningTime: DateComponents(minute: 16 - mins))
         let event = DeviceActivityEvent(
             applications: s.applicationTokens, categories: s.categoryTokens,
-            webDomains: [], threshold: DateComponents(minute: 3))
+            webDomains: [], threshold: DateComponents(minute: mins))
         let center = DeviceActivityCenter()
-        center.stopMonitoring([DeviceActivityName("konvoPass")])
+        center.stopMonitoring([DeviceActivityName("konvoPass"),
+                               DeviceActivityName("konvoPass1"),
+                               DeviceActivityName("konvoPass2")])
         do {
             try center.startMonitoring(
-                DeviceActivityName("konvoPass"), during: schedule,
+                DeviceActivityName(passName), during: schedule,
                 events: [DeviceActivityEvent.Name("passUsed"): event])
         } catch {
             track("cage_pass_monitor_error", ["err": String(describing: error)])

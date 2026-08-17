@@ -37,11 +37,15 @@ function boot(opts = {}) {
   // The bridge mock splits streams: appearance changes and funnel events.
   dom.appearance = [];
   dom.events = [];
+  dom.tracked = [];
   dom.nav = [];
   dom.window.webkit = { messageHandlers: { konvoStore: {
     postMessage: m => {
       if (m.cmd === 'appearance') dom.appearance.push(m.productId);
-      if (m.cmd === 'track') dom.events.push(m.event);
+      if (m.cmd === 'track') {
+        dom.events.push(m.event);
+        dom.tracked.push(m);
+      }
       // The login handoff goes through native: a page-driven navigation to
       // instagram.com is a universal link on iOS and opens the Instagram
       // APP instead, stranding the user outside Konvo.
@@ -165,7 +169,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   tap('#s8b [data-next]');                      // Next
   assert(doc.getElementById('s8c').classList.contains('on'),
     'the pass hero must follow: users must learn the five-minute unlock exists');
-  assert(/Three minutes of Instagram/.test(doc.getElementById('s8c').textContent),
+  assert(/You are given 2 passes a day/.test(doc.getElementById('s8c').textContent)
+    && doc.querySelector('#s8c img[src="pass-hero.png"]'),
     'the pass hero must show the sheet mockup');
   await settle(1100);
   tap('#s8c [data-next]');                      // Continue
@@ -189,8 +194,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the handoff spinner must be the last thing shown');
   assert(d.events.includes('login_started'),
     'the handoff must track login_started');
-  assert(d.events.filter(e => e === 'quiz_answered').length === 2,
-    'both remaining quiz answers must be tracked (lean payloads, no values)');
+  const quiz = d.tracked.filter(m => m.event === 'quiz_answered');
+  assert(quiz.length === 2, 'both quiz answers must be tracked');
+  assert(quiz.every(m => m.props.answer && m.props.answer.length),
+    'each quiz_answered must carry the chosen option label as answer');
+  assert(d.tracked.find(m => m.event === 'attribution').props.source,
+    'attribution must carry the source enum');
   assert(d.events.includes('onboarding_screen_viewed'),
     'screen views must be tracked');
 

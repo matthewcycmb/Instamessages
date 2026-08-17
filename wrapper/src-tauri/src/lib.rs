@@ -284,7 +284,32 @@ const CAGE_SCRIPT: &str = r#"
       // The route watcher crosses once per navigation, so no extra guard:
       // the app always loads the inbox, so the first crossing is never a
       // thread, and if it ever were, that would be a thread open too.
-      if (r === "thread") track("thread_opened");
+      if (r === "thread") {
+        track("thread_opened");
+        // How slow switching into a chat FEELS ("way slower to text and
+        // switch between ppl", Aug 17): crossing to settled messages,
+        // same quiet-DOM heuristic as inbox_ready. Reuses the settle
+        // slots, so either arm cancels the other and a bounced open
+        // sends no thread_ready at all.
+        if (window.MutationObserver) {
+          try {
+            if (settleMo) settleMo.disconnect();
+            if (settleTick) clearInterval(settleTick);
+            var tLast = Date.now(), tT0 = tLast;
+            settleMo = new MutationObserver(function () { tLast = Date.now(); });
+            settleMo.observe(document.body || document.documentElement,
+              { childList: true, subtree: true });
+            var tTick = settleTick = setInterval(function () {
+              var tNow = Date.now();
+              if (tNow - tLast > 180 || tNow - tT0 > 4000) {
+                clearInterval(tTick);
+                if (settleMo) { settleMo.disconnect(); settleMo = null; }
+                track("thread_ready", { ms: tNow - tT0 });
+              }
+            }, 90);
+          } catch (e) {}
+        }
+      }
       titleSized = false;
       if (r !== "inbox" && titleMo) { titleMo.disconnect(); titleMo = null; }
       if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
@@ -1901,12 +1926,13 @@ const CAGE_SCRIPT: &str = r#"
         swap(loaderPage(), tickRows);
       }, 1800);
       setTimeout(function () {
-        // Screen Time setup before the sell (Aug 16): a supported paid
-        // build goes loader -> connect -> perks. konvo-free, iOS 15, and
-        // a bridge that never answers all land on perks; the timeout is
-        // the hung-bridge fallback, and a MISSING bridge (macOS) answers
-        // null instantly through storekit's catch.
-        if (window.__konvoFree) { swap(perksPage()); return; }
+        // Screen Time setup before the sell (Aug 16): a supported build
+        // goes loader -> connect -> perks. konvo-free included since
+        // Aug 17 - the block ships free in v1.0 (pricing deferred, so a
+        // free TestFlight and App Store build still carries the
+        // centerpiece). iOS 15 and a bridge that never answers land on
+        // perks; the timeout is the hung-bridge fallback, and a MISSING
+        // bridge (macOS) answers null instantly through storekit's catch.
         var moved = false;
         // 900ms: a bridge that has not answered by then is not answering
         // (a MISSING bridge answers null instantly), and the tests' walk
@@ -1941,6 +1967,7 @@ const CAGE_SCRIPT: &str = r#"
     // answered "no cage" before onboarding enabled it, and the SPA never
     // loads another document to ask again.
     var passAvail = false;
+    var passMins = 5;
     var markCaged = function () {};
     if (isPhone) {
       var passStyle = document.createElement("style");
@@ -1955,7 +1982,8 @@ const CAGE_SCRIPT: &str = r#"
         '#im-pass-card{width:100%;background:rgba(28,28,30,.98);color:#f5f5f7;' +
         'border-radius:20px 20px 0 0;padding:22px 20px 34px;' +
         'font-family:-apple-system,system-ui,sans-serif}' +
-        '#im-pass-card h3{margin:0;font-size:20px;font-weight:700;color:inherit}' +
+        '#im-pass-card h3{margin:0;font-size:19px;font-weight:700;' +
+        'line-height:1.35;letter-spacing:-0.01em;color:inherit}' +
         '#im-pass-card .im-pr{display:block;width:100%;text-align:left;margin-top:10px;' +
         'padding:14px 16px;border:0;border-radius:14px;background:rgba(255,255,255,.08);' +
         'color:#f5f5f7;font-size:16px;font-family:inherit}' +
@@ -1987,6 +2015,7 @@ const CAGE_SCRIPT: &str = r#"
         if (s && s.active) {
           markCaged();
           passAvail = !!s.passAvailable;
+          passMins = s.passMins || 5;
         }
       });
       passBtn.addEventListener("click", function () {
@@ -2004,10 +2033,13 @@ const CAGE_SCRIPT: &str = r#"
         sheet.id = "im-pass-sheet";
         sheet.innerHTML = "<div id='im-pass-card'>" + (passAvail
           ? "<h3>Why do you want to unlock Instagram?</h3>" + opts +
-            "<button class='im-go' disabled>Unlock for 3 mins</button>" +
-            "<p>It locks itself after three minutes of use. Once a day.</p>"
+            "<button class='im-go' disabled>Unlock for " + passMins +
+            (passMins === 1 ? " min" : " mins") + "</button>" +
+            (passMins === 1
+              ? "<p>Unlocks left: 1 (1 min)</p>"
+              : "<p>Unlocks left: 2 (5 mins &amp; 1 min)</p>")
           : "<h3>No pass left today</h3>" +
-            "<p>One three minute unlock a day. Tomorrow.</p>") +
+            "<p>Five minutes plus a spare minute a day. Tomorrow.</p>") +
           "<button class='im-x'>Close</button></div>";
         var reason = "";
         sheet.addEventListener("click", function (e) {
@@ -2025,8 +2057,11 @@ const CAGE_SCRIPT: &str = r#"
           if (go2 && !go2.disabled && reason) {
             storekit("cagePass", null, function (res) {
               if (res && res.granted) {
-                track("pass_used", { reason: reason });
-                passAvail = false;
+                track("pass_used", { reason: reason, mins: passMins });
+                // The spare minute follows the five; cageStatus corrects
+                // this on the next launch either way.
+                if (passMins === 5) { passMins = 1; }
+                else { passAvail = false; }
               }
               if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
             });

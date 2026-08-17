@@ -362,9 +362,14 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const wallFreeNew = boot('/direct/inbox/', '', { free: true });
   const wallFreeDone = boot('/direct/inbox/', '', { free: true, welcomed: true });
   const wallFreeFromBeta = boot('/direct/inbox/', '', { free: true, betaFree: true });
-  await settle(1300);   // auth check, then the next ensure tick
+  // The connected beat lasts ~1.8s and its start jitters with the nine
+  // parallel boots, so a fixed sleep fails short AND long (Aug 17). Poll
+  // into the beat; it typically lands within half a second.
   const wdoc = wallFresh.window.document;
-  const payText = () => wdoc.getElementById('im-pay').textContent;
+  const payText = () =>
+    (wdoc.getElementById('im-pay') || {}).textContent || '';
+  for (let i = 0; i < 40 && !/Instagram connected\./.test(payText()); i++)
+    await settle(100);
   assert(wdoc.getElementById('im-pay'), 'an unpaid iPhone inbox must get the wall');
   assert(/Instagram connected\./.test(payText()),
     'the sequence must open on the connected confirmation');
@@ -804,11 +809,13 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     inbox_ready reports what a fresh sign-in actually finds: the
   //     thread count once the inbox settles, and how long that took.
   const ready = [];
+  const tready = [];
   const inboxed = boot('/direct/inbox/',
     '<a href="/direct/t/111/">a</a><a href="/direct/t/222/">b</a>' +
     '<a href="/someone/">profile</a><span id="me">matthew_c</span>',
     { bridge: m => {
         if (m.cmd === 'track' && m.event === 'inbox_ready') ready.push(m.props);
+        if (m.cmd === 'track' && m.event === 'thread_ready') tready.push(m.props);
       } });
   // jsdom rects are all zero; give the username element a real one so the
   // title finder (and the identity capture riding on it) can see it.
@@ -829,7 +836,14 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert.strictEqual(ready[0].$set.ig_username, 'matthew_c',
     'the handle must come from the sized title element');
   inboxed.window.__loc.pathname = '/direct/t/111/';
-  await settle(900);
+  // The 800ms route tick plus the 180ms quiet window: the crossing can
+  // take up to ~1.1s to report, so the wait is generous on purpose.
+  await settle(1600);
+  //     Opening a chat reports how long the switch took to settle - the
+  //     "way slower to text" complaint needs a number before any fix.
+  assert.strictEqual(tready.length, 1, 'a settled thread must report once');
+  assert(typeof tready[0].ms === 'number' && tready[0].ms >= 0,
+    'the switch time must ride along');
   inboxed.window.__loc.pathname = '/direct/inbox/';
   await settle(2600);
   assert.strictEqual(ready.length, 2, 'returning to the inbox must report again');
@@ -930,17 +944,20 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(!oldLog.includes('track:cage_pitch_viewed'),
     'no connect event when the page never rendered');
 
-  //     The five-minute pass: visible only when caged, reason before
-  //     unlock, one a day. The relock is DeviceActivity's job and is
-  //     device-only; the contract here is the sheet's choreography.
+  //     The daily passes: visible only when caged, reason before unlock,
+  //     five minutes then a spare minute, then tomorrow. The relock is
+  //     DeviceActivity's job and is device-only; the contract here is
+  //     the sheet's choreography.
   const passLog = [];
   const passed = boot('/direct/inbox/', '', { beta: true, welcomed: true,
     bridge: (m, d) => {
-      passLog.push(m.cmd === 'track' ? 'track:' + m.event : m.cmd);
+      passLog.push(m.cmd === 'track'
+        ? 'track:' + m.event + (m.props && m.props.mins ? ':' + m.props.mins : '')
+        : m.cmd);
       const r = {
         entitlements: { entitled: false },
         cageStatus: { supported: true, authorized: true, picked: true,
-          active: true, passAvailable: true },
+          active: true, passAvailable: true, passMins: 5 },
         cagePass: { granted: true },
       };
       if (m.cmd in r) d.window.__konvoStoreReply(m.id, r[m.cmd]);
@@ -960,13 +977,38 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'posting a picture or Reel must be an offered reason');
   const unlock = pdoc.querySelector('#im-pass-card .im-go');
   assert(unlock.disabled, 'Unlock must wait for a reason');
+  assert(/Unlock for 5 mins/.test(unlock.textContent),
+    'the first pass of the day is the five');
+  assert(/Unlocks left: 2 \(5 mins & 1 min\)/.test(
+    pdoc.getElementById('im-pass-card').textContent),
+    'the fine print counts both unlocks');
   ptap(pdoc.querySelector("#im-pass-card .im-pr[data-r='story']"));
   assert(!unlock.disabled, 'a reason arms Unlock');
   ptap(unlock);
   await settle(200);
   assert(passLog.includes('cagePass'), 'Unlock must ask the bridge for the pass');
-  assert(passLog.includes('track:pass_used'), 'the pass must be tracked');
+  assert(passLog.includes('track:pass_used:5'),
+    'the pass must be tracked with its length');
   assert(!pdoc.getElementById('im-pass-sheet'), 'a granted pass closes the sheet');
+  //     The spare minute follows the five, then the day is spent.
+  ptap(pdoc.getElementById('im-pass'));
+  await settle(200);
+  assert(pdoc.querySelector('#im-pass-card .im-go').textContent.trim()
+    === 'Unlock for 1 min',
+    'the second pass of the day must offer the spare minute');
+  assert(/Unlocks left: 1 \(1 min\)/.test(
+    pdoc.getElementById('im-pass-card').textContent),
+    'the fine print counts the remaining spare');
+  ptap(pdoc.querySelector("#im-pass-card .im-pr[data-r='story']"));
+  ptap(pdoc.querySelector('#im-pass-card .im-go'));
+  await settle(200);
+  assert(passLog.includes('track:pass_used:1'),
+    'the spare minute must be tracked as one minute');
+  ptap(pdoc.getElementById('im-pass'));
+  await settle(200);
+  assert(/No pass left today/.test(
+    pdoc.getElementById('im-pass-card').textContent),
+    'after the spare minute the day is spent');
 
   //     Every animation the wall declares must have its keyframes: the
   //     loader ring shipped without im-spin for ten days and never turned.
