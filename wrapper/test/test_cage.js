@@ -680,8 +680,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(posted.includes('purchase:konvo.pro.yearly'),
     'the Annual CTA must purchase the yearly product');
   const stext = bdoc.getElementById('im-pay').textContent;
-  assert(/You're in\./.test(stext) && /Feed, Reels, Explore: gone\./.test(stext),
+  assert(/You're in\./.test(stext) && /Your messages are waiting\./.test(stext),
     'S14 opens on the confirmation');
+  const scheck = bdoc.querySelector("#im-pay path[stroke-dasharray='24']");
+  assert(scheck && /im-draw/.test(scheck.getAttribute('style') || ''),
+    'the confirmation checkmark must draw itself in');
   assert(/Free until/.test(stext),
     'a trial purchase gets the recap line');
   assert(/Turn on notifications/.test(stext),
@@ -806,16 +809,50 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert.deepStrictEqual(stages, ['challenge', 'two_factor', 'login'],
     'a signed-in challenge visit must not report');
 
+  //     Session rescue: a logged-out login page asks native for the
+  //     cookie snapshot ONCE, and a restored snapshot goes back to the
+  //     inbox. WebKit loses cookies on a force-quit soon after login
+  //     (a tester relogged every launch, Aug 17); this is the healer.
+  const rescueLog = [];
+  const rescued = boot('/accounts/login/', '', { loggedOut: true,
+    bridge: (m, d) => {
+      rescueLog.push(m.cmd === 'track' ? 'track:' + m.event : m.cmd);
+      if (m.cmd === 'cookieRestore')
+        d.window.__konvoStoreReply(m.id, { restored: true, n: 7 });
+    } });
+  await settle(1900);
+  assert(rescued.went.includes('/direct/inbox/'),
+    'a restored session must return to the inbox');
+  assert(rescueLog.includes('track:session_restored'),
+    'the rescue must be visible in analytics');
+  assert.strictEqual(
+    rescueLog.filter(c => c === 'cookieRestore').length, 1,
+    'the interval sweep must not re-ask for the snapshot');
+  const noSnap = boot('/accounts/login/', '', { loggedOut: true,
+    bridge: (m, d) => {
+      if (m.cmd === 'cookieRestore')
+        d.window.__konvoStoreReply(m.id, { restored: false });
+    } });
+  await settle(900);
+  assert(!noSnap.went.includes('/direct/inbox/'),
+    'no snapshot means the login page is genuine; stay put');
+  const signedLogin = boot('/accounts/login/', '', {
+    bridge: m => { if (m.cmd === 'cookieRestore')
+      assert.fail('a signed-in login visit must not trigger the rescue'); } });
+  await settle(900);
+
   //     inbox_ready reports what a fresh sign-in actually finds: the
   //     thread count once the inbox settles, and how long that took.
   const ready = [];
   const tready = [];
   const inboxed = boot('/direct/inbox/',
     '<a href="/direct/t/111/">a</a><a href="/direct/t/222/">b</a>' +
-    '<a href="/someone/">profile</a><span id="me">matthew_c</span>',
+    '<a href="/someone/">profile</a><span id="me">matthew_c</span>' +
+    '<div role="row">a message</div>',
     { bridge: m => {
         if (m.cmd === 'track' && m.event === 'inbox_ready') ready.push(m.props);
         if (m.cmd === 'track' && m.event === 'thread_ready') tready.push(m.props);
+        if (m.cmd === 'cookieSave') ready.saves = (ready.saves || 0) + 1;
       } });
   // jsdom rects are all zero; give the username element a real one so the
   // title finder (and the identity capture riding on it) can see it.
@@ -831,6 +868,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'inbox_ready must never carry a thread id');
   //     Identity rides the first settle: the cookie id plus the handle the
   //     title finder located. Captured once per install, never again.
+  assert(ready.saves >= 1,
+    'a settled inbox must hand the cookies to native for safekeeping');
   assert.strictEqual(ready[0].$set.ig_user_id, '1234567',
     'the first settle must set the Instagram id');
   assert.strictEqual(ready[0].$set.ig_username, 'matthew_c',
@@ -844,6 +883,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert.strictEqual(tready.length, 1, 'a settled thread must report once');
   assert(typeof tready[0].ms === 'number' && tready[0].ms >= 0,
     'the switch time must ride along');
+  assert.strictEqual(tready[0].rows, 1,
+    'thread_ready must wait for real message rows, not a quiet skeleton');
   inboxed.window.__loc.pathname = '/direct/inbox/';
   await settle(2600);
   assert.strictEqual(ready.length, 2, 'returning to the inbox must report again');
@@ -943,6 +984,37 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'and continue into the impact page');
   assert(!oldLog.includes('track:cage_pitch_viewed'),
     'no connect event when the page never rendered');
+
+  //     Apple's consent dialog sits over the page and never resolves in
+  //     this boot; taps underneath must not re-fire the chain (eleven
+  //     cage_authorized in a row on one device, Aug 17).
+  const mashLog = [];
+  const mashed = boot('/direct/inbox/', '', { beta: true, bridge: (m, d) => {
+    mashLog.push(m.cmd);
+    if (m.cmd === 'cageAuthorize') return;
+    if (m.cmd in cageReplies) d.window.__konvoStoreReply(m.id, cageReplies[m.cmd]);
+  } });
+  await settle(8400);
+  const mdoc = mashed.window.document;
+  const mgo = () => mdoc.querySelector("[data-act='cage-setup-go']")
+    .dispatchEvent(new mashed.window.MouseEvent('click',
+      { bubbles: true, cancelable: true }));
+  mgo(); mgo(); mgo();
+  await settle(200);
+  assert.strictEqual(mashLog.filter(c => c === 'cageAuthorize').length, 1,
+    'taps while the consent dialog is up must not re-fire the chain');
+
+  //     The pass sheet follows the phone: light is the default palette,
+  //     dark lives only under the media query (hardcoded dark looked
+  //     wrong on a light-mode phone, Aug 17).
+  assert(CAGE.includes('#im-pass-card{width:100%;background:rgba(242,242,247'),
+    'the pass card must default to the light palette');
+  // The dark values must appear AFTER the media query opens (the CSS is
+  // one concatenated string; source-order stands in for cascade scope).
+  assert(CAGE.indexOf('@media (prefers-color-scheme: dark){') <
+    CAGE.indexOf('#im-pass{background:rgba(38,38,38') &&
+    CAGE.indexOf('#im-pass{background:rgba(38,38,38') > -1,
+    'the dark palette must live under the media query');
 
   //     The daily passes: visible only when caged, reason before unlock,
   //     five minutes then a spare minute, then tomorrow. The relock is

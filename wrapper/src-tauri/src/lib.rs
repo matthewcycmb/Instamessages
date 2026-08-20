@@ -232,6 +232,27 @@ const CAGE_SCRIPT: &str = r#"
     }
   }
 
+  // Bridge to KonvoStore.swift. Fire-and-forget postMessage with a numbered
+  // callback; Swift replies through __konvoStoreReply. A build without the
+  // Swift class (or the tests) has no handler - the catch answers null and
+  // everything degrades to "no verdict, keep the cache". Hoisted to the
+  // top level Aug 17: the session rescue in enforce() needs it too, not
+  // just the wall.
+  var pending = {}, seq = 0;
+  window.__konvoStoreReply = function (id, res) {
+    var cb = pending[id];
+    delete pending[id];
+    if (cb) cb(res || null);
+  };
+  function storekit(cmd, productId, cb) {
+    seq++;
+    pending[seq] = cb;
+    try {
+      window.webkit.messageHandlers.konvoStore.postMessage(
+        { cmd: cmd, id: seq, productId: productId || "" });
+    } catch (e) { delete pending[seq]; cb(null); }
+  }
+
   function enforce() {
     if (!location.hostname.endsWith("instagram.com")) return;
     if (/iPhone|iPad|iPod/.test(navigator.userAgent)) sizeViewport();
@@ -251,6 +272,23 @@ const CAGE_SCRIPT: &str = r#"
       // A signed-in visit to these routes is not login friction.
       if (!/(?:^|; )ds_user_id=\d/.test(document.cookie))
         track("login_step", { stage: ls });
+    }
+    // Session rescue: landing on the login page with no session cookie
+    // means WebKit lost the cookies (lazy disk flush plus a force-quit;
+    // a tester relogged every launch, Aug 17). Native keeps a snapshot
+    // from the last settled inbox; restore it once and go back. A real
+    // logout restores cookies Instagram already killed server-side,
+    // lands here again, and the once-flag stops the loop. Challenge and
+    // 2FA pages are mid-flow and must not be interrupted.
+    if (ls === "login" && !cookieRestoreTried &&
+        !/(?:^|; )ds_user_id=\d/.test(document.cookie)) {
+      cookieRestoreTried = true;
+      storekit("cookieRestore", null, function (res) {
+        if (res && res.restored) {
+          track("session_restored");
+          location.replace("/direct/inbox/");
+        }
+      });
     }
     // Route flag so CSS can hide the inbox's back-to-feed arrow while
     // keeping the thread view's back-to-inbox arrow.
@@ -295,16 +333,25 @@ const CAGE_SCRIPT: &str = r#"
           try {
             if (settleMo) settleMo.disconnect();
             if (settleTick) clearInterval(settleTick);
-            var tLast = Date.now(), tT0 = tLast;
+            var tLast = Date.now(), tT0 = tLast, tDone = false;
             settleMo = new MutationObserver(function () { tLast = Date.now(); });
             settleMo.observe(document.body || document.documentElement,
               { childList: true, subtree: true });
             var tTick = settleTick = setInterval(function () {
               var tNow = Date.now();
-              if (tNow - tLast > 180 || tNow - tT0 > 4000) {
+              var tRows = document.querySelectorAll("div[role='row']").length;
+              // Content or the cap, never a quiet skeleton: the chat
+              // placeholder renders instantly, goes quiet, and fills
+              // only when the fetch lands - quiet alone reported 181ms
+              // "ready" on a chat stuck on its skeleton (Aug 17).
+              // rows 0 at the cap IS the stuck-chat signal.
+              if ((tRows > 0 && tNow - tLast > 180) || tNow - tT0 > 10000) {
+                // Same latch as the inbox settle: one report, ever.
+                if (tDone) return;
+                tDone = true;
                 clearInterval(tTick);
                 if (settleMo) { settleMo.disconnect(); settleMo = null; }
-                track("thread_ready", { ms: tNow - tT0 });
+                track("thread_ready", { ms: tNow - tT0, rows: tRows });
               }
             }, 90);
           } catch (e) {}
@@ -325,13 +372,19 @@ const CAGE_SCRIPT: &str = r#"
           try {
             if (settleMo) settleMo.disconnect();
             if (settleTick) clearInterval(settleTick);
-            var last = Date.now(), t0 = last;
+            var last = Date.now(), t0 = last, settled = false;
             settleMo = new MutationObserver(function () { last = Date.now(); });
             settleMo.observe(document.body || document.documentElement,
               { childList: true, subtree: true });
             var tick = settleTick = setInterval(function () {
               var now = Date.now();
               if (now - last > 180 || now - t0 > 2000) {
+                // The latch, not clearInterval, is what guarantees one
+                // report: a field device fired this branch every 92ms
+                // for 17 seconds with clearInterval doing nothing
+                // (Aug 17, TestFlight 52).
+                if (settled) return;
+                settled = true;
                 clearInterval(tick);
                 if (settleMo) { settleMo.disconnect(); settleMo = null; }
                 sizeInboxTitle();
@@ -359,6 +412,10 @@ const CAGE_SCRIPT: &str = r#"
                   }
                 } catch (e) {}
                 track("inbox_ready", rp);
+                // A settled inbox is proof these cookies are the good
+                // ones: snapshot them natively so a force-quit cannot
+                // lose the session (see the login rescue above).
+                storekit("cookieSave", null, function () {});
                 try {
                   window.webkit.messageHandlers.konvoStore.postMessage(
                     { cmd: "route", id: 0, productId: r + "-settled" });
@@ -378,6 +435,7 @@ const CAGE_SCRIPT: &str = r#"
     }
   }
   var lastRoute = null, lastLoginStage = null, settleMo = null, settleTick = null;
+  var cookieRestoreTried = false;
   // Every screen change gets the same push, wherever it goes - a DM, a
   // profile from a DM, a profile from search. pushState is Instagram's
   // forward navigation and popstate is a back; the native side owns the
@@ -1071,25 +1129,6 @@ const CAGE_SCRIPT: &str = r#"
       } catch (e) {}
     }
 
-    // Bridge to KonvoStore.swift. Fire-and-forget postMessage with a numbered
-    // callback; Swift replies through __konvoStoreReply. A build without the
-    // Swift class (or the tests) has no handler - the catch answers null and
-    // everything degrades to "no verdict, keep the cache".
-    var pending = {}, seq = 0;
-    window.__konvoStoreReply = function (id, res) {
-      var cb = pending[id];
-      delete pending[id];
-      if (cb) cb(res || null);
-    };
-    function storekit(cmd, productId, cb) {
-      seq++;
-      pending[seq] = cb;
-      try {
-        window.webkit.messageHandlers.konvoStore.postMessage(
-          { cmd: cmd, id: seq, productId: productId || "" });
-      } catch (e) { delete pending[seq]; cb(null); }
-    }
-
     // ---- v3 paywall (grilled Aug 3): S12 connected -> S12b loader -> perks
     // -> S13 three-package paywall (annual/monthly/lifetime) -> S14
     // activation. There is no dismissal unpaid: the x concedes into the
@@ -1169,6 +1208,9 @@ const CAGE_SCRIPT: &str = r#"
       // The keyframes were simply missing since day one: the ring
       // rendered but never turned. Caught on device Aug 16.
       '@keyframes im-spin{to{transform:rotate(360deg)}}' +
+      // The S14 checkmark draws itself: dashoffset runs the stroke tip
+      // along the path while im-pop scales the whole mark in.
+      '@keyframes im-draw{to{stroke-dashoffset:0}}' +
       '#im-pay .imp-head{flex:none;height:130px;position:relative;' +
       'background:linear-gradient(180deg,#1a6bf2 0%,#0a5cf0 100%)}' +
       '@keyframes im-pop{from{transform:scale(.4);opacity:0}}' +
@@ -1665,14 +1707,16 @@ const CAGE_SCRIPT: &str = r#"
       if (pid === "konvo.pro.lifetime") recap = "Lifetime access active.";
       else if (trial) recap = "Free until " + dateIn(td) + ".";
       return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
-        "<svg width='96' height='96' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
+        "<svg width='118' height='118' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
         " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'" +
-        " style='margin-bottom:34px;color:var(--accent)'><path d='M20 6 9 17l-5-5'/></svg>" +
+        " style='margin-bottom:38px;color:var(--accent);" +
+        "animation:im-pop .5s ease-out both'>" +
+        "<path d='M20 6 9 17l-5-5' stroke-dasharray='24' stroke-dashoffset='24'" +
+        " style='animation:im-draw .6s ease-out .3s forwards'/></svg>" +
         "<div style='font-size:44px;font-weight:700;letter-spacing:-0.05em;line-height:1;" +
         "text-align:center'>You're in.</div>" +
         "<p style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:16px;" +
-        "text-align:center'>Your DMs and Stories are ready. Feed, Reels, " +
-        "Explore: gone.</p>" +
+        "text-align:center'>Your messages are waiting.</p>" +
         (recap ? "<p style='font-size:15px;font-weight:600;margin-top:14px;" +
           "text-align:center'>" + recap + "</p>" : "") +
         (trial ? "<div id='imp-notif' style='margin-top:30px;text-align:center'>" +
@@ -1683,7 +1727,7 @@ const CAGE_SCRIPT: &str = r#"
           "Turn on notifications</button></div>" : "") +
         "</div>" +
         "<div class='imp-foot' style='padding:0 28px 40px'>" +
-        "<button class='imp-btn' data-act='done'>Open Konvo</button></div>";
+        "<button class='imp-btn' data-act='done'>Open my messages</button></div>";
     }
 
     var wall = null;
@@ -1837,8 +1881,15 @@ const CAGE_SCRIPT: &str = r#"
           // Declined or finished, the road is the same: on to the sell.
           swap(perksPage());
         } else if (act === "cage-setup-go") {
+          // One flight at a time: Apple's consent dialog sits over the
+          // page and a user who keeps tapping the button underneath
+          // fired this chain eleven times in a row (field report,
+          // Aug 17). Re-armed when the chain resolves either way.
+          if (window.__konvoCageBusy) return;
+          window.__konvoCageBusy = true;
           storekit("cageAuthorize", null, function (a) {
             track("cage_authorized", { granted: !!(a && a.authorized) });
+            window.__konvoCageBusy = false;
             if (!a || !a.authorized) { swap(perksPage()); return; }
             storekit("cagePick", null, function (p) {
               var n = (p && p.count) || 0;
@@ -1971,22 +2022,25 @@ const CAGE_SCRIPT: &str = r#"
     var markCaged = function () {};
     if (isPhone) {
       var passStyle = document.createElement("style");
+      // Light by default, dark under the media query: the sheet shipped
+      // hardcoded dark and looked wrong on a light-mode phone (field
+      // report, Aug 17). Blue button and the grays read fine on both.
       passStyle.textContent =
         '#im-pass{display:none;position:fixed;right:16px;bottom:136px;width:44px;' +
-        'height:44px;border-radius:50%;background:rgba(38,38,38,.92);color:#f5f5f7;' +
+        'height:44px;border-radius:50%;background:rgba(255,255,255,.94);color:#1c1c1e;' +
         'z-index:2147483000;align-items:center;justify-content:center;border:0;' +
-        'box-shadow:0 2px 10px rgba(0,0,0,.4)}' +
+        'box-shadow:0 2px 10px rgba(0,0,0,.18)}' +
         'html.im-inbox.im-caged #im-pass{display:flex}' +
         '#im-pass-sheet{position:fixed;inset:0;z-index:2147483200;display:flex;' +
         'align-items:flex-end;background:rgba(0,0,0,.45)}' +
-        '#im-pass-card{width:100%;background:rgba(28,28,30,.98);color:#f5f5f7;' +
+        '#im-pass-card{width:100%;background:rgba(242,242,247,.98);color:#1c1c1e;' +
         'border-radius:20px 20px 0 0;padding:22px 20px 34px;' +
         'font-family:-apple-system,system-ui,sans-serif}' +
         '#im-pass-card h3{margin:0;font-size:19px;font-weight:700;' +
         'line-height:1.35;letter-spacing:-0.01em;color:inherit}' +
         '#im-pass-card .im-pr{display:block;width:100%;text-align:left;margin-top:10px;' +
-        'padding:14px 16px;border:0;border-radius:14px;background:rgba(255,255,255,.08);' +
-        'color:#f5f5f7;font-size:16px;font-family:inherit}' +
+        'padding:14px 16px;border:0;border-radius:14px;background:rgba(120,120,128,.12);' +
+        'color:#1c1c1e;font-size:16px;font-family:inherit}' +
         '#im-pass-card .im-pr.on{box-shadow:inset 0 0 0 2px rgba(10,132,255,1)}' +
         '#im-pass-card .im-go{display:block;width:100%;margin-top:16px;padding:15px 0;' +
         'border:0;border-radius:999px;background:rgba(10,132,255,1);color:#fff;' +
@@ -1996,7 +2050,13 @@ const CAGE_SCRIPT: &str = r#"
         'border:0;background:none;color:rgba(142,142,147,1);font-size:15px;' +
         'font-family:inherit}' +
         '#im-pass-card p{margin:8px 0 0;font-size:13.5px;' +
-        'color:rgba(142,142,147,1);line-height:1.4}';
+        'color:rgba(142,142,147,1);line-height:1.4}' +
+        '@media (prefers-color-scheme: dark){' +
+        '#im-pass{background:rgba(38,38,38,.92);color:#f5f5f7;' +
+        'box-shadow:0 2px 10px rgba(0,0,0,.4)}' +
+        '#im-pass-card{background:rgba(28,28,30,.98);color:#f5f5f7}' +
+        '#im-pass-card .im-pr{background:rgba(255,255,255,.08);color:#f5f5f7}' +
+        '}';
       (document.head || document.documentElement).appendChild(passStyle);
       var passBtn = document.createElement("button");
       passBtn.id = "im-pass";

@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Konvo Reel Playbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,650;1,9..144,500&family=Archivo:wght@400;500;650&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F7F1E6; --paper2:#EFE7D7; --ink:#181309; --ink2:#5A5142;
+    --line:#D8CDB8; --verm:#D9481C; --verm-soft:#F7DFD4; --teal:#1E6E5C; --teal-soft:#DCEAE2;
+    --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--paper);color:var(--ink);font:16px/1.55 "Archivo",sans-serif;
+    background-image:radial-gradient(rgba(24,19,9,.045) 1px,transparent 1px);background-size:22px 22px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px 90px}
+  a{color:inherit}
+  .k{font-family:var(--mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+
+  /* ---------- header ---------- */
+  header{padding:54px 0 20px;border-bottom:3px solid var(--ink)}
+  header .k b{color:var(--verm)}
+  h1{font-family:"Fraunces",serif;font-weight:650;font-size:clamp(3rem,7vw,5.4rem);line-height:.95;margin:.35rem 0 1.2rem;letter-spacing:-.02em}
+  h1 em{font-style:italic;color:var(--verm)}
+  .position{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;padding:6px 0 26px}
+  .position p{font-family:"Fraunces",serif;font-size:clamp(1.25rem,2.4vw,1.7rem);font-style:italic;max-width:34ch;line-height:1.3}
+  .position p b{font-style:normal;border-bottom:3px solid var(--verm)}
+
+  /* ---------- mix bar ---------- */
+  .mix{margin:34px 0 10px}
+  .mixbar{display:flex;height:52px;border:2px solid var(--ink);box-shadow:5px 5px 0 var(--ink)}
+  .mixbar div{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:.8rem;color:var(--paper);white-space:nowrap;overflow:hidden}
+  .m1{width:35%;background:#1E6E5C}.m2{width:25%;background:#D9481C}.m3{width:20%;background:#8A6D1F}.m4{width:10%;background:#4A4033}.m5{width:10%;background:#A03A5E}
+  .mixlegend{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:14px}
+  .mixlegend span{font-family:var(--mono);font-size:.74rem;display:flex;align-items:center;gap:7px}
+  .mixlegend i{width:11px;height:11px;display:inline-block}
+
+  .houserule{margin:30px 0 0;border:2px solid var(--ink);background:var(--verm-soft);padding:16px 20px;box-shadow:5px 5px 0 var(--ink)}
+  .houserule .k{color:var(--verm)}
+
+  /* ---------- nav ---------- */
+  nav{position:sticky;top:0;z-index:9;background:var(--paper);border-bottom:2px solid var(--ink);
+    display:flex;gap:6px;overflow-x:auto;padding:10px 2px;margin-top:38px}
+  nav a{font-family:var(--mono);font-size:.72rem;text-decoration:none;border:1.5px solid var(--ink);
+    padding:5px 11px;white-space:nowrap;background:var(--paper)}
+  nav a.a{border-color:var(--teal);color:var(--teal)} nav a.b{border-color:var(--verm);color:var(--verm)}
+  nav a:hover{background:var(--ink);color:var(--paper)}
+
+  /* ---------- sections ---------- */
+  .angle{margin-top:64px}
+  .angle>h2{font-family:"Fraunces",serif;font-weight:650;font-size:clamp(1.9rem,3.6vw,2.7rem);letter-spacing:-.01em;display:flex;gap:16px;align-items:baseline}
+  .angle>h2 .tag{font:650 .78rem var(--mono);letter-spacing:.12em;padding:4px 10px;color:var(--paper)}
+  .angleA>h2 .tag{background:var(--teal)} .angleB>h2 .tag{background:var(--verm)}
+  .angle>.k{display:block;margin:6px 0 0}
+
+  article{margin-top:36px;border:2px solid var(--ink);background:#FDFAF3;box-shadow:7px 7px 0 var(--ink);scroll-margin-top:70px}
+  .angleA article{box-shadow:7px 7px 0 var(--teal)} .angleB article{box-shadow:7px 7px 0 var(--verm)}
+  .head{display:flex;gap:18px;align-items:baseline;padding:20px 24px 14px;border-bottom:2px solid var(--line);flex-wrap:wrap}
+  .num{font-family:"Fraunces",serif;font-size:2.6rem;font-weight:650;line-height:1}
+  .angleA .num{color:var(--teal)} .angleB .num{color:var(--verm)}
+  .head h3{font-family:"Fraunces",serif;font-weight:650;font-size:clamp(1.2rem,2.4vw,1.65rem);flex:1;min-width:230px}
+  .len{font-family:var(--mono);font-size:.72rem;color:var(--ink2);border:1.5px solid var(--line);padding:4px 9px;align-self:center}
+  .body{padding:18px 24px 24px}
+  .why{max-width:72ch;color:var(--ink2)}
+  .why b{color:var(--ink)}
+  .struct{font-family:var(--mono);font-size:.78rem;color:var(--ink2);margin-top:10px;max-width:80ch}
+
+  /* ---------- reels ---------- */
+  .reels{display:flex;gap:18px;overflow-x:auto;padding:18px 2px 8px;scroll-snap-type:x proximity}
+  figure{flex:0 0 250px;scroll-snap-align:start}
+  figure iframe{width:250px;height:445px;border:2px solid var(--ink);background:#fff;display:block}
+  figcaption{font-size:.8rem;margin-top:8px;line-height:1.4}
+  figcaption .hook{font-family:"Fraunces",serif;font-style:italic;display:block}
+  figcaption .who{font-family:var(--mono);font-size:.68rem;color:var(--ink2);display:block;margin-top:4px}
+  figcaption a{color:var(--verm);font-family:var(--mono);font-size:.68rem;text-decoration:none}
+  figcaption a:hover{text-decoration:underline}
+
+  .konvo{margin-top:16px;padding:16px 20px;border-left:6px solid;background:var(--paper2)}
+  .angleA .konvo{border-color:var(--teal);background:var(--teal-soft)}
+  .angleB .konvo{border-color:var(--verm);background:var(--verm-soft)}
+  .konvo .k{margin-bottom:4px;display:block}
+  .angleA .konvo .k{color:var(--teal)} .angleB .konvo .k{color:var(--verm)}
+  .konvo p{max-width:78ch}
+
+  /* ---------- rules / start ---------- */
+  .rules{margin-top:70px}
+  .rules h2,.start h2{font-family:"Fraunces",serif;font-weight:650;font-size:clamp(1.9rem,3.6vw,2.7rem)}
+  .rulegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2px;background:var(--ink);border:2px solid var(--ink);margin-top:22px;box-shadow:7px 7px 0 var(--ink)}
+  .rulegrid div{background:#FDFAF3;padding:16px 18px}
+  .rulegrid b{font-family:"Fraunces",serif;font-size:1.05rem;display:block;margin-bottom:4px}
+  .rulegrid .rn{color:var(--verm);font-family:var(--mono);font-size:.7rem;letter-spacing:.12em}
+  .rulegrid p{font-size:.9rem;color:var(--ink2)}
+  .context{display:flex;gap:18px;overflow-x:auto;margin-top:26px}
+
+  .start{margin-top:70px}
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:22px}
+  .steps div{border:2px solid var(--ink);padding:20px;background:#FDFAF3;box-shadow:6px 6px 0 var(--ink)}
+  .steps .num{font-size:2.2rem}
+  .steps b{font-family:"Fraunces",serif;font-size:1.15rem;display:block;margin:6px 0 4px}
+  .steps p{font-size:.9rem;color:var(--ink2)}
+
+  footer{margin-top:80px;border-top:3px solid var(--ink);padding-top:16px}
+  footer code{font-family:var(--mono);font-size:.75rem;background:var(--paper2);padding:3px 8px;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <span class="k">Konvo content system · researched via <b>LightReel</b> · 2026-08-19</span>
+  <h1>Reel<br>Play<em>book</em></h1>
+  <div class="position">
+    <p>People want the social part of Instagram — DMs and friends — not the algorithmic media layer.<br>
+    <b>Instagram communication without Instagram consumption.</b></p>
+  </div>
+
+  <div class="mix">
+    <span class="k">Content mix — LightReel's recommendation for this exact app</span>
+    <div class="mixbar" role="img" aria-label="Content mix: 35% problem stories, 25% objection demos, 20% numbers, 10% failures, 10% demos">
+      <div class="m1">35%</div><div class="m2">25%</div><div class="m3">20%</div><div class="m4">10%</div><div class="m5">10%</div>
+    </div>
+    <div class="mixlegend">
+      <span><i style="background:#1E6E5C"></i>problem &amp; real-user stories</span>
+      <span><i style="background:#D9481C"></i>objection / FAQ demos</span>
+      <span><i style="background:#8A6D1F"></i>experiments &amp; numbers</span>
+      <span><i style="background:#4A4033"></i>failures &amp; fixes</span>
+      <span><i style="background:#A03A5E"></i>product demos</span>
+    </div>
+  </div>
+
+  <div class="houserule">
+    <span class="k">House rule — non-negotiable</span>
+    Every number, failure, and receipt shown on camera is <b>real</b>. No invented downloads, MRR, or testimonials — if there's no real receipt, that reel waits.
+  </div>
+</header>
+
+<nav>
+  <a class="a" href="#a1">A1 confession</a><a class="a" href="#a2">A2 replacements</a><a class="a" href="#a3">A3 brain</a><a class="a" href="#a4">A4 skit</a><a class="a" href="#a5">A5 extreme rule</a>
+  <a class="b" href="#b1">B1 origin</a><a class="b" href="#b2">B2 numbers</a><a class="b" href="#b3">B3 failure</a><a class="b" href="#b4">B4 objection</a><a class="b" href="#b5">B5 challenge</a><a class="b" href="#b6">B6 constraint</a>
+  <a href="#rules">8 rules</a><a href="#start">start here</a>
+</nav>
+
+<!-- ============ ANGLE A ============ -->
+<section class="angle angleA">
+  <h2><span class="tag">ANGLE A</span> Doomscroll / detox audience</h2>
+  <span class="k">problem-first · reads as help, never as an ad</span>
+
+  <article id="a1">
+    <div class="head"><span class="num">A1</span><h3>Relatable confession → practical fixes</h3></div>
+    <div class="body">
+      <p class="why">Open with an embarrassing scrolling moment, then demo 3–4 fixes on screen. <b>Why it works:</b> confession makes it personal, not preachy; demos make it saveable.</p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/Da_CMkKxC2j/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“A couple weeks ago I had a dream, and it was just me scrolling Instagram Reels.”</span><a href="https://www.instagram.com/reel/Da_CMkKxC2j/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DZ2_huRBQ4P/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Easy ways to stop doomscrolling.”</span><a href="https://www.instagram.com/reel/DZ2_huRBQ4P/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo</span>
+        <p>“I opened Instagram to reply to one message. That was two hours ago.” → the trap is that your DMs live <em>inside</em> the feed → 3 fixes, last one: “so I deleted the app and kept the messages” + screen recording of Konvo DMs working.</p></div>
+    </div>
+  </article>
+
+  <article id="a2">
+    <div class="head"><span class="num">A2</span><h3>Replacement list, activity on camera</h3></div>
+    <div class="body">
+      <p class="why">Numbered list of scroll-replacements while journaling / cooking / walking on camera. <b>Why it works:</b> fills the empty habit loop most detox content ignores.</p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DM9FszTPjsb/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“You fail to fix your relationship with your phone because you haven't replaced scrolling with anything.”</span><a href="https://www.instagram.com/reel/DM9FszTPjsb/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DZ_jOk8BIwN/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“10 things to do instead of doomscrolling before your brain rots.”</span><a href="https://www.instagram.com/reel/DZ_jOk8BIwN/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo</span>
+        <p>“5 things I replaced the feed with — and the one part of Instagram I kept.” Items 1–4 offline; item 5: my actual friends (DMs via Konvo, shown working).</p></div>
+    </div>
+  </article>
+
+  <article id="a3">
+    <div class="head"><span class="num">A3</span><h3>“What it does to your brain” explainer</h3></div>
+    <div class="body">
+      <p class="why">Talking head + one simple mechanism + captions/diagram. <b>Why it works:</b> provocative question → self-recognition → the mechanism satisfies curiosity.</p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DVOtJpoGcl5/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Does doomscrolling actually rot your brain?”</span><a href="https://www.instagram.com/reel/DVOtJpoGcl5/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DWyjdhrCXki/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“How long have you been scrolling for? Did you lose track of time?”</span><a href="https://www.instagram.com/reel/DWyjdhrCXki/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo</span>
+        <p>Explain <em>the DM trap</em> mechanically: you open the app with intent (a message), and the feed is one thumb-slip away — variable reward does the rest. “The fix isn't willpower, it's removing the slot machine from the mailbox.”</p></div>
+    </div>
+  </article>
+
+  <article id="a4">
+    <div class="head"><span class="num">A4</span><h3>Relatable skit → phone-setting tutorial</h3></div>
+    <div class="body">
+      <p class="why">Dramatize the failure, hard-cut to the setting that solves it. <b>Why it works:</b> recognition + humor earns the attention the tutorial converts.</p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DSTW9VVDPvv/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“I've got a lot of work to do — let me just scroll for…”</span><a href="https://www.instagram.com/reel/DSTW9VVDPvv/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/Da-iGs-COk9/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“When you're about to fall asleep on your phone, so you put it away and randomly get that energy again.”</span><a href="https://www.instagram.com/reel/Da-iGs-COk9/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo</span>
+        <p>Skit: friend sends a Reel at 11pm → you reply → 40 minutes gone. Cut: “here's my phone now” — Instagram gone, Konvo notification comes in, reply, phone down.</p></div>
+    </div>
+  </article>
+
+  <article id="a5">
+    <div class="head"><span class="num">A5</span><h3>Repetitive command / extreme personal rule</h3></div>
+    <div class="body">
+      <p class="why">Blunt repeated interruption, or an unusually strict personal rule. <b>Why it works:</b> extreme-but-specific beats “use your phone less”; strong curiosity gap.</p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/Dak4PENtHSq/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“When it feels like everyone is rich and living a luxury life… Delete Instagram.”</span><a href="https://www.instagram.com/reel/Dak4PENtHSq/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DZsQTUiCqVC/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Will you think I'm crazy if I tell you I delete Instagram three times a week?”</span><a href="https://www.instagram.com/reel/DZsQTUiCqVC/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo</span>
+        <p>“I haven't opened Instagram in 30 days. I also haven't missed a single message. Both of those are true.” Then show how.</p></div>
+    </div>
+  </article>
+</section>
+
+<!-- ============ ANGLE B ============ -->
+<section class="angle angleB">
+  <h2><span class="tag">ANGLE B</span> Build-in-public founder</h2>
+  <span class="k">talking head · the app appears as evidence, never as the pitch</span>
+
+  <article id="b1">
+    <div class="head"><span class="num">B1</span><h3>Relatable frustration → “so I built it”</h3><span class="len">30–65s · LightReel: best fit for Konvo</span></div>
+    <div class="body">
+      <p class="why"><b>The origin reel — make this first.</b> Personal frustration → why existing options failed → reveal at 5–12s → one unmistakable screen recording → soft CTA.</p>
+      <p class="struct">1 frustration · 2 why existing options failed · 3 “so I built…” at 5–12s · 4 screen recording proof · 5 soft invite</p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DamLOLxA0nS/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Why can't we just remove Reels from Instagram?”</span><span class="who">@getsociallite — the competitor</span><a href="https://www.instagram.com/reel/DamLOLxA0nS/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DamdCCjygXm/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“I'm building Buds… and I just added widgets.”</span><span class="who">@jen__jpeg</span><a href="https://www.instagram.com/reel/DamdCCjygXm/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/Db61dBhBFnC/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“14.7K, 9.98K, 2,997, and 22 followers on Threads.”</span><span class="who">@andov.zip</span><a href="https://www.instagram.com/reel/Db61dBhBFnC/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo</span>
+        <p>Open Instagram to answer one message on camera → get pulled into Reels → “deleting Instagram was never an option, my group chats live there” → reveal: blocked feed and a working DM conversation <em>in the same shot</em>.</p></div>
+    </div>
+  </article>
+
+  <article id="b2">
+    <div class="head"><span class="num">B2</span><h3>Transparent numbers + unresolved update</h3><span class="len">~60s</span></div>
+    <div class="body">
+      <p class="why">Result/number → dashboard receipt in first 5–10s → cause → what's still failing → next experiment. Mixed results with receipts beat pure wins.</p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DcB-Tr7ulaF/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Can releasing to Android get more users for your app?”</span><span class="who">@current.kev</span><a href="https://www.instagram.com/reel/DcB-Tr7ulaF/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DbtTwMiONGJ/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“TikTok gives you $6,000 of free ad credits.” → 10K downloads, $460 MRR, broken attribution</span><span class="who">@current.kev</span><a href="https://www.instagram.com/reel/DbtTwMiONGJ/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DbY4TEDPu34/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“I doubled my app's MRR in the last three days.”</span><span class="who">@current.kev</span><a href="https://www.instagram.com/reel/DbY4TEDPu34/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo</span>
+        <p>Weekly real experiments from PostHog: activation rate, screen-time drop, pass usage. “Usage fell X%, but almost nobody disabled DMs” is a stronger story than a download count. Only numbers we can show on screen.</p></div>
+    </div>
+  </article>
+
+  <article id="b3">
+    <div class="head"><span class="num">B3</span><h3>Founder failure → live fix</h3><span class="len">38–60s</span></div>
+    <div class="body">
+      <p class="why">Concrete failure with stakes → show the broken state → fix on camera → lesson or open question. Substantially outperforms routine progress logs.</p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/Dbd6N1OKiVK/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Is it possible to make a truly bug-free app?” — ~75K views</span><span class="who">@chris.raroque</span><a href="https://www.instagram.com/reel/Dbd6N1OKiVK/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/Db53Dn_uU1T/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“I'm building a mobile app, but I accidentally destroyed my laptop.”</span><span class="who">@current.kev</span><a href="https://www.instagram.com/reel/Db53Dn_uU1T/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DbgYnL4OGZh/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Yesterday I tried to open the link in my bio and realized Instagram just brutally screwed me.”</span><span class="who">@current.kev</span><a href="https://www.instagram.com/reel/DbgYnL4OGZh/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo — one is live right now</span>
+        <p>The App Review rejection of build 53 is a ready-made episode: show the rejection, explain the Family Controls entitlement mystery, document the resubmission. Also good: Instagram breaking a selector → the cage-patch hotfix shipping in 60s. Never manufacture failure; film it when it happens.</p></div>
+    </div>
+  </article>
+
+  <article id="b4">
+    <div class="head"><span class="num">B4</span><h3>Objection / question → proof on the phone</h3><span class="len">40–65s</span></div>
+    <div class="body">
+      <p class="why">Comment full-screen → one-sentence answer → demonstrate on a real device → external receipt (privacy label, settings) → invite the next question. <b>Working for the direct competitor: ~154K views.</b></p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DZ-CyLmh6EN/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Does it steal and sell my information?” — ~154K views</span><span class="who">@getsociallite — the competitor</span><a href="https://www.instagram.com/reel/DZ-CyLmh6EN/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DbBbY9oiC6Q/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Does it bother me that people are blatantly ripping off my app?”</span><span class="who">@chris.raroque</span><a href="https://www.instagram.com/reel/DbBbY9oiC6Q/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DbGtBJBCDj6/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Hot take, but I think the more crowded an app market is, the better it's gonna do.”</span><span class="who">@chris.raroque</span><a href="https://www.instagram.com/reel/DbGtBJBCDj6/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo — priority questions</span>
+        <p>Can I still send/receive DMs? · Can I open a Reel someone sends without falling into the feed? · Do you see my Instagram login or messages? (answer with the privacy label on screen) · What stops me from bypassing the block? · Do notifications and group chats still work?</p></div>
+    </div>
+  </article>
+
+  <article id="b5">
+    <div class="head"><span class="num">B5</span><h3>High-stakes serialized challenge</h3><span class="len">30–50s / episode</span></div>
+    <div class="body">
+      <p class="why">Numbered series with a real deadline/stake, scoreboard every episode. Generic “Day 14 of building my app” is weak — the stake must matter outside the product.</p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/Dboo_7ZJsYJ/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Is it possible for a 20-year-old to buy a BMW M3 in just 137 days?”</span><span class="who">@krish.jakhar_</span><a href="https://www.instagram.com/reel/Dboo_7ZJsYJ/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DcEOyVmAkmX/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Is it possible to build an app, grow it, win $100K… in just 61 days?”</span><span class="who">@andov.zip</span><a href="https://www.instagram.com/reel/DcEOyVmAkmX/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DWm6mZCihAR/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Is it possible to build a $1 million machine-learning app in just one day?”</span><span class="who">@chrisoh.zip</span><a href="https://www.instagram.com/reel/DWm6mZCihAR/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo</span>
+        <p>Stake reflects the mission, not a coding streak: “30 days to cut my Instagram time without missing a single important DM.” Scoreboard: screen time, DMs answered, accidental opens.</p></div>
+    </div>
+  </article>
+
+  <article id="b6">
+    <div class="head"><span class="num">B6</span><h3>Build / demo with a surprising constraint</h3><span class="len">25–50s</span></div>
+    <div class="body">
+      <p class="why">Constraint → fast montage → working product in hand → one lesson. More watchable than a feature announcement because the build itself has a finish line.</p>
+      <div class="reels">
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DXZQN1cBb0Y/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“I built an app while running errands.” — ~10K likes</span><a href="https://www.instagram.com/reel/DXZQN1cBb0Y/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DWpWc1jBgAU/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“I'm a part-time indie hacker, and I built the MVP of my app in just 12 hours.”</span><a href="https://www.instagram.com/reel/DWpWc1jBgAU/">open ↗</a></figcaption></figure>
+        <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DS-5oMQEqd3/embed" title="reel"></iframe>
+          <figcaption><span class="hook">“Everybody's writing resolutions. I built an app.”</span><span class="who">@deanwethers</span><a href="https://www.instagram.com/reel/DS-5oMQEqd3/">open ↗</a></figcaption></figure>
+      </div>
+      <div class="konvo"><span class="k">Make it Konvo</span>
+        <p>Reserve for visible ships — closing a loophole a user found, shipping DM-only mode in response to one complaint. Skip for routine polish.</p></div>
+    </div>
+  </article>
+</section>
+
+<!-- ============ RULES ============ -->
+<section class="rules" id="rules">
+  <h2>The 8 rules that keep it from feeling like an ad</h2>
+  <div class="rulegrid">
+    <div><span class="rn">01</span><b>Founder has a problem before the product has a feature</b><p>“I kept losing an hour after checking one message” — never “seamlessly combines blocking with communication.”</p></div>
+    <div><span class="rn">02</span><b>The app appears as evidence, not the opening pitch</b><p>Earn attention with a frustration, result, failure or question; the UI proves the claim.</p></div>
+    <div><span class="rn">03</span><b>There is a visible receipt</b><p>Screen Time, working DMs, privacy label, the rejection email, the actual bug. No unsupported superlatives.</p></div>
+    <div><span class="rn">04</span><b>Include something unresolved</b><p>A perfectly resolved testimonial sounds scripted. “It works, but people found this loophole” creates a journey.</p></div>
+    <div><span class="rn">05</span><b>Admit trade-offs and wrong assumptions</b><p>On camera. Feels like participation in the build, not targeting by a brand.</p></div>
+    <div><span class="rn">06</span><b>Founder language, not company language</b><p>“I built”, “I got this wrong.” Never “we're excited to announce”, “revolutionary”, “seamlessly.”</p></div>
+    <div><span class="rn">07</span><b>One reel, one claim</b><p>Prove “DMs still work” OR “shared Reels don't open the feed” OR “my screen time dropped.” Never all at once.</p></div>
+    <div><span class="rn">08</span><b>Soft, story-native CTA</b><p>“What loophole should I test next?” / “Follow — screen-time result next week.” Not “link in bio” on repeat.</p></div>
+  </div>
+
+  <div class="context">
+    <figure><iframe loading="lazy" src="https://www.instagram.com/reel/Da3IC0AO_g9/embed" title="reel"></iframe>
+      <figcaption><span class="hook">Counter-example: SocialLite's overt 25s product pitch — the ad-style to avoid.</span><a href="https://www.instagram.com/reel/Da3IC0AO_g9/">open ↗</a></figcaption></figure>
+    <figure><iframe loading="lazy" src="https://www.instagram.com/reel/DZMBnF0Avbs/embed" title="reel"></iframe>
+      <figcaption><span class="hook">The positioning source: people want the social, not the media.</span><span class="who">@getsociallite</span><a href="https://www.instagram.com/reel/DZMBnF0Avbs/">open ↗</a></figcaption></figure>
+  </div>
+</section>
+
+<!-- ============ START ============ -->
+<section class="start" id="start">
+  <h2>Start here</h2>
+  <div class="steps">
+    <div><span class="num" style="color:var(--verm)">1</span><b>B1 origin reel</b><p>The format LightReel flagged as best-fit, and the account's anchor.</p></div>
+    <div><span class="num" style="color:var(--teal)">2</span><b>A1 confession reel</b><p>Problem-first entry for the detox audience.</p></div>
+    <div><span class="num" style="color:var(--verm)">3</span><b>B3 rejection episode</b><p>The build-53 failure is happening now — film it while it's real.</p></div>
+  </div>
+</section>
+
+<footer>
+  <span class="k">Re-run research anytime:</span> <code>node --env-file=.env.local scripts/lightreel.mjs "question"</code>
+</footer>
+
+</div>
+</body>
+</html>

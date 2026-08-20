@@ -691,6 +691,50 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             return
         }
 
+        // Session insurance (Aug 17): WebKit writes cookies to disk lazily,
+        // and a force-quit soon after signing in can lose the Instagram
+        // session before it ever reaches disk. A tester relogged on every
+        // launch because of it. The page asks for a snapshot once the
+        // inbox settles, and asks for it back when a launch finds the
+        // session gone. These need the webView, so they answer here
+        // instead of run().
+        if cmd == "cookieSave" || cmd == "cookieRestore" {
+            let wantsRestore = cmd == "cookieRestore"
+            Task { @MainActor in
+                let store = webView.configuration.websiteDataStore.httpCookieStore
+                var reply: [String: Any]
+                if wantsRestore {
+                    if !Self.cookieRestoreSpent,
+                       let saved = Self.readCookieSnapshot(), !saved.isEmpty {
+                        // Once per launch: a genuine logout would restore
+                        // cookies Instagram already killed server-side,
+                        // land back on login, and must not loop.
+                        Self.cookieRestoreSpent = true
+                        for c in saved { await store.setCookie(c) }
+                        reply = ["restored": true, "n": saved.count]
+                    } else {
+                        reply = ["restored": false]
+                    }
+                } else {
+                    let ig = await store.allCookies()
+                        .filter { $0.domain.hasSuffix("instagram.com") }
+                    Self.writeCookieSnapshot(ig)
+                    reply = ["ok": true, "n": ig.count]
+                }
+                let json: String
+                if let data = try? JSONSerialization.data(withJSONObject: reply),
+                   let text = String(data: data, encoding: .utf8) {
+                    json = text
+                } else {
+                    json = "null"
+                }
+                webView.evaluateJavaScript(
+                    "window.__konvoStoreReply(\(id), \(json))",
+                    completionHandler: nil)
+            }
+            return
+        }
+
         Task { @MainActor in
             let reply = await Self.run(cmd, productId)
             let json: String
@@ -702,6 +746,54 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             }
             webView.evaluateJavaScript(
                 "window.__konvoStoreReply(\(id), \(json))", completionHandler: nil)
+        }
+    }
+
+    // The cookie snapshot lives in Application Support, never leaves the
+    // device, and never touches analytics. Restored cookies lose their
+    // HttpOnly flag (no public property key for it); Instagram reissues
+    // proper ones on the next response.
+    static var cookieRestoreSpent = false
+    static let cookieFile: URL = {
+        let dir = FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        try? FileManager.default.createDirectory(
+            at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("konvo-session.plist")
+    }()
+
+    static func writeCookieSnapshot(_ cookies: [HTTPCookie]) {
+        let rows = cookies.map { c -> [String: Any] in
+            var r: [String: Any] = ["n": c.name, "v": c.value,
+                                    "d": c.domain, "p": c.path,
+                                    "s": c.isSecure]
+            if let e = c.expiresDate { r["e"] = e }
+            return r
+        }
+        if let data = try? PropertyListSerialization.data(
+            fromPropertyList: rows, format: .binary, options: 0) {
+            try? data.write(to: cookieFile, options: [.atomic])
+        }
+    }
+
+    static func readCookieSnapshot() -> [HTTPCookie]? {
+        guard let data = try? Data(contentsOf: cookieFile),
+              let rows = try? PropertyListSerialization.propertyList(
+                from: data, options: [], format: nil) as? [[String: Any]]
+        else { return nil }
+        return rows.compactMap { r in
+            guard let n = r["n"] as? String, let v = r["v"] as? String,
+                  let d = r["d"] as? String, let p = r["p"] as? String
+            else { return nil }
+            var props: [HTTPCookiePropertyKey: Any] = [
+                .name: n, .value: v, .domain: d, .path: p,
+            ]
+            if let e = r["e"] as? Date {
+                if e < Date() { return nil }
+                props[.expires] = e
+            }
+            if r["s"] as? Bool == true { props[.secure] = "TRUE" }
+            return HTTPCookie(properties: props)
         }
     }
 
@@ -1081,8 +1173,15 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         guard let front = frontViewController() else { return 0 }
         return await withCheckedContinuation { (cont: CheckedContinuation<Int, Never>) in
             var resumed = false
+            // Seeded EMPTY on purpose (Aug 17): Screen Time tokens are
+            // opaque and die with their authorization, and app-group data
+            // can outlive a reinstall. A stored seed let a stale token
+            // pose as a selection - Cancel counted it, cage_enabled
+            // fired, and nothing was actually shielded (field report,
+            // build 52). A fresh pick mints live tokens every time, and
+            // Cancel is zero, never the stored count.
             let host = UIHostingController(rootView: CagePickerSheet(
-                selection: storedCageSelection() ?? FamilyActivitySelection(),
+                selection: FamilyActivitySelection(),
                 finish: { sel in
                     guard !resumed else { return }
                     resumed = true
@@ -1090,8 +1189,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                         cageDefaults.set(data, forKey: cageSelectionKey)
                     }
                     front.dismiss(animated: true)
-                    let s = sel ?? storedCageSelection()
-                    cont.resume(returning: s.map(cageCount) ?? 0)
+                    cont.resume(returning: sel.map(cageCount) ?? 0)
                 }))
             // Full screen and undismissable by swipe: the only exits are
             // Cancel and Continue, so the continuation cannot strand.
@@ -1133,6 +1231,9 @@ private struct CagePickerSheet: View {
             .padding(.top, 2)
             FamilyActivityPicker(selection: $selection)
                 .frame(maxHeight: .infinity)
+            // Dead until something is ticked: Continue on an empty (or
+            // blank-rendering) picker was one of the ways a user could
+            // "finish" with nothing blocked.
             Button { finish(selection) } label: {
                 Text("Continue")
                     .font(.headline)
@@ -1142,6 +1243,10 @@ private struct CagePickerSheet: View {
                     .background(Color(red: 0.10, green: 0.42, blue: 0.95))
                     .clipShape(Capsule())
             }
+            .disabled(selection.applicationTokens.isEmpty
+                && selection.categoryTokens.isEmpty)
+            .opacity(selection.applicationTokens.isEmpty
+                && selection.categoryTokens.isEmpty ? 0.4 : 1)
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .padding(.bottom, 6)
