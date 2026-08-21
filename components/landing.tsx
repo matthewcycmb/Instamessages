@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { DownloadModal } from "./download-modal";
 import { track } from "@/lib/analytics";
-import { TESTFLIGHT_URL } from "@/lib/links";
+import { APP_STORE_URL } from "@/lib/links";
 
 /**
  * Landing page (design 10a). The mock was drawn on a 1200px canvas with bare
@@ -24,15 +24,14 @@ export function Landing({
 }) {
   const [open, setOpen] = useState(false);
 
-  const label = desktop ? "Download Konvo" : "Download beta";
-  const ctaHref = desktop ? undefined : TESTFLIGHT_URL;
+  // Phones get Apple's badge straight to the store; desktop keeps the
+  // platform-picker modal.
+  const cta = desktop
+    ? (big?: boolean) => <DownloadButton onClick={openModal} label="Download Konvo" big={big} glow={big} />
+    : () => <AppStoreBadge />;
 
   function openModal() {
     track("beta_cta_clicked");
-    if (!desktop) {
-      track("beta_testflight_opened");
-      return; // the anchor does the rest
-    }
     setOpen(true);
   }
 
@@ -66,7 +65,7 @@ export function Landing({
           </div>
           <div className="lp-betabadge" style={{ display: "flex", alignItems: "center", gap: 9, borderRadius: 999, padding: "8px 16px", fontSize: 14, fontWeight: 500 }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#30a14e" }} />
-            Free while in beta
+            Now on the App Store
           </div>
         </div>
 
@@ -90,7 +89,7 @@ export function Landing({
               Konvo blocks your Instagram feed, explore and reels pages but
               keeps your messages.
             </p>
-            <DownloadButton onClick={openModal} label={label} big glow href={ctaHref} />
+            {cta(true)}
           </div>
           <div className="lp-hero-art" style={{ flex: 1, display: "flex", justifyContent: "center" }}>
             <div className="lp-mocks">
@@ -109,7 +108,7 @@ export function Landing({
       {/* setup steps */}
       <Section id="how" eyebrow="GETTING STARTED" title="How to set up">
         <div className="lp-row" style={{ alignItems: "stretch" }}>
-          <StepCard n={1} title="Get the beta" body="Konvo is on iPhone. Leave your email and the TestFlight link installs it.">
+          <StepCard n={1} title="Get the app" body="Konvo is on the App Store. Download it on your iPhone and open it.">
             <Chip>
               <span style={{ width: 17, height: 17, borderRadius: 5, background: "#0a5cf0", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
                 <ChatGlyph size={10} stroke="#fff" width="2.8" />
@@ -220,7 +219,7 @@ export function Landing({
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0f1b33" }}>Message your friends.</div>
           <div style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-0.035em", color: "#0a5cf0" }}>Skip the rest of Instagram.</div>
         </div>
-        <DownloadButton onClick={openModal} label={label} href={ctaHref} />
+        {cta()}
       </div>
 
       {open && <DownloadModal onClose={() => setOpen(false)} inAppBrowser={inAppBrowser} desktop={desktop} />}
@@ -272,8 +271,8 @@ const CARD: React.CSSProperties = {
 
 const FAQ = [
   {
-    q: "What is TestFlight?",
-    a: "Apple's own app for trying apps before they are on the App Store. The link opens it, you tap Accept, and Konvo installs like any other app. If you don't have TestFlight, the link installs it first.",
+    q: "How much does it cost?",
+    a: "Konvo is a paid app with a free trial. You see the plans inside the app after signing in, and you can cancel any time from your Apple subscriptions.",
   },
   {
     q: "Is it safe to log in?",
@@ -408,13 +407,29 @@ function ListCard({ dot, heading, items, kind }: { dot: string; heading: string;
   );
 }
 
-function DownloadButton({ onClick, label, href, big, glow }: { onClick: () => void; label: string; href?: string; big?: boolean; glow?: boolean }) {
-  const Tag = href ? "a" : "button";
+function AppStoreBadge() {
   return (
-    <Tag
-      href={href}
-      target={href ? "_blank" : undefined}
-      rel={href ? "noopener" : undefined}
+    <a
+      href={APP_STORE_URL}
+      onClick={() => track("app_store_opened")}
+      aria-label="Download on the App Store"
+      style={{ display: "inline-block", lineHeight: 0 }}
+    >
+      <svg width="200" height="67" viewBox="0 0 120 40" role="img" aria-hidden="true">
+        <rect x="0.5" y="0.5" width="119" height="39" rx="6.5" fill="#000" stroke="#a6a6a6" />
+        <g transform="translate(9 9) scale(0.9)">
+          <path fill="#fff" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+        </g>
+        <text x="35" y="15.5" fill="#fff" fontFamily="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" fontSize="7.5">Download on the</text>
+        <text x="34.5" y="31" fill="#fff" fontFamily="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif" fontSize="17" fontWeight="500" letterSpacing="-0.3">App Store</text>
+      </svg>
+    </a>
+  );
+}
+
+function DownloadButton({ onClick, label, big, glow }: { onClick: () => void; label: string; big?: boolean; glow?: boolean }) {
+  return (
+    <button
       onClick={onClick}
       style={{
         textDecoration: "none",
@@ -442,7 +457,7 @@ function DownloadButton({ onClick, label, href, big, glow }: { onClick: () => vo
         <path d="M5 12h14" />
         <path d="m12 5 7 7-7 7" />
       </svg>
-    </Tag>
+    </button>
   );
 }
 

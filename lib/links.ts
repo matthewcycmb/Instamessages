@@ -14,10 +14,13 @@ export const CHROME_STORE_URL: string | null =
 export const MAC_ZIP =
   "https://github.com/matthewcycmb/instamessages/releases/download/mac-preview/Konvo-mac.zip";
 
-// The iOS beta is the only thing being recruited for right now, so every
-// "Download beta" button on the site points straight at TestFlight. Public
-// join link for the External Friends group; Apple's page handles the rest
-// (installs TestFlight, redeems the code).
+// Approved 2026-08-21. Every mobile CTA on the site is an App Store badge
+// pointing here; TestFlight below is only left for the desktop modal's
+// "on iPhone" row.
+export const APP_STORE_URL = "https://apps.apple.com/us/app/konvo-dms-only/id6794756261";
+
+// Public join link for the External Friends TestFlight group; Apple's page
+// handles the rest (installs TestFlight, redeems the code).
 export const TESTFLIGHT_URL = "https://testflight.apple.com/join/SH37gxDw";
 
 // The desktop builds are signed but NOT notarized: Apple has not enabled the
