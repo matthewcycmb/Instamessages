@@ -50,6 +50,7 @@ function boot(opts = {}) {
       // instagram.com is a universal link on iOS and opens the Instagram
       // APP instead, stranding the user outside Konvo.
       if (m.cmd === 'go') dom.nav.push(m.productId);
+      if (m.cmd === 'review') dom.reviews = (dom.reviews || 0) + 1;
     } } } };
   dom.went = [];
   dom.window.__loc = { replace: t => dom.went.push(t) };
@@ -106,16 +107,19 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     el.click();
   };
   tap('#s1 [data-next]');                       // Get started
-  assert(doc.getElementById('s2a').classList.contains('on'),
-    'Get started must land on attribution - one tap, then the quiz');
+  assert(doc.getElementById('s2c').classList.contains('on'),
+    'Get started must land on the why question - personal first (Aug 21)');
   assert(!doc.getElementById('s2'), 'the motive screen must be gone from the document');
   assert(!doc.getElementById('s1b'), 'the email screen must be gone from the document');
   await settle(1100);
-  tap("#s2a .opt[data-src='tiktok']");
-  await settle(1500);                           // beat + slide + nav lock
+  tap("#s2c .opt[data-why='attention']");
+  await settle(1400);
   assert(doc.getElementById('s3').classList.contains('on'),
-    'an attribution tap must advance straight to screen time');
-  assert(d.events.includes('attribution'), 'the source must be tracked');
+    'the why question hands to screen time');
+  const why = d.tracked.find(m => m.event === 'quiz_answered' && m.props.question === 'why');
+  assert(why && why.props.answer === 'My attention span is cooked',
+    'the why answer must be tracked with its label');
+  await settle(1100);
   tap("#s3 .opt[data-m='150']");                // 2 - 3 hours
   await settle(1400);                           // 250ms beat + slide + lock
   assert(doc.getElementById('s4').classList.contains('on'),
@@ -126,7 +130,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   tap("#s4 .opt[data-m='20']:not([data-est])"); // 10 - 20 mins
   await settle(400);                            // past the 250ms beat only
   assert(doc.getElementById('s4b').classList.contains('on'),
-    'S4 must advance into the calculating beat');
+    'messaging must advance straight into the calculating beat');
   assert.strictEqual(doc.getElementById('p-time').textContent,
     '2 h 30 m a day on Instagram', 'the loader must echo the slider answer');
   assert.strictEqual(doc.getElementById('p-msg').textContent,
@@ -174,8 +178,19 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the pass hero must show the sheet mockup');
   await settle(1100);
   tap('#s8c [data-next]');                      // Continue
+  assert(doc.getElementById('s2a').classList.contains('on'),
+    'attribution comes after the tour, never before the personal questions');
+  assert(!doc.getElementById('s8d') && !doc.getElementById('s8e'),
+    'the studies and founder pages are gone (Aug 21)');
+  await settle(1100);
+  tap("#s2a .opt[data-src='tiktok']");
+  await settle(400);
   assert(doc.getElementById('s10').classList.contains('on'),
-    'the hero slides must hand straight to privacy - the pact screen is gone');
+    'attribution hands straight to privacy (the finale moved into the wall, Aug 21)');
+  assert(d.events.includes('attribution'), 'the source must be tracked');
+  assert(!doc.getElementById('s8f'), 'the finale page is gone from the document');
+  assert.strictEqual(d.reviews, 1,
+    'the system review sheet is asked exactly once, on the years-back screen');
   assert(!doc.getElementById('s9t').classList.contains('on'),
     'the testimonial screen must stay skipped while QUOTES is empty (release blocker)');
   assert(!d.window.localStorage.konvoOnboarded,
@@ -195,7 +210,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(d.events.includes('login_started'),
     'the handoff must track login_started');
   const quiz = d.tracked.filter(m => m.event === 'quiz_answered');
-  assert(quiz.length === 2, 'both quiz answers must be tracked');
+  assert(quiz.length === 3, 'all three quiz answers must be tracked (screen time, messaging, why)');
   assert(quiz.every(m => m.props.answer && m.props.answer.length),
     'each quiz_answered must carry the chosen option label as answer');
   assert(d.tracked.find(m => m.event === 'attribution').props.source,
@@ -210,8 +225,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const otap = sel => od.querySelector(sel).click();
   otap('#s1 [data-next]');
   await settle(1100);
-  otap("#s2a .opt[data-src='friend']");
-  await settle(1500);                           // beat + slide + nav lock
+  otap("#s2c .opt[data-why='present']");
+  await settle(1400);
   otap("#s3 .opt[data-m='45']");                // < 1 hour: the lowest range
   await settle(1400);
   const opts = [...od.querySelectorAll('#s4 .opt')];
@@ -244,6 +259,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(1100);
   otap('#s8c [data-next]');
   await settle(1100);
+  otap("#s2a .opt[data-src='friend']");
+  await settle(1400);
   otap('#signin');
   assert(one.nav[0].startsWith(INBOX + '#konvo='),
     'the handoff carries the hours even from the minimum answers');

@@ -404,7 +404,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(5200);  // ~7.6s in: the perks comparison
   assert(/Why Konvo works/.test(payText()),
     'the loader must auto-advance into the comparison');
-  assert(/Going back takes a decision/.test(payText()),
+  assert(/No snooze button to cave to/.test(payText()),
     'every row is a true structural claim');
   const wtap = act => {
     const el = wdoc.querySelector(`[data-act='${act}']`);
@@ -432,16 +432,23 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'Continue on the perks page must reach S13');
   assert(/First 7 days free, then \$19\.99 a year\./.test(payText()),
     'the headline states the real yearly charge');
-  assert(/\$1\.67/.test(payText()) && /per month/.test(payText()),
-    'the Annual card prices by the month, the number shoppers compare');
-  assert(/SAVE 66%/.test(payText()),
-    'the honest computed discount must show on the Annual card');
-  assert(/Try for \$0\.00/.test(payText()),
-    'the trial CTA is Try for $0.00');
+  assert(/SAVE 58%/.test(payText()) && !/POPULAR|RECOMMENDED/.test(payText()),
+    'the Yearly badge is the live saving');
+  assert(/Yearly Plan/.test(payText()) && /Monthly Plan/.test(payText())
+    && !/Annual/.test(payText()),
+    'the plans are called Yearly Plan and Monthly Plan, never Annual');
+  assert(/\$1\.67\/month/.test(payText()) && /\$19\.99\/year/.test(payText()),
+    'the Yearly card: monthly equivalent as the price, yearly charge beneath');
+  assert(/\$3\.99\/month/.test(payText()) && !/Try free/.test(payText()),
+    'the Monthly card carries its price; no card carries a trial line (Aug 21)');
+  assert(!wdoc.querySelector("#im-pay [data-act='notready']"),
+    'no x on the paywall (Aug 21): the plans are the only choice');
+  assert(!wdoc.querySelector("#im-pay [data-act='pk-l']"),
+    'no Lifetime card: two plans, wider cards (Aug 21)');
+  assert(/Start your free 7 days/.test(payText()),
+    'the trial CTA names the free days');
   assert(/No commitment, cancel anytime/.test(payText()),
     'the reassurance row sits above the CTA');
-  assert(/Pay once, keep it/.test(payText()),
-    'the Lifetime card carries its badge');
   assert(/In 4 days/.test(payText()) && /In 7 days/.test(payText()),
     'three nodes only: today, halfway, charge - the page must fit one screen');
   assert(!/In 12 days/.test(payText()),
@@ -449,41 +456,21 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/We'll remind you before anything is charged\./.test(payText()),
     'the reminder promise rides the halfway node');
 
-  //     The three packages are side-by-side selectable; each tells its own
-  //     truth. Monthly: no trial language. Lifetime: one-step, one-time.
+  //     Both packages are side-by-side selectable; each tells its own
+  //     truth. Monthly has no trial (ASC, Aug 21 evening).
   wtap('pk-m');
-  assert(/\$4\.99 a month, cancel anytime\./.test(payText()),
-    'the Monthly card must state its own price');
-  assert(!/days free/.test(payText()),
-    'no trial language may survive on Monthly');
-  assert(/Continue with Monthly/.test(payText()),
-    'Monthly must have its own CTA');
-  wtap('pk-l');
-  assert(/\$29\.99 once\. Lifetime access\./.test(payText()),
-    'Lifetime states the one-time price and the exact phrase Lifetime access');
-  assert(/Pay \$29\.99 once\. That's it\./.test(payText()),
-    'the Lifetime timeline is a one-step confirmation');
-  assert(/Get Lifetime access/.test(payText()),
-    'the Lifetime CTA');
-  assert(/Pay once\. No subscription\./.test(payText()),
-    'the Lifetime reassurance replaces cancel-anytime');
+  assert(/How your plan works/.test(payText()) &&
+    /\$3\.99 a month, cancel anytime\./.test(payText()),
+    'the Monthly story states its price and no trial');
+  assert(/Continue with Monthly/.test(payText()) && !/free/.test(payText()),
+    'the Monthly CTA promises nothing free');
+  assert(/Every month/.test(payText()) && /Renews at \$3\.99/.test(payText()),
+    'the Monthly timeline says how much and how often');
   assert(!/forever/i.test(payText()),
     'the word forever is banned copy');
   wtap('pk-y');
   assert(/First 7 days free/.test(payText()) && /In 7 days/.test(payText()),
-    'flipping back to Annual must restore the trial story');
-
-  //     The x does not dismiss: it reveals the not-ready section and flips
-  //     to the Monthly story. The wall itself never goes away unpaid.
-  wtap('notready');
-  assert(/Not ready to commit for a year\? Monthly is \$4\.99/.test(payText()),
-    'the x must concede into the softer monthly path');
-  assert(/Continue with Monthly/.test(payText()),
-    'the not-ready state shows the Monthly story');
-  assert(wdoc.getElementById('im-pay'), 'the wall must survive the x');
-  wtap('pk-y');
-  assert(/Try for \$0\.00/.test(payText()),
-    'Annual must still be reachable after not-ready');
+    'flipping back to Yearly must restore the trial story');
 
   //     Live values beat the stand-ins: a bridge that answers products
   //     reprices the whole page, including a 7-day ASC trial. The paywall
@@ -496,7 +483,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const LIVE_PRODUCTS = { ok: true,
     yearly: { price: 'US$39.99', perWeek: 'US$0.77', perMonth: 'US$3.33',
       savePct: 33, trialDays: 7 },
-    monthly: { price: 'US$4.99' }, lifetime: { price: 'US$99.99' } };
+    monthly: { price: 'US$4.99', trialDays: 3 }, lifetime: { price: 'US$99.99' } };
   const live = boot('/direct/inbox/', '', { bridge: answer({
     entitlements: { entitled: false },
     products: LIVE_PRODUCTS,
@@ -513,14 +500,17 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const ltext = ldoc0.getElementById('im-pay').textContent;
   assert(/First 7 days free, then US\$39\.99 a year\./.test(ltext),
     'live values must replace the stand-ins');
-  assert(/US\$3\.33/.test(ltext),
-    'the card must carry the live per-month price');
+  assert(/US\$3\.33\/month/.test(ltext) && /US\$39\.99\/year/.test(ltext),
+    'the card must carry the live monthly equivalent and the live yearly price');
   assert(/SAVE 33%/.test(ltext),
-    'the discount must be the live-computed percentage');
-  assert(/US\$99\.99/.test(ltext),
-    'the Lifetime card must carry the live price');
+    'the badge must be the live-computed saving');
   assert(/In 4 days/.test(ltext) && /In 7 days/.test(ltext),
     'halfway and charge nodes must follow the live trial length');
+  ltap('pk-m');
+  const mtext = ldoc0.getElementById('im-pay').textContent;
+  assert(/First 3 days free, then US\$4\.99 a month\./.test(mtext) &&
+    /Start your free 3 days/.test(mtext) && /In 3 days/.test(mtext),
+    'a live monthly intro offer renders its own trial story, no rebuild needed');
   assert(posted.includes('products:'),
     'the sequence must ask the bridge for products');
   assert(posted.includes('track:login_succeeded') &&
@@ -638,7 +628,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const ntext = noTrial.window.document.getElementById('im-pay').textContent;
   assert(/How your plan works/.test(ntext) && !/days free/.test(ntext),
     'no trial may be described when the user is ineligible');
-  assert(/Continue with Annual/.test(ntext) && /In 12 months/.test(ntext),
+  assert(/Continue with Yearly/.test(ntext) && /In 12 months/.test(ntext),
     'the ineligible Annual story is renewal framing');
   assert(/\$2\.50\/month/.test(ntext),
     'the ineligible headline prices by the month too');
@@ -686,16 +676,10 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the confirmation checkmark must draw itself in');
   assert(/Free until/.test(stext),
     'a trial purchase gets the recap line');
-  assert(/Turn on notifications/.test(stext),
-    'the trial S14 carries the notification ask');
-  btap('notify');
-  await settle(100);
-  assert(posted.includes('notify:'),
-    'the ask must reach the bridge only on tap');
-  assert(/Reminder set for/.test(bdoc.getElementById('im-pay').textContent),
-    'a granted permission must confirm the reminder date');
-  assert(posted.includes('track:notification_permission_result'),
-    'the permission result must be tracked');
+  assert(!/notifications/.test(stext),
+    'S14 asks nothing more (Aug 21): permission was the Screen Time step\'s');
+  assert(posted.includes('notify:7'),
+    'the reminder is scheduled with the trial length the moment S14 opens');
   btap('done');
   await settle(950);   // the wall fades off over .8s
   assert(!bdoc.getElementById('im-pay'), 'Open Konvo must drop the wall');
@@ -704,29 +688,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(posted.includes('track:onboarding_completed'),
     'completing the funnel must be tracked');
 
-  //     Lifetime: its own recap, no notification ask, distinct product id.
-  const lifer = boot('/direct/inbox/', '', { bridge: answer({
-    entitlements: { entitled: false },
-    products: LIVE_PRODUCTS,
-    purchase: { ok: true, entitled: true },
-  }) });
-  await settle(8400);
-  const ftap = act => lifer.window.document.querySelector(`[data-act='${act}']`)
-    .dispatchEvent(new lifer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  ftap('impact');
-  await settle(450);
-  ftap('pay');
-  await settle(450);
-  ftap('pk-l');
-  ftap('buy-l');
-  await settle(450);
-  assert(posted.includes('purchase:konvo.pro.lifetime'),
-    'the Lifetime CTA must purchase the non-consumable');
-  const ftext = lifer.window.document.getElementById('im-pay').textContent;
-  assert(/Lifetime access active\./.test(ftext),
-    'a lifetime purchase gets its own recap');
-  assert(!/Turn on notifications/.test(ftext),
-    'no notification ask for lifetime - nothing to remind about');
 
   //     Monthly through its own card and product.
   const monthlyBuy = boot('/direct/inbox/', '', { bridge: answer({
@@ -893,20 +854,14 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     cancels its predecessor, so an inbox the user bounced off never
   //     reports, and only the thread actually reached does.
   const cx = [];
-  const crossing = boot('/direct/inbox/',
-    '<div id="churn"></div><div role="row">m</div>',
+  const crossing = boot('/direct/inbox/', '<div role="row">m</div>',
     { bridge: m => { if (m.cmd === 'track') cx.push(m.event); } });
-  const xdoc = crossing.window.document;
-  // Keep the inbox DOM churning so its settle can never go quiet...
-  const churn = setInterval(() => {
-    xdoc.getElementById('churn').appendChild(xdoc.createElement('i'));
-  }, 40);
-  await settle(400);
-  // ...then cross to a thread while it is still waiting.
+  // Cross synchronously, the same tick the inbox settle started: a settle
+  // needs 180ms of quiet to complete, so this is always mid-settle, with
+  // no timer race for a loaded machine to lose.
   crossing.window.__loc.pathname = '/direct/t/77/';
   crossing.window.dispatchEvent(new crossing.window.Event('popstate'));
-  clearInterval(churn);
-  await settle(1200);
+  await settle(1500);
   assert(!cx.includes('inbox_ready'),
     'a crossing mid-settle must abandon the inbox report');
   assert.strictEqual(cx.filter(e => e === 'thread_ready').length, 1,
@@ -964,14 +919,20 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(500);
   const ci = s => cageLog.indexOf(s);
   assert(ci('cageAuthorize') > -1 && ci('cagePick') > ci('cageAuthorize') &&
-    ci('cageOn') > ci('cagePick') && ci('notify') > ci('cageOn'),
-    'cage setup must run authorize, pick, shield, notify in order');
-  assert(cageLog.includes('track:cage_enabled'), 'the shield going up must be tracked');
-  assert(cdoc.documentElement.classList.contains('im-caged'),
-    'the pass button must arm in the SAME session the block goes up - the ' +
-    'boot query already answered before the cage existed');
-  assert(/Instagram is blocked/.test(cdoc.getElementById('im-pay').textContent),
-    'a completed setup must confirm the block');
+    ci('notify') > ci('cagePick'),
+    'cage setup must run authorize, pick, notify in order');
+  //     Picked, not armed (Aug 21): the shield must not go up before the
+  //     sequence ends well. A user who balks at the price walks away with
+  //     Instagram exactly as it was.
+  assert(!cageLog.includes('cageOn'),
+    'the shield must NOT go up at the connect page, before the paywall');
+  assert(!cageLog.includes('track:cage_enabled'),
+    'nothing may report the shield as up before it is');
+  assert(!cdoc.documentElement.classList.contains('im-caged'),
+    'the pass button must not arm before the shield exists');
+  assert(/Ready to block Instagram/.test(cdoc.getElementById('im-pay').textContent)
+    && !/Instagram is blocked/.test(cdoc.getElementById('im-pay').textContent),
+    'the confirmation must say the block is coming, not that it happened');
   cactap('cage-done');
   await settle(450);
   assert(/No commitment\. Cancel anytime\./.test(cdoc.getElementById('im-pay').textContent),
@@ -980,10 +941,69 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(450);
   cactap('pay');
   await settle(450);
+  assert(!cageLog.includes('cageOn'),
+    'reaching the paywall still must not arm the shield');
   cactap('betafree');
   await settle(950);
+  assert(cageLog.includes('cageOn') && cageLog.includes('track:cage_enabled'),
+    'the sequence ending well (here the beta grant) is what arms the shield');
+  assert(cdoc.documentElement.classList.contains('im-caged'),
+    'the pass button arms in the same session the shield goes up');
   assert(!cdoc.getElementById('im-pay'),
     'the beta unlock still drops the wall');
+
+  //     A paid purchase arms it too, and a connect-then-decline never does.
+  const armLog = [];
+  const armReplies = Object.assign({}, cageReplies, {
+    purchase: { ok: true, entitled: true } });
+  const armed = boot('/direct/inbox/', '', { bridge: (m, d) => {
+    armLog.push(m.cmd);
+    if (m.cmd in armReplies) d.window.__konvoStoreReply(m.id, armReplies[m.cmd]);
+  } });
+  await settle(8400);
+  const adoc = armed.window.document;
+  const atap = act => adoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new armed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  atap('cage-setup-go');
+  await settle(500);
+  atap('cage-done');
+  await settle(450);
+  atap('impact');
+  await settle(450);
+  atap('pay');
+  await settle(450);
+  assert(!armLog.includes('cageOn'), 'a paid build must not arm before purchase either');
+  atap('buy-y');
+  await settle(450);
+  assert(armLog.indexOf('cageOn') > armLog.indexOf('purchase'),
+    'a successful purchase must arm the shield');
+  assert(/You're in\./.test(adoc.getElementById('im-pay').textContent),
+    'the confirmation follows the arming');
+
+  //     The free build's ending (Aug 21): Continue on perks shows the
+  //     drawn check and "You're all set.", holds a beat, then the wall
+  //     fades into the inbox by itself - no button.
+  const freeEnd = boot('/direct/inbox/', '', { free: true });
+  await settle(8400);
+  const edoc = freeEnd.window.document;
+  const etap = act => edoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new freeEnd.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert(/Free\. Nothing to cancel\./.test(edoc.getElementById('im-pay').textContent),
+    'the free build must not promise a cancellation it has nothing to cancel');
+  assert(/No feed, no Reels, no Explore/.test(edoc.getElementById('im-pay').textContent)
+    && !/comes off your phone/.test(edoc.getElementById('im-pay').textContent),
+    'the rows must describe the product that exists');
+  etap('welcomed');
+  await settle(500);
+  assert(/You're all set\./.test(edoc.getElementById('im-pay').textContent)
+    && edoc.querySelector("#im-pay path[stroke-dasharray='24']"),
+    'the free ending must show the drawn check before the inbox');
+  assert(!edoc.querySelector('#im-pay [data-act]'),
+    'the reveal has nothing to tap');
+  await settle(3400);   // 2.2s hold + the .8s fade, with slack for a loaded machine
+  assert(!edoc.getElementById('im-pay'), 'the reveal must fade into the inbox on its own');
+  assert.strictEqual(freeEnd.window.localStorage.getItem('konvoWelcomed'), '1',
+    'the free ending still marks the sequence done');
 
   //     Without iOS 16 the connect page never renders: the loader lands
   //     on perks exactly as the flow ran before the block existed.
@@ -1051,7 +1071,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
       const r = {
         entitlements: { entitled: false },
         cageStatus: { supported: true, authorized: true, picked: true,
-          active: true, passAvailable: true, passMins: 5 },
+          active: true, passAvailable: true, passMins: 5, passesLeft: 2 },
         cagePass: { granted: true },
       };
       if (m.cmd in r) d.window.__konvoStoreReply(m.id, r[m.cmd]);
@@ -1073,7 +1093,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(unlock.disabled, 'Unlock must wait for a reason');
   assert(/Unlock for 5 mins/.test(unlock.textContent),
     'the first pass of the day is the five');
-  assert(/Unlocks left: 2 \(5 mins & 1 min\)/.test(
+  assert(/Unlocks left: 2 \(5 mins each\)/.test(
     pdoc.getElementById('im-pass-card').textContent),
     'the fine print counts both unlocks');
   ptap(pdoc.querySelector("#im-pass-card .im-pr[data-r='story']"));
@@ -1088,16 +1108,16 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   ptap(pdoc.getElementById('im-pass'));
   await settle(200);
   assert(pdoc.querySelector('#im-pass-card .im-go').textContent.trim()
-    === 'Unlock for 1 min',
-    'the second pass of the day must offer the spare minute');
-  assert(/Unlocks left: 1 \(1 min\)/.test(
+    === 'Unlock for 5 mins',
+    'the second pass of the day is another five (two fives, Aug 21)');
+  assert(/Unlocks left: 1 \(5 mins\)/.test(
     pdoc.getElementById('im-pass-card').textContent),
-    'the fine print counts the remaining spare');
+    'the fine print counts the remaining pass');
   ptap(pdoc.querySelector("#im-pass-card .im-pr[data-r='story']"));
   ptap(pdoc.querySelector('#im-pass-card .im-go'));
   await settle(200);
-  assert(passLog.includes('track:pass_used:1'),
-    'the spare minute must be tracked as one minute');
+  assert(passLog.filter(c => c === 'track:pass_used:5').length === 2,
+    'both passes must be tracked as five minutes');
   ptap(pdoc.getElementById('im-pass'));
   await settle(200);
   assert(/No pass left today/.test(

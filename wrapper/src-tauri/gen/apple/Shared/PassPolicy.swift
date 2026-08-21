@@ -9,7 +9,7 @@ import Foundation
 // that one line.
 enum PassPolicy {
     /// Minutes of Instagram per pass, in the order they are granted.
-    static let lengthsMinutes = [5, 1]
+    static let lengthsMinutes = [5, 5]
 
     static var perDay: Int { lengthsMinutes.count }
 

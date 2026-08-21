@@ -141,6 +141,7 @@
   #macwelcome .go:active { transform: scale(0.98) }
   #macwelcome .fine { font-size: 13px; color: var(--mut); margin-top: 18px }
 
+
   /* ---- onboarding (fresh iPhone installs only) ---- */
   .onboard #splash { display: none }
   #flow { display: none }
@@ -158,18 +159,14 @@
   .screen.on { transform: none; opacity: 1; pointer-events: auto; z-index: 2 }
   .screen.past { transform: translateX(-25%); opacity: 1; z-index: 1 }
   /* Transition mix: the quiz keeps the iOS push above; the dark impact
-     screens crossfade in place; the privacy sheet rises. The outgoing
-     screen holds still under a fade/rise (.hold) instead of dimming away. */
+     screens crossfade in place. The outgoing screen holds still under a
+     fade (.hold) instead of dimming away. The sign-in page used to rise
+     and fade over the attribution chips; two dense screens crossfading
+     read as a glitch, so it pushes like the rest (Aug 21). */
   .screen.t-fade { transform: none; transition: opacity .55s ease }
   /* The reveal deserves a slower curtain: the dark screen fades in over a
      full second, then the number pops. */
   #s5.t-fade { transition: opacity 1.1s ease }
-  .screen.t-rise { transition: transform .6s cubic-bezier(0.32, 0.72, 0, 1),
-                               opacity .6s ease }
-  /* :not(.on) is load-bearing: this rule sits after .screen.on and matches
-     just as specifically, so without it the resting offset wins while the
-     screen is showing and the whole page sits 36px low. */
-  .screen.t-rise:not(.on) { transform: translateY(36px) }
   .screen.hold { transform: none; opacity: 1; z-index: 1 }
   .screen.dark { background: var(--dbg); color: var(--dink) }
   .body { flex: 1; display: flex; flex-direction: column; padding: 26px 20px 0 }
@@ -281,7 +278,7 @@
      whichever scheme owns it. */
   .hero { flex: 1; min-height: 0; position: relative }
   .hero img { position: absolute; top: 10px; left: 50%;
-              transform: translateX(-50%); width: min(300px, 76vw) }
+              transform: translateX(-50%); width: min(250px, 64vw) }
   .herofoot { flex: none; padding: 22px 20px 34px;
               background: linear-gradient(180deg, transparent 0%,
               var(--bg) 34%); position: relative; z-index: 1 }
@@ -342,13 +339,35 @@
       <p style="font-size: 17px; line-height: 1.5; color: var(--mut);
          margin: 14px 0 28px; max-width: 32ch">Your DMs and friends&rsquo;
          Stories still work.</p>
-      <button class="btn" data-next="s2a">Get started</button>
+      <button class="btn" data-next="s2c">Get started</button>
+    </div>
+  </div>
+
+  <div class="screen" id="s2c">
+    <div class="chrome">
+      <button class="back" data-back="s1" aria-label="Back"><svg width="10"
+        height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+    </div>
+    <div class="body">
+      <h2>Why do you want to stop scrolling?</h2>
+      <p class="sub">Pick the one that is most true.</p>
+      <div class="opts">
+        <!-- Matthew's wording (Aug 21), drawn from how people put it on
+             r/nosurf and r/digitalminimalism: comparing, distraction,
+             attention, dopamine, focus, presence. -->
+        <button class="opt" data-why="compare">I keep comparing myself to everyone</button>
+        <button class="opt" data-why="distracted">I'm always distracted on my phone</button>
+        <button class="opt" data-why="attention">My attention span is cooked</button>
+        <button class="opt" data-why="focus">I can't focus for that long</button>
+        <button class="opt" data-why="present">I'm less present with friends &amp; family</button>
+      </div>
     </div>
   </div>
 
   <div class="screen" id="s2a">
     <div class="chrome">
-      <button class="back" data-back="s1" aria-label="Back"><svg width="10"
+      <button class="back" data-back="s8c" aria-label="Back"><svg width="10"
         height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     </div>
@@ -391,7 +410,7 @@
 
   <div class="screen" id="s3">
     <div class="chrome">
-      <button class="back" data-back="s2a" aria-label="Back"><svg width="10"
+      <button class="back" data-back="s2c" aria-label="Back"><svg width="10"
         height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
     </div>
@@ -509,7 +528,7 @@
   </div>
 
   <div class="screen t-fade" id="s8a">
-    <div class="body" style="flex: none; padding: 40px 24px 0">
+    <div class="body" style="flex: none; padding: 84px 24px 0">
       <h2 style="font-size: 26px">No Feed. No Reels. No Explore.</h2>
       <p class="sub" style="margin-top: 8px">They&rsquo;re removed
          completely, so there&rsquo;s nothing pulling you into a scroll.</p>
@@ -522,7 +541,7 @@
   </div>
 
   <div class="screen" id="s8b">
-    <div class="body" style="flex: none; padding: 40px 24px 0">
+    <div class="body" style="flex: none; padding: 84px 24px 0">
       <h2 style="font-size: 26px">Your messages stay.</h2>
       <p class="sub" style="margin-top: 8px">DMs, group chats, voice notes
          and friends&rsquo; Stories still work.</p>
@@ -535,20 +554,19 @@
   </div>
 
   <div class="screen" id="s8c">
-    <div class="body" style="flex: none; padding: 40px 24px 0">
+    <div class="body" style="flex: none; padding: 84px 24px 0">
       <h2 style="font-size: 26px">You are given 2 passes a day.</h2>
-      <p class="sub" style="margin-top: 8px">A 5 min and a 1 min pass to
-         unlock the Instagram app, post a story or Reel, or call
-         someone.</p>
+      <p class="sub" style="margin-top: 8px">Two 5 minute passes to unlock the
+         Instagram app, post a story or Reel, or call someone.</p>
     </div>
     <div class="hero" style="display: flex; align-items: center;
          justify-content: center">
       <img src="pass-hero.png" alt="" style="max-height: 100%;
-           max-width: min(320px, 80vw); object-fit: contain">
+           max-width: min(268px, 68vw); object-fit: contain">
     </div>
     <div class="herofoot">
       <div class="dots"><i></i><i></i><i class="on"></i></div>
-      <button class="btn" data-next="s10">Continue</button>
+      <button class="btn" data-next="s2a">Continue</button>
     </div>
   </div>
 
@@ -560,7 +578,7 @@
     <div class="foot"><button class="btn" data-next="s10">Continue</button></div>
   </div>
 
-  <div class="screen t-rise" id="s10">
+  <div class="screen" id="s10">
     <div class="body mid">
       <span style="width: 44px; height: 44px; border-radius: 13px;
             background: var(--icbg); display: inline-flex; align-items: center;
@@ -715,7 +733,7 @@
   var DWELL = { s4b: 2300, s5: 1600, s6: 900, s7: 1200 };
   function show(id, back) {
     var next = document.getElementById(id);
-    var glide = !/t-fade|t-rise/.test(next.className);
+    var glide = !/t-fade/.test(next.className);
     cur.classList.remove("on");
     // Under a push the old screen dims onto the stack; under a fade or a
     // rise it holds still and gets covered.
@@ -730,7 +748,22 @@
     if (id === "s4b") { prime(); sequence("s4b", 3400, "s5"); }
     if (id === "s5") reveal();
     if (id === "s6") columns();
-    if (id === "s7") outcome();
+    if (id === "s7") { outcome(); askReview(); }
+  }
+
+  // The system's "Enjoying Konvo?" sheet, asked once, on the screen that
+  // names the years they get back. iOS decides whether to actually show
+  // it (never in TestFlight, throttled in the store); we only ask.
+  var reviewAsked = false;
+  function askReview() {
+    if (reviewAsked) return;
+    reviewAsked = true;
+    setTimeout(function () {
+      try {
+        window.webkit.messageHandlers.konvoStore.postMessage(
+          { cmd: "review", id: 0 });
+      } catch (e) {}
+    }, 1200);
   }
 
   // The honest calculating beat between the questions and the reveal: the
@@ -817,7 +850,7 @@
       busy = Date.now() + 850;
       opt.classList.add("sel");
       track("attribution", { source: opt.dataset.src, screen_id: "s2a" });
-      setTimeout(function () { show("s3"); }, 250);
+      setTimeout(function () { show("s10"); }, 250);
       return;
     }
     var peers = opt.parentNode.querySelectorAll(".opt");
@@ -829,16 +862,19 @@
     var screen = opt.closest(".screen").id;
     // The answer is the option's visible label: a fixed enum, and the only
     // key that separates "2 - 3 hours" from "Not sure" (same data-m).
+    // The personal question first, then the numbers; the marketing
+    // question waits until after the tour (why -> screen time ->
+    // messaging -> impact -> tour -> where did you hear, Aug 21).
+    var QUIZ = { s2c: ["why", "s3"], s3: ["screen_time", "s4"],
+                 s4: ["messaging", "s4b"] };
     track("quiz_answered", {
-      question: screen === "s3" ? "screen_time" : "messaging",
+      question: QUIZ[screen][0],
       answer: opt.textContent.trim(),
       screen_id: screen,
     });
     // Tap-to-select auto-advances after a beat; no Continue on option
     // screens (approved: one subtle haptic, ~250ms, advance).
-    setTimeout(function () {
-      show(screen === "s3" ? "s4" : "s4b");
-    }, 250);
+    setTimeout(function () { show(QUIZ[screen][1]); }, 250);
   });
 
   // The email step lived here (s1b) from Aug 11 to Aug 14, 2026. Removed:

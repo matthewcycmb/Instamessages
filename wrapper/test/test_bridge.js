@@ -20,10 +20,12 @@ const TABLE = {
   open:          { arg: 'external URL for the system browser', replies: [] },
   appearance:    { arg: '"light" | "dark" | "blue" | "auto"', replies: [] },
   go:            { arg: 'in-app URL navigated natively (universal-link trap)', replies: [] },
+  review:        { arg: 'unused (the system rating sheet; iOS decides if it shows)', replies: [] },
   cookieSave:    { arg: 'unused', replies: ['ok', 'n'] },
   cookieRestore: { arg: 'unused', replies: ['restored', 'n'] },
   cageStatus:    { arg: 'unused', replies: ['supported', 'authorized', 'picked',
-                                            'active', 'passAvailable', 'passMins'] },
+                                            'active', 'passAvailable', 'passMins',
+                                            'passesLeft'] },
   cagePass:      { arg: 'unused', replies: ['granted', 'why'] },
   cageAuthorize: { arg: 'unused', replies: ['authorized'] },
   cagePick:      { arg: 'unused', replies: ['count'] },
@@ -36,7 +38,8 @@ const TABLE = {
                                                         'cancelled', 'pending'] },
   restore:       { arg: 'unused', replies: ['ok', 'entitled'] },
   paywall:       { arg: 'placement name', replies: ['ok', 'entitled'] },
-  notify:        { arg: 'unused', replies: ['ok', 'granted'] },
+  notify:        { arg: 'trial length in days (schedules the reminder); empty = permission only',
+                   replies: ['ok', 'granted'] },
 };
 
 const fs = require('fs');

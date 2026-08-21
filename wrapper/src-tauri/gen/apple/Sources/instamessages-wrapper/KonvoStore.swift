@@ -797,6 +797,24 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         }
     }
 
+    // The free trial a product carries, in days, only when THIS user is
+    // still eligible for it (RevenueCat asks the store). nil means the
+    // paywall must not describe a trial that will not happen.
+    private static func trialDays(_ p: RevenueCat.StoreProduct) async -> Int? {
+        guard let intro = p.introductoryDiscount,
+              intro.paymentMode == .freeTrial,
+              await Purchases.shared
+                  .checkTrialOrIntroDiscountEligibility(product: p) == .eligible
+        else { return nil }
+        let v = intro.subscriptionPeriod.value
+        switch intro.subscriptionPeriod.unit {
+        case .day: return v
+        case .week: return v * 7
+        case .month: return v * 30
+        case .year: return v * 365
+        }
+    }
+
     static func run(_ cmd: String, _ productId: String) async -> [String: Any] {
         switch cmd {
         // ── The Screen Time cage (locked Aug 16) ──────────────────────
@@ -832,6 +850,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                 "passAvailable": Self.passesUsedToday() < PassPolicy.perDay,
                 "passMins": PassPolicy.minutes(
                     afterUsed: Self.passesUsedToday()) ?? 0,
+                "passesLeft": max(PassPolicy.perDay - Self.passesUsedToday(), 0),
             ]
         case "cagePass":
             guard #available(iOS 16.0, *) else { return ["granted": false] }
@@ -857,6 +876,21 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             guard #available(iOS 16.0, *) else { return ["active": false] }
             cageClear()
             return ["active": false]
+        case "review":
+            // The system's rating sheet, asked from the onboarding screen
+            // that names the years they get back. iOS owns whether it
+            // appears (never in TestFlight, a few times a year at most in
+            // the store); Konvo only asks.
+            if let scene = UIApplication.shared.connectedScenes
+                .compactMap({ $0 as? UIWindowScene })
+                .first(where: { $0.activationState == .foregroundActive }) {
+                if #available(iOS 16.0, *) {
+                    AppStore.requestReview(in: scene)
+                } else {
+                    SKStoreReviewController.requestReview(in: scene)
+                }
+            }
+            return ["ok": true]
         case "entitlements":
             return ["entitled": await entitled()]
         case "products":
@@ -893,24 +927,13 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                         d["savePct"] = Int(
                             NSDecimalNumber(decimal: pct).doubleValue.rounded())
                     }
-                    if let intro = p.introductoryDiscount,
-                       intro.paymentMode == .freeTrial,
-                       await Purchases.shared
-                           .checkTrialOrIntroDiscountEligibility(product: p) == .eligible {
-                        let v = intro.subscriptionPeriod.value
-                        let days: Int
-                        switch intro.subscriptionPeriod.unit {
-                        case .day: days = v
-                        case .week: days = v * 7
-                        case .month: days = v * 30
-                        case .year: days = v * 365
-                        }
-                        d["trialDays"] = days
-                    }
+                    if let days = await trialDays(p) { d["trialDays"] = days }
                     out["yearly"] = d
                 }
                 if let p = monthly?.storeProduct {
-                    out["monthly"] = ["price": p.localizedPriceString]
+                    var d: [String: Any] = ["price": p.localizedPriceString]
+                    if let days = await trialDays(p) { d["trialDays"] = days }
+                    out["monthly"] = d
                 }
                 if let p = lifetime?.storeProduct {
                     out["lifetime"] = ["price": p.localizedPriceString]
@@ -969,19 +992,22 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             }
             return ["ok": true, "entitled": await entitled()]
         case "notify":
-            // The day-12 trial reminder, scheduled only on grant - iOS
-            // discards requests added without authorization, which is why
-            // the promise's delivery lives behind the S14 button.
+            // Asks for notification permission; with a trial length in the
+            // argument slot (sent from S14 once the plan is known) it also
+            // schedules the "ends in 2 days" reminder two days before the
+            // charge. iOS discards requests added without authorization,
+            // so the add is gated on the grant. Before Aug 21 the reminder
+            // sat at a fixed 12 days, after every trial had already billed.
             let center = UNUserNotificationCenter.current()
             let granted = (try? await center.requestAuthorization(
                 options: [.alert, .sound, .badge])) ?? false
-            if granted {
+            if granted, let days = Int(productId), days > 2 {
                 let content = UNMutableNotificationContent()
                 content.title = "Konvo"
                 content.body = "Your Konvo trial ends in 2 days. " +
                     "Keep your hours, or cancel anytime in Settings."
                 let trigger = UNTimeIntervalNotificationTrigger(
-                    timeInterval: 12 * 86400, repeats: false)
+                    timeInterval: TimeInterval(days - 2) * 86400, repeats: false)
                 try? await center.add(UNNotificationRequest(
                     identifier: "konvo.trial.reminder",
                     content: content, trigger: trigger))

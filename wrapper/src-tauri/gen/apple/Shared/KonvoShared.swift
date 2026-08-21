@@ -17,7 +17,7 @@ enum KonvoShared {
     static let keyPassName = "konvoPassName"
     static let keyUid = "konvoUid"
 
-    static let posthogKey = "phc_oNC3DTPBj8vt52LGeHikaZ4WeSiZS69M3tsM2PcZRDvp"
+    static let posthogKey = "phc_wgytRKK34P7KtTxZhz3eiWpccm7zfjbrU3MAcRfayJ7r"
     static let posthogCapture = "https://us.i.posthog.com/capture/"
 
     static var groupDefaults: UserDefaults? { UserDefaults(suiteName: group) }

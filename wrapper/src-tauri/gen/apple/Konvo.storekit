@@ -38,14 +38,14 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "29.99",
+          "displayPrice" : "19.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "21540002",
           "introductoryOffer" : {
             "internalID" : "21540004",
             "paymentMode" : "free",
-            "subscriptionPeriod" : "P2W"
+            "subscriptionPeriod" : "P1W"
           },
           "localizations" : [
             {
@@ -67,7 +67,7 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "4.99",
+          "displayPrice" : "3.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "21540005",

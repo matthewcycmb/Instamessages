@@ -1142,7 +1142,9 @@
       '@media (prefers-color-scheme: dark){' +
       '#im-pay#im-pay{--bg:#000;--ink:#f2f3f7;--mut:#9aa0ae;--line:#2a2d36;' +
       '--chip:#1c1f27;--icbg:#101c33;--accent:#0a84ff}' +
-      '#im-pay#im-pay .imp-pk.on{background:#101c33}}' +
+      '#im-pay#im-pay .imp-pk.on{background:#101c33}' +
+      // The timeline stem was near-black on black; a visible blue.
+      '#im-pay#im-pay .imp-stem{background:rgba(10,132,255,.45)}}' +
       '#im-pay{position:fixed;inset:0;z-index:2147483645;background:var(--bg);color:var(--ink);' +
       'display:flex;flex-direction:column;font-family:-apple-system,system-ui,sans-serif;' +
       '-webkit-font-smoothing:antialiased}' +
@@ -1187,20 +1189,23 @@
       // The S14 checkmark draws itself: dashoffset runs the stroke tip
       // along the path while im-pop scales the whole mark in.
       '@keyframes im-draw{to{stroke-dashoffset:0}}' +
-      '#im-pay .imp-head{flex:none;height:130px;position:relative;' +
+      '#im-pay .imp-head{flex:none;height:120px;position:relative;' +
       'background:linear-gradient(180deg,#1a6bf2 0%,#0a5cf0 100%)}' +
       '@keyframes im-pop{from{transform:scale(.4);opacity:0}}' +
       '#im-pay .imp-pk{flex:1;border-radius:14px;box-shadow:inset 0 0 0 1.2px var(--line);' +
-      'padding:13px 6px 11px;text-align:center;position:relative}' +
+      'padding:18px 6px 12px;text-align:center;position:relative}' +
       '#im-pay .imp-pk.on{box-shadow:inset 0 0 0 2px var(--accent);background:#f6f9ff}' +
       '#im-pay .imp-pk b{display:block;font-size:13.5px;letter-spacing:-0.01em}' +
       '#im-pay .imp-pk i{display:block;font-style:normal;font-size:15px;font-weight:700;' +
       'margin-top:4px}' +
       '#im-pay .imp-pk u{display:block;text-decoration:none;font-size:10.5px;' +
       'color:var(--mut);margin-top:3px;line-height:1.3}' +
-      '#im-pay .imp-rec{position:absolute;top:-9px;left:50%;transform:translateX(-50%);' +
-      'white-space:nowrap;background:var(--accent);color:#fff;font-size:9px;' +
-      'font-weight:700;letter-spacing:0.05em;padding:3px 8px;border-radius:999px}' +
+      // The badge sits on the card's top edge with a ring of page colour
+      // around it, so it reads as a tag on the card, not a line in it.
+      '#im-pay .imp-rec{position:absolute;top:-11px;left:50%;transform:translateX(-50%);' +
+      'white-space:nowrap;background:var(--accent);color:#fff;font-size:10px;' +
+      'font-weight:700;letter-spacing:0.06em;padding:4px 10px;border-radius:999px;' +
+      'box-shadow:0 0 0 3px var(--bg)}' +
       '#im-pay .imp-tl{display:flex;gap:16px}' +
       '#im-pay .imp-tl h4{margin:0;font-size:17px;font-weight:700}' +
       '#im-pay .imp-tl p{font-size:15px;line-height:1.45;color:var(--mut);margin-top:4px}' +
@@ -1311,18 +1316,23 @@
         "<span style='background:var(--accent);color:#fff;font-size:10px;" +
         "font-weight:700;letter-spacing:0.06em;padding:4px 9px;border-radius:999px'>" +
         "KONVO</span></span></div>" +
-        perkRow("Feed and Reels are gone, not blocked", false, false) +
-        perkRow("No limit to snooze or switch off", false, false) +
-        perkRow("Instagram comes off your phone", false, false) +
-        perkRow("Going back takes a decision", false, false) +
-        perkRow("Full DMs, Stories and notifications", false, true) +
+        // Every row a true claim, in plain words (rewritten Aug 21: the
+        // old rows described the deleted delete-Instagram flow and
+        // promised notifications Konvo does not send).
+        perkRow("No feed, no Reels, no Explore", false, false) +
+        perkRow("The Instagram app stays locked", false, false) +
+        perkRow("Two 5 minute passes a day, then it locks itself", false, false) +
+        perkRow("No snooze button to cave to", false, false) +
+        perkRow("Every DM and Story, nothing missing", false, true) +
         "</div>" +
         "<div class='imp-foot' style='padding:14px 24px 30px'>" +
         "<div style='display:flex;align-items:center;justify-content:center;gap:8px;" +
         "padding-bottom:12px;font-size:14px;color:var(--mut)'>" +
         "<span style='width:18px;height:18px;border-radius:50%;background:var(--accent);" +
         "display:inline-flex;align-items:center;justify-content:center'>" + CHECK +
-        "</span>No commitment. Cancel anytime.</div>" +
+        "</span>" + (window.__konvoFree
+          ? "Free. Nothing to cancel."
+          : "No commitment. Cancel anytime.") + "</div>" +
         "<button class='imp-btn' data-act='" +
         (window.__konvoFree ? "welcomed" : "impact") +
         "'>Continue</button></div>";
@@ -1348,9 +1358,9 @@
     // money in shipping paths). These stand-ins render only when the bridge
     // is absent (tests, builds without the Swift class).
     var FALLBACK = { yearly: { price: '$19.99', perWeek: '$0.38',
-                               perMonth: '$1.67', savePct: 66, trialDays: 7 },
-                     monthly: { price: '$4.99' },
-                     lifetime: { price: '$29.99' } };
+                               perMonth: '$1.67', savePct: 58, trialDays: 7 },
+                     monthly: { price: '$3.99' },
+                     lifetime: { price: '$19.99' } };
     var P = null;
     function prod() {
       return P && P.yearly && P.monthly && P.lifetime ? P : FALLBACK;
@@ -1403,7 +1413,7 @@
     function node(icon, title, body, stem) {
       return "<div class='imp-tl'><div class='imp-dot'><i>" + icon + "</i>" +
         (stem ? "<span class='imp-stem'></span>" : "") +
-        "</div><div style='padding:4px 0 " + (stem ? "30px" : "0") + "'>" +
+        "</div><div style='padding:4px 0 " + (stem ? "22px" : "0") + "'>" +
         "<h4>" + title + "</h4><p>" + body + "</p></div></div>";
     }
     function dateIn(days) {
@@ -1413,12 +1423,12 @@
       } catch (e) { return ""; }
     }
     function pkCard(act, on, badge, name, price, sub, save) {
-      // The saving gets its own line in the accent, not a "per month - SAVE
-      // 66%" run-on: it is the strongest number on the card and was the
-      // quietest thing on it.
+      // `save` is the accent line below the price. The trial is not on
+      // the card: the headline and the CTA state it for the chosen plan.
       return "<div class='imp-pk" + (on ? " on" : "") + "' data-act='" + act + "'>" +
         (badge ? "<span class='imp-rec'>" + badge + "</span>" : "") +
-        "<b>" + name + "</b><i>" + price + "</i><u>" + sub + "</u>" +
+        "<b>" + name + "</b>" +
+        "<i>" + price + "</i><u>" + sub + "</u>" +
         (save ? "<u class='imp-save'>" + save + "</u>" : "") + "</div>";
     }
     // S13. plan: 'y' | 'm' | 'l'. The Annual state renders the trial only
@@ -1430,7 +1440,16 @@
       var td = plan === "y" ? (y.trialDays || 0) : 0;
       var sp = y.savePct || 0;
       var head, cta, act, tl, reassure;
-      if (plan === "m") {
+      var mtd = plan === "m" ? (m.trialDays || 0) : 0;
+      if (plan === "m" && mtd) {
+        head = "First " + mtd + " days free, then " + m.price + " a month.";
+        cta = "Start your free " + mtd + " days";
+        act = "buy-m";
+        reassure = "No commitment, cancel anytime";
+        tl = node(LOCK, "Today", "Unlock your DMs and Stories in Konvo. Pay $0.", true) +
+             node(STAR, "In " + mtd + " days", "You'll be charged " + m.price +
+               " on <b>" + dateIn(mtd) + "</b>, <b>cancel anytime</b> before.", false);
+      } else if (plan === "m") {
         head = m.price + " a month, cancel anytime.";
         cta = "Continue with Monthly";
         act = "buy-m";
@@ -1447,9 +1466,7 @@
         tl = node(LOCK, "Today", "Pay " + l.price + " once. That's it.", false);
       } else if (td) {
         head = "First " + td + " days free, then " + y.price + " a year.";
-        // ponytail: literal dollars; localize the zero through Swift if
-        // non-USD storefronts ever matter.
-        cta = "Try for $0.00";
+        cta = "Start your free " + td + " days";
         act = "buy-y";
         reassure = "No commitment, cancel anytime";
         // Three nodes, not four: the page must fit one screen. The reminder
@@ -1464,7 +1481,7 @@
                dateIn(td) + "</b>, <b>cancel anytime</b> before.", false);
       } else {
         head = y.price + " a year (" + (y.perMonth || y.perWeek) + "/month).";
-        cta = "Continue with Annual";
+        cta = "Continue with Yearly";
         act = "buy-y";
         reassure = "No commitment, cancel anytime";
         tl = node(LOCK, "Today", "Unlock your DMs and Stories in Konvo.", true) +
@@ -1475,11 +1492,6 @@
       return "<div class='imp-head'>" +
         "<div style='position:absolute;inset:0;background:radial-gradient(circle at 50% 30%," +
         "rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 60%)'></div>" +
-        "<button data-act='notready' aria-label='Close' style='position:absolute;top:10px;" +
-        "right:10px;background:none;border:0;padding:8px;color:#fff;opacity:.9;z-index:2'>" +
-        "<svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
-        " stroke-width='2.8' stroke-linecap='round'><path d='M18 6 6 18'/>" +
-        "<path d='m6 6 12 12'/></svg></button>" +
         "<div style='position:absolute;left:34px;top:26px;width:74px;height:22px;" +
         "border-radius:7px;background:rgba(255,255,255,.16);transform:rotate(-8deg);" +
         "display:flex;align-items:center;justify-content:center;font-size:9px;" +
@@ -1488,38 +1500,37 @@
         "border-radius:7px;background:rgba(255,255,255,.14);transform:rotate(7deg);" +
         "display:flex;align-items:center;justify-content:center;font-size:9px;" +
         "font-weight:700;color:rgba(255,255,255,.5)'>REELS</div>" +
-        "<div style='position:absolute;left:50%;top:33px;transform:translateX(-50%);" +
+        "<div style='position:absolute;left:50%;top:28px;transform:translateX(-50%);" +
         "width:64px;height:64px;border-radius:18px;background:#fff;display:flex;" +
         "align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(4,30,80,.35)'>" +
         "<svg width='34' height='34' viewBox='0 0 24 24' fill='none' stroke='#0a5cf0'" +
         " stroke-width='2.2' stroke-linejoin='round'><path d='M12 4c-4.4 0-8 3-8 6.8 " +
         "0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z'/>" +
         "</svg></div></div>" +
-        "<div class='imp-mid' style='justify-content:flex-start;padding:34px 24px 0'>" +
+        "<div class='imp-mid' style='justify-content:flex-start;padding:24px 24px 0'>" +
         "<div style='text-align:center'>" +
         "<h2 style='font-size:24px'>" +
-        (td ? "How your free trial works" : "How your plan works") + "</h2>" +
-        "<p style='font-size:15px;color:var(--mut);margin-top:14px'>" + head + "</p>" +
+        (td || mtd ? "How your free trial works" : "How your plan works") + "</h2>" +
+        "<p style='font-size:15px;color:var(--ink);margin-top:10px'>" + head + "</p>" +
         (mot ? "<p style='font-size:14px;font-weight:600;color:var(--accent);" +
           "margin-top:8px'>" + mot + "</p>" : "") + "</div>" +
         proofStrip() +
-        "<div style='display:flex;gap:8px;margin:34px 0 34px'>" +
+        "<div style='display:flex;gap:8px;margin:22px 0 24px'>" +
         // The card prices annual by the month - the number a shopper
         // compares against the monthly plan. The full yearly charge is
         // stated in the line above and in the timeline. The unit label
         // follows whichever number actually rendered: pairing the yearly
         // price with "per month" would be a straight lie.
-        pkCard("pk-y", plan === "y", "RECOMMENDED", "Annual",
-          y.perMonth || y.price,
-          y.perMonth ? "per month" : "per year",
-          sp ? "SAVE " + sp + "%" : "") +
-        pkCard("pk-m", plan === "m", "", "Monthly", m.price, "per month") +
-        pkCard("pk-l", plan === "l", "", "Lifetime", l.price, "Pay once, keep it") +
+        // The card states the yearly charge outright, the monthly
+        // equivalent in brackets, and the trial on its own line (Aug 21).
+        // Yearly leads with its monthly equivalent (the number shoppers
+        // compare), the yearly charge underneath, and the live saving as
+        // its badge (Aug 21).
+        pkCard("pk-y", plan === "y", sp ? "SAVE " + sp + "%" : "POPULAR", "Yearly Plan",
+          (y.perMonth || y.price) + "/month",
+          y.perMonth ? y.price + "/year" : "", "") +
+        pkCard("pk-m", plan === "m", "", "Monthly Plan", m.price + "/month", "", "") +
         "</div>" +
-        (notReady ? "<div style='margin:0 0 14px;padding:11px 14px;border-radius:12px;" +
-          "background:var(--chip);font-size:14px;line-height:1.4;color:var(--mut);" +
-          "text-align:center'>Not ready to commit for a year? Monthly is " + m.price +
-          ", cancel anytime.</div>" : "") +
         tl + "</div>" +
         "<div class='imp-foot' style='padding:10px 24px 24px'>" +
         "<div style='display:flex;align-items:center;justify-content:center;gap:8px;" +
@@ -1612,9 +1623,9 @@
         "<svg width='26' height='26' viewBox='0 0 24 24' fill='none'" +
         " stroke='currentColor' stroke-width='2.4' stroke-linecap='round'" +
         " stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg></span>" +
-        "<h2 style='font-size:28px;margin-top:24px'>Instagram is blocked</h2>" +
+        "<h2 style='font-size:28px;margin-top:24px'>Ready to block Instagram</h2>" +
         "<p style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:12px'>" +
-        "Open it anytime and Konvo will catch you. Your messages live here now.</p>" +
+        "It locks the moment you start Konvo. Until then, nothing changes.</p>" +
         "</div><div class='imp-foot'>" +
         "<button class='imp-btn' data-act='cage-done'>Continue</button></div>";
     }
@@ -1676,38 +1687,67 @@
     // notification ask (permission requested only on the button tap, and
     // the day-12 reminder is scheduled only on grant). Lifetime gets its
     // own line and no ask - there is nothing to remind about.
-    function successPage(pid) {
-      var pr = prod(), td = pr.yearly.trialDays || 0;
-      var trial = pid === "konvo.pro.yearly" && td;
-      var recap = "";
-      if (pid === "konvo.pro.lifetime") recap = "Lifetime access active.";
-      else if (trial) recap = "Free until " + dateIn(td) + ".";
-      return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
-        "<svg width='118' height='118' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
+    // The drawn check: scales in (im-pop) while the stroke runs tip to
+    // tail (im-draw). Shared by the paid confirmation and the free
+    // build's reveal.
+    function drawnCheck(head) {
+      return "<svg width='118' height='118' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
         " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'" +
         " style='margin-bottom:38px;color:var(--accent);" +
         "animation:im-pop .5s ease-out both'>" +
         "<path d='M20 6 9 17l-5-5' stroke-dasharray='24' stroke-dashoffset='24'" +
         " style='animation:im-draw .6s ease-out .3s forwards'/></svg>" +
         "<div style='font-size:44px;font-weight:700;letter-spacing:-0.05em;line-height:1;" +
-        "text-align:center'>You're in.</div>" +
+        "text-align:center'>" + head + "</div>" +
         "<p style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:16px;" +
-        "text-align:center'>Your messages are waiting.</p>" +
+        "text-align:center'>Your messages are waiting.</p>";
+    }
+
+    // The free build's reveal (Aug 21): after "Why Konvo works", a beat
+    // of payoff - the check draws, "You're all set.", then the wall
+    // fades into the inbox on its own. Nothing to tap.
+    function readyPage() {
+      return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
+        drawnCheck("You're all set.") + "</div>";
+    }
+
+    function successPage(pid) {
+      var pr = prod();
+      var td = pid === "konvo.pro.yearly" ? (pr.yearly.trialDays || 0)
+             : pid === "konvo.pro.monthly" ? (pr.monthly.trialDays || 0) : 0;
+      var recap = "";
+      if (pid === "konvo.pro.lifetime") recap = "Lifetime access active.";
+      else if (td) recap = "Free until " + dateIn(td) + ".";
+      // The timeline promised a reminder before the charge. Scheduled now
+      // that the trial length is known; the permission was asked at the
+      // Screen Time step, so this prompts only someone who skipped it.
+      if (td) storekit("notify", String(td), function () {});
+      return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
+        drawnCheck("You're in.") +
         (recap ? "<p style='font-size:15px;font-weight:600;margin-top:14px;" +
           "text-align:center'>" + recap + "</p>" : "") +
-        (trial ? "<div id='imp-notif' style='margin-top:30px;text-align:center'>" +
-          "<p style='font-size:14px;line-height:1.5;color:var(--mut)'>Turn on " +
-          "notifications so we can remind you before your trial ends.</p>" +
-          "<button data-act='notify' style='background:none;border:0;padding:10px;" +
-          "font-family:inherit;font-size:15px;font-weight:600;color:var(--accent)'>" +
-          "Turn on notifications</button></div>" : "") +
         "</div>" +
         "<div class='imp-foot' style='padding:0 28px 40px'>" +
         "<button class='imp-btn' data-act='done'>Open my messages</button></div>";
     }
 
+    // The shield is armed only at a successful end of the sequence: a
+    // purchase or trial on paid builds, the beta grant, the free build's
+    // end. A user who connects Screen Time and then declines the price
+    // must walk away with Instagram exactly as it was (Aug 21; before
+    // this, the block went up at the connect page, before the paywall).
+    var cagePending = false;
+    function armCage(then) {
+      if (!cagePending) { if (then) then(); return; }
+      cagePending = false;
+      storekit("cageOn", null, function () {
+        track("cage_enabled", {});
+        markCaged();
+        if (then) then();
+      });
+    }
+
     var wall = null;
-    var notReady = false;
     var lastBuy = "";
     // The whole funnel up to and including the paywall is the light design;
     // the phone's appearance takes over only when the wall is out of the
@@ -1753,7 +1793,7 @@
           screen_id: "s13_paywall",
         });
         grantBeta();
-        dismiss();
+        armCage(dismiss);
         return;
       }
       btn.disabled = true;
@@ -1762,7 +1802,7 @@
         if (res && res.ok && res.entitled) {
           setCache(true);
           lastBuy = productId;
-          swap(successPage(productId));
+          armCage(function () { swap(successPage(productId)); });
         }
       });
     }
@@ -1850,9 +1890,13 @@
           setPage(pay(plan), true);
         } else if (act === "welcomed") {
           // Free build: the sequence is done, and it does not come back.
+          // The reveal holds for a beat, then dismiss() fades the wall
+          // into the inbox over .8s - the payoff is the inbox appearing.
           track("onboarding_completed", { screen_id: "s12c_delete" });
           try { localStorage.setItem("konvoWelcomed", "1"); } catch (e) {}
-          dismiss();
+          swap(readyPage());
+          armCage();
+          setTimeout(dismiss, 2200);
         } else if (act === "cage-skip" || act === "cage-done") {
           // Declined or finished, the road is the same: on to the sell.
           swap(perksPage());
@@ -1863,6 +1907,9 @@
           // Aug 17). Re-armed when the chain resolves either way.
           if (window.__konvoCageBusy) return;
           window.__konvoCageBusy = true;
+          // Apple's Screen Time sheet takes its time to appear; the tap is
+          // acknowledged at once so nobody taps twice or wonders.
+          t.disabled = true;
           storekit("cageAuthorize", null, function (a) {
             track("cage_authorized", { granted: !!(a && a.authorized) });
             window.__konvoCageBusy = false;
@@ -1871,12 +1918,11 @@
               var n = (p && p.count) || 0;
               track("cage_picked", { count: n });
               if (!n) { swap(perksPage()); return; }
-              storekit("cageOn", null, function () {
-                track("cage_enabled", {});
-                markCaged();
-                storekit("notify", null, function () {
-                  swap(cageDonePage());
-                });
+              // Picked, not armed: the shield waits for the sequence to
+              // end well (see armCage). The selection is stored natively.
+              cagePending = true;
+              storekit("notify", null, function () {
+                swap(cageDonePage());
               });
             });
           });
@@ -1891,31 +1937,13 @@
           // was seen and declined - which is the whole point of showing it.
           track("beta_free_taken", { via: "escape", screen_id: "s13_paywall" });
           grantBeta();
-          dismiss();
-        } else if (act === "notready") {
-          // The x does not dismiss - it concedes: reveal the softer path
-          // and flip to the Monthly story.
-          notReady = true;
-          track("plan_selected", { plan: "monthly", screen_id: "s13_paywall" });
-          setPage(pay("m"), true);
+          armCage(dismiss);
         } else if (act === "buy-y") {
           buy(t, "konvo.pro.yearly");
         } else if (act === "buy-m") {
           buy(t, "konvo.pro.monthly");
         } else if (act === "buy-l") {
           buy(t, "konvo.pro.lifetime");
-        } else if (act === "notify") {
-          t.disabled = true;
-          storekit("notify", null, function (res) {
-            var g = !!(res && res.granted);
-            track("notification_permission_result",
-              { granted: g, screen_id: "s14_success" });
-            var n = wall && wall.querySelector('#imp-notif');
-            if (n) n.innerHTML = "<p style='font-size:14px;color:var(--mut)'>" +
-              (g ? "Reminder set for " +
-                   dateIn((prod().yearly.trialDays || 7) - 2) + "."
-                 : "You can turn notifications on in Settings anytime.") + "</p>";
-          });
         } else if (act === "restore") {
           // Sync then re-read entitlements; unlocking straight to the
           // inbox - a restorer is returning, not starting a trial.
@@ -1994,7 +2022,9 @@
     // answered "no cage" before onboarding enabled it, and the SPA never
     // loads another document to ask again.
     var passAvail = false;
-    var passMins = 5;
+    // What the sheet shows comes from cageStatus (PassPolicy is the one
+    // source of truth); these are only the bridge-absent defaults.
+    var passMins = 5, passLeft = 2;
     var markCaged = function () {};
     if (isPhone) {
       var passStyle = document.createElement("style");
@@ -2046,12 +2076,14 @@
       markCaged = function () {
         document.documentElement.classList.add("im-caged");
         passAvail = true;
+        passLeft = 2;
       };
       storekit("cageStatus", null, function (s) {
         if (s && s.active) {
           markCaged();
           passAvail = !!s.passAvailable;
           passMins = s.passMins || 5;
+          passLeft = s.passesLeft != null ? s.passesLeft : (passAvail ? 2 : 0);
         }
       });
       passBtn.addEventListener("click", function () {
@@ -2070,12 +2102,11 @@
         sheet.innerHTML = "<div id='im-pass-card'>" + (passAvail
           ? "<h3>Why do you want to unlock Instagram?</h3>" + opts +
             "<button class='im-go' disabled>Unlock for " + passMins +
-            (passMins === 1 ? " min" : " mins") + "</button>" +
-            (passMins === 1
-              ? "<p>Unlocks left: 1 (1 min)</p>"
-              : "<p>Unlocks left: 2 (5 mins &amp; 1 min)</p>")
+            " mins</button>" +
+            "<p>Unlocks left: " + passLeft + " (" + passMins +
+            (passLeft > 1 ? " mins each)" : " mins)") + "</p>"
           : "<h3>No pass left today</h3>" +
-            "<p>Five minutes plus a spare minute a day. Tomorrow.</p>") +
+            "<p>They come back tomorrow.</p>") +
           "<button class='im-x'>Close</button></div>";
         var reason = "";
         sheet.addEventListener("click", function (e) {
@@ -2094,10 +2125,9 @@
             storekit("cagePass", null, function (res) {
               if (res && res.granted) {
                 track("pass_used", { reason: reason, mins: passMins });
-                // The spare minute follows the five; cageStatus corrects
-                // this on the next launch either way.
-                if (passMins === 5) { passMins = 1; }
-                else { passAvail = false; }
+                // cageStatus corrects this on the next launch either way.
+                passLeft = Math.max(passLeft - 1, 0);
+                passAvail = passLeft > 0;
               }
               if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
             });
