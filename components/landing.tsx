@@ -75,7 +75,7 @@ export function Landing({
             <h1 className="lp-h1" style={{ fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.05, margin: 0 }}>
               Use Instagram
               <br />
-              only for messaging
+              for messaging
             </h1>
             {/* The paragraph is desktop-only. On a phone the headline already
                 says it, and a second wall of text pushed the button and the
