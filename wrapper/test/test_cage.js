@@ -2,16 +2,15 @@
 // automated check the wrapper has: everything else lives in Instagram's own
 // page, which cannot be tested without a device.
 //
-//   npm install jsdom          (once, in this directory)
-//   python3 extract.py && node --check cage.js && node test_cage.js
-//
-// Always run extract.py first - it pulls CAGE_SCRIPT out of lib.rs exactly as
-// rustc lexes it, and fails if a stray quote-hash has closed the raw string.
+//   npm install               (once, in wrapper/)
+//   npm test                  (from wrapper/: syntax check + both suites)
 const fs = require('fs');
 const assert = require('assert');
 const { JSDOM } = require('jsdom');
 
-const CAGE = fs.readFileSync(__dirname + '/cage.js', 'utf8');
+// The SOURCE file, the same bytes include_str! ships: no extraction step,
+// no committed copy, no way for a green suite to describe a stale cage.
+const CAGE = fs.readFileSync(__dirname + '/../src-tauri/src/cage.js', 'utf8');
 const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Safari/604.1';
 const DESKTOP = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Safari/605.1.15';
 
@@ -889,6 +888,29 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(2600);
   assert.strictEqual(ready.length, 2, 'returning to the inbox must report again');
   assert(!ready[1].$set, 'identity is captured once per install, not per settle');
+
+  //     A crossing mid-settle abandons the old page's report: settle()
+  //     cancels its predecessor, so an inbox the user bounced off never
+  //     reports, and only the thread actually reached does.
+  const cx = [];
+  const crossing = boot('/direct/inbox/',
+    '<div id="churn"></div><div role="row">m</div>',
+    { bridge: m => { if (m.cmd === 'track') cx.push(m.event); } });
+  const xdoc = crossing.window.document;
+  // Keep the inbox DOM churning so its settle can never go quiet...
+  const churn = setInterval(() => {
+    xdoc.getElementById('churn').appendChild(xdoc.createElement('i'));
+  }, 40);
+  await settle(400);
+  // ...then cross to a thread while it is still waiting.
+  crossing.window.__loc.pathname = '/direct/t/77/';
+  crossing.window.dispatchEvent(new crossing.window.Event('popstate'));
+  clearInterval(churn);
+  await settle(1200);
+  assert(!cx.includes('inbox_ready'),
+    'a crossing mid-settle must abandon the inbox report');
+  assert.strictEqual(cx.filter(e => e === 'thread_ready').length, 1,
+    'the thread the user actually reached must report exactly once');
 
   //     The DM composer must autocorrect: Instagram ships it off, the
   //     cage flips it on, and only in a thread - the inbox search box is

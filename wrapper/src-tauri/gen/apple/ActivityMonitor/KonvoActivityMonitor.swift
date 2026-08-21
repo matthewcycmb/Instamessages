@@ -41,12 +41,12 @@ class KonvoActivityMonitor: DeviceActivityMonitor {
     }
 
     private func relock(via: String, activity: DeviceActivityName) {
-        let defaults = UserDefaults(suiteName: "group.com.matthewchan.konvo")
+        let defaults = KonvoShared.groupDefaults
         // A boundary from a pass that is no longer current is the ghost
         // that killed the spare minute (Aug 17): stopMonitoring fires the
         // old session's intervalDidEnd, which re-shielded one second
         // after the new pass unlocked. Reported, never acted on.
-        if let current = defaults?.string(forKey: "konvoPassName"),
+        if let current = defaults?.string(forKey: KonvoShared.keyPassName),
            current != activity.rawValue {
             report("cage_relock_stale", ["via": via])
             return
@@ -56,48 +56,26 @@ class KonvoActivityMonitor: DeviceActivityMonitor {
         // positive evidence a relock already ran; an unreadable flag must
         // still fall through so a broken app group stays visible below.
         if via != "warning",
-           defaults?.object(forKey: "konvoPassActive") as? Bool == false {
+           defaults?.object(forKey: KonvoShared.keyPassActive) as? Bool == false {
             return
         }
-        guard let data = defaults?.data(forKey: "konvoCageSelection"),
+        guard let data = defaults?.data(forKey: KonvoShared.keySelection),
               let selection = try? JSONDecoder().decode(
                 FamilyActivitySelection.self, from: data)
         else {
             report("cage_relock_blind", ["via": via])
             return
         }
-        let store = ManagedSettingsStore(named: .init("konvoCage"))
+        let store = ManagedSettingsStore(named: .init(KonvoShared.cageStoreName))
         store.shield.applications = selection.applicationTokens.isEmpty
             ? nil : selection.applicationTokens
         store.shield.applicationCategories = selection.categoryTokens.isEmpty
             ? nil : .specific(selection.categoryTokens)
-        defaults?.set(false, forKey: "konvoPassActive")
+        defaults?.set(false, forKey: KonvoShared.keyPassActive)
         report("cage_relock", ["via": via])
     }
 
     private func report(_ event: String, _ props: [String: Any]) {
-        let defaults = UserDefaults(suiteName: "group.com.matthewchan.konvo")
-        var properties = props
-        properties["platform"] = "ios"
-        let payload: [String: Any] = [
-            "api_key": "phc_oNC3DTPBj8vt52LGeHikaZ4WeSiZS69M3tsM2PcZRDvp",
-            "event": event,
-            "distinct_id": defaults?.string(forKey: "konvoUid") ?? "monitor",
-            "properties": properties,
-        ]
-        guard let url = URL(string: "https://us.i.posthog.com/capture/"),
-              let body = try? JSONSerialization.data(withJSONObject: payload)
-        else { return }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = body
-        // The extension is terminated moments after returning; hold it
-        // open briefly so the report actually leaves the device.
-        let done = DispatchSemaphore(value: 0)
-        URLSession.shared.dataTask(with: request) { _, _, _ in
-            done.signal()
-        }.resume()
-        _ = done.wait(timeout: .now() + 2)
+        KonvoShared.capture(event, props)
     }
 }

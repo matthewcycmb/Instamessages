@@ -235,6 +235,40 @@
     } catch (e) { delete pending[seq]; cb(null); }
   }
 
+  // One settle for every "report when the page finishes rendering" need.
+  // Owns its observer, its tick, and a completion latch; the latch, not
+  // clearInterval, is what guarantees one report - a field device fired a
+  // completion branch every 92ms for 17 seconds with clearInterval doing
+  // nothing (Aug 17, TestFlight 52). Starting a settle cancels the one
+  // before it, so a crossing mid-settle reports nothing for the abandoned
+  // page. `ready` gates completion (a quiet skeleton is not ready); the
+  // cap reports regardless so a stuck page is visible, not silent.
+  var activeSettle = null;
+  function settle(ready, capMs, done) {
+    if (activeSettle) activeSettle();
+    if (!window.MutationObserver) return;
+    var mo = null, tick = null, finished = false;
+    var last = Date.now(), t0 = last;
+    var stop = activeSettle = function () {
+      finished = true;
+      if (tick) clearInterval(tick);
+      if (mo) { mo.disconnect(); mo = null; }
+    };
+    try {
+      mo = new MutationObserver(function () { last = Date.now(); });
+      mo.observe(document.body || document.documentElement,
+        { childList: true, subtree: true });
+      tick = setInterval(function () {
+        if (finished) return;
+        var now = Date.now();
+        if ((ready() && now - last > 180) || now - t0 > capMs) {
+          stop();
+          done(now - t0);
+        }
+      }, 90);
+    } catch (e) { stop(); }
+  }
+
   function enforce() {
     if (!location.hostname.endsWith("instagram.com")) return;
     if (/iPhone|iPad|iPod/.test(navigator.userAgent)) sizeViewport();
@@ -307,37 +341,16 @@
       if (r === "thread") {
         track("thread_opened");
         // How slow switching into a chat FEELS ("way slower to text and
-        // switch between ppl", Aug 17): crossing to settled messages,
-        // same quiet-DOM heuristic as inbox_ready. Reuses the settle
-        // slots, so either arm cancels the other and a bounced open
-        // sends no thread_ready at all.
-        if (window.MutationObserver) {
-          try {
-            if (settleMo) settleMo.disconnect();
-            if (settleTick) clearInterval(settleTick);
-            var tLast = Date.now(), tT0 = tLast, tDone = false;
-            settleMo = new MutationObserver(function () { tLast = Date.now(); });
-            settleMo.observe(document.body || document.documentElement,
-              { childList: true, subtree: true });
-            var tTick = settleTick = setInterval(function () {
-              var tNow = Date.now();
-              var tRows = document.querySelectorAll("div[role='row']").length;
-              // Content or the cap, never a quiet skeleton: the chat
-              // placeholder renders instantly, goes quiet, and fills
-              // only when the fetch lands - quiet alone reported 181ms
-              // "ready" on a chat stuck on its skeleton (Aug 17).
-              // rows 0 at the cap IS the stuck-chat signal.
-              if ((tRows > 0 && tNow - tLast > 180) || tNow - tT0 > 10000) {
-                // Same latch as the inbox settle: one report, ever.
-                if (tDone) return;
-                tDone = true;
-                clearInterval(tTick);
-                if (settleMo) { settleMo.disconnect(); settleMo = null; }
-                track("thread_ready", { ms: tNow - tT0, rows: tRows });
-              }
-            }, 90);
-          } catch (e) {}
-        }
+        // switch between ppl", Aug 17). Ready means real message rows:
+        // the placeholder renders instantly, goes quiet, and fills only
+        // when the fetch lands - quiet alone once reported 181ms "ready"
+        // on a stuck skeleton. rows 0 at the cap IS the stuck-chat signal.
+        var threadRows = function () {
+          return document.querySelectorAll("div[role='row']").length;
+        };
+        settle(function () { return threadRows() > 0; }, 10000, function (ms) {
+          track("thread_ready", { ms: ms, rows: threadRows() });
+        });
       }
       titleSized = false;
       if (r !== "inbox" && titleMo) { titleMo.disconnect(); titleMo = null; }
@@ -350,73 +363,54 @@
         // mutations quiet for a beat, capped hard - so the back-swipe
         // holds its snapshot until the crossfade can land on a finished
         // inbox instead of a mid-render skeleton.
-        if (r === "inbox" && window.MutationObserver) {
-          try {
-            if (settleMo) settleMo.disconnect();
-            if (settleTick) clearInterval(settleTick);
-            var last = Date.now(), t0 = last, settled = false;
-            settleMo = new MutationObserver(function () { last = Date.now(); });
-            settleMo.observe(document.body || document.documentElement,
-              { childList: true, subtree: true });
-            var tick = settleTick = setInterval(function () {
-              var now = Date.now();
-              if (now - last > 180 || now - t0 > 2000) {
-                // The latch, not clearInterval, is what guarantees one
-                // report: a field device fired this branch every 92ms
-                // for 17 seconds with clearInterval doing nothing
-                // (Aug 17, TestFlight 52).
-                if (settled) return;
-                settled = true;
-                clearInterval(tick);
-                if (settleMo) { settleMo.disconnect(); settleMo = null; }
-                sizeInboxTitle();
-                // What a connected user actually finds: 20 of the first 28
-                // sign-ins never opened a thread. Thread count and time to
-                // a settled inbox are the two numbers that can say why.
-                var rp = {
-                  threads: document.querySelectorAll(
-                    'a[href^="/direct/t/"]').length,
-                  ms: now - t0 };
-                // Identity for the roster, decided Aug 14: ds_user_id is
-                // the stable Instagram id, titleEl (found by
-                // sizeInboxTitle above) is the handle. Retries each settle
-                // until a handle is captured, then never again. Threads
-                // and message content stay untouched.
-                try {
-                  var idm = document.cookie.match(/(?:^|; )ds_user_id=(\d+)/);
-                  if (idm && !localStorage.konvoIdentified) {
-                    rp.$set = { ig_user_id: idm[1] };
-                    var un = titleEl && (titleEl.textContent || "").trim();
-                    if (un) {
-                      rp.$set.ig_username = un;
-                      localStorage.konvoIdentified = "1";
-                    }
-                  }
-                } catch (e) {}
-                track("inbox_ready", rp);
-                // A settled inbox is proof these cookies are the good
-                // ones: snapshot them natively so a force-quit cannot
-                // lose the session (see the login rescue above).
-                storekit("cookieSave", null, function () {});
-                try {
-                  window.webkit.messageHandlers.konvoStore.postMessage(
-                    { cmd: "route", id: 0, productId: r + "-settled" });
-                  // The letterbox above and below the webview is native and
-                  // CSS cannot reach it. Hand it the page's own background
-                  // so the app reads as one surface instead of a page with
-                  // black bars around it.
-                  window.webkit.messageHandlers.konvoStore.postMessage(
-                    { cmd: "bg", id: 0,
-                      productId: getComputedStyle(document.body).backgroundColor });
-                } catch (e) {}
+        if (r === "inbox") {
+          settle(function () { return true; }, 2000, function (ms) {
+            sizeInboxTitle();
+            // What a connected user actually finds: 20 of the first 28
+            // sign-ins never opened a thread. Thread count and time to
+            // a settled inbox are the two numbers that can say why.
+            var rp = {
+              threads: document.querySelectorAll(
+                'a[href^="/direct/t/"]').length,
+              ms: ms };
+            // Identity for the roster, decided Aug 14: ds_user_id is
+            // the stable Instagram id, titleEl (found by
+            // sizeInboxTitle above) is the handle. Retries each settle
+            // until a handle is captured, then never again. Threads
+            // and message content stay untouched.
+            try {
+              var idm = document.cookie.match(/(?:^|; )ds_user_id=(\d+)/);
+              if (idm && !localStorage.konvoIdentified) {
+                rp.$set = { ig_user_id: idm[1] };
+                var un = titleEl && (titleEl.textContent || "").trim();
+                if (un) {
+                  rp.$set.ig_username = un;
+                  localStorage.konvoIdentified = "1";
+                }
               }
-            }, 90);
-          } catch (e) {}
+            } catch (e) {}
+            track("inbox_ready", rp);
+            // A settled inbox is proof these cookies are the good
+            // ones: snapshot them natively so a force-quit cannot
+            // lose the session (see the login rescue above).
+            storekit("cookieSave", null, function () {});
+            try {
+              window.webkit.messageHandlers.konvoStore.postMessage(
+                { cmd: "route", id: 0, productId: r + "-settled" });
+              // The letterbox above and below the webview is native and
+              // CSS cannot reach it. Hand it the page's own background
+              // so the app reads as one surface instead of a page with
+              // black bars around it.
+              window.webkit.messageHandlers.konvoStore.postMessage(
+                { cmd: "bg", id: 0,
+                  productId: getComputedStyle(document.body).backgroundColor });
+            } catch (e) {}
+          });
         }
       }
     }
   }
-  var lastRoute = null, lastLoginStage = null, settleMo = null, settleTick = null;
+  var lastRoute = null, lastLoginStage = null;
   var cookieRestoreTried = false;
   // Every screen change gets the same push, wherever it goes - a DM, a
   // profile from a DM, a profile from search. pushState is Instagram's

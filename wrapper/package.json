@@ -2,7 +2,8 @@
   "name": "instamessages-wrapper",
   "private": true,
   "scripts": {
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "node --check src-tauri/src/cage.js && cd test && node test_bridge.js && node test_cage.js && node test_onboarding.js"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",

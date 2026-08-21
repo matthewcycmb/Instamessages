@@ -811,20 +811,27 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             // Belt and braces for the pass: if a pass is marked active but
             // its window is long over (the monitor extension should have
             // relocked; maybe it did not run), relock here on the next
-            // Konvo launch.
-            if cageDefaults.bool(forKey: "konvoPassActive"),
-               Date().timeIntervalSince1970
-                   - cageDefaults.double(forKey: "konvoPassStart") > 6 * 60 {
-                _ = cageApply()
-                cageDefaults.set(false, forKey: "konvoPassActive")
+            // Konvo launch. The window is per pass length, not one
+            // constant tuned for the longest pass.
+            if cageDefaults.bool(forKey: KonvoShared.keyPassActive) {
+                let last = max(Self.passesUsedToday() - 1, 0)
+                let length = PassPolicy.lengthsMinutes[
+                    min(last, PassPolicy.perDay - 1)]
+                if Date().timeIntervalSince1970
+                    - cageDefaults.double(forKey: KonvoShared.keyPassStart)
+                    > PassPolicy.backstopSeconds(for: length) {
+                    _ = cageApply()
+                    cageDefaults.set(false, forKey: KonvoShared.keyPassActive)
+                }
             }
             return [
                 "supported": true,
                 "authorized": AuthorizationCenter.shared.authorizationStatus == .approved,
                 "picked": (storedCageSelection().map(cageCount) ?? 0) > 0,
                 "active": UserDefaults.standard.bool(forKey: cageActiveKey),
-                "passAvailable": Self.passesUsedToday() < 2,
-                "passMins": Self.passesUsedToday() == 0 ? 5 : 1,
+                "passAvailable": Self.passesUsedToday() < PassPolicy.perDay,
+                "passMins": PassPolicy.minutes(
+                    afterUsed: Self.passesUsedToday()) ?? 0,
             ]
         case "cagePass":
             guard #available(iOS 16.0, *) else { return ["granted": false] }
@@ -1002,12 +1009,12 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         properties["build"] =
             Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
         let payload: [String: Any] = [
-            "api_key": "phc_oNC3DTPBj8vt52LGeHikaZ4WeSiZS69M3tsM2PcZRDvp",
+            "api_key": KonvoShared.posthogKey,
             "event": event,
             "distinct_id": Purchases.shared.appUserID,
             "properties": properties,
         ]
-        guard let url = URL(string: "https://us.i.posthog.com/capture/"),
+        guard let url = URL(string: KonvoShared.posthogCapture),
               let body = try? JSONSerialization.data(withJSONObject: payload)
         else { return }
         var request = URLRequest(url: url)
@@ -1025,19 +1032,19 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
     // Revocation always exists in Settings > Screen Time, so no copy
     // anywhere claims the block is unbreakable.
 
-    private static let cageSelectionKey = "konvoCageSelection"
+    private static let cageSelectionKey = KonvoShared.keySelection
     private static let cageActiveKey = "konvoCageActive"
     // App group: the relock extension (KonvoActivityMonitor) reads the
     // selection from here with the app dead. Standard defaults remain the
     // fallback read for installs that stored the selection before the
     // group existed.
     static var cageDefaults: UserDefaults {
-        UserDefaults(suiteName: "group.com.matthewchan.konvo") ?? .standard
+        KonvoShared.groupDefaults ?? .standard
     }
 
     @available(iOS 16.0, *)
     private static var cageStore: ManagedSettingsStore {
-        ManagedSettingsStore(named: .init("konvoCage"))
+        ManagedSettingsStore(named: .init(KonvoShared.cageStoreName))
     }
 
     @available(iOS 16.0, *)
@@ -1085,8 +1092,8 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
     @available(iOS 16.0, *)
     static func passesUsedToday() -> Int {
         let d = cageDefaults
-        return d.string(forKey: "konvoPassDay") == dayStamp()
-            ? d.integer(forKey: "konvoPassN") : 0
+        return d.string(forKey: KonvoShared.keyPassDay) == dayStamp()
+            ? d.integer(forKey: KonvoShared.keyPassN) : 0
     }
 
     @available(iOS 16.0, *)
@@ -1094,57 +1101,49 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
     static func cagePassStart() -> [String: Any] {
         let d = cageDefaults
         let used = passesUsedToday()
-        guard used < 2 else {
+        guard let mins = PassPolicy.minutes(afterUsed: used) else {
             return ["granted": false, "why": "used"]
         }
-        let mins = used == 0 ? 5 : 1
         guard let s = storedCageSelection(), cageCount(s) > 0,
               UserDefaults.standard.bool(forKey: cageActiveKey)
         else { return ["granted": false, "why": "nocage"] }
         let store = cageStore
         store.shield.applications = nil
         store.shield.applicationCategories = nil
-        d.set(dayStamp(), forKey: "konvoPassDay")
-        d.set(used + 1, forKey: "konvoPassN")
-        d.set(true, forKey: "konvoPassActive")
-        d.set(Date().timeIntervalSince1970, forKey: "konvoPassStart")
-        // A name per pass: stopMonitoring below fires the OLD session's
-        // intervalDidEnd, and on the spare pass that callback re-shielded
-        // Instagram one second after the unlock (field test, Aug 17,
-        // 9:13am). The extension discards boundaries whose activity is
-        // not the current name.
-        let passName = "konvoPass\(used + 1)"
-        d.set(passName, forKey: "konvoPassName")
+        d.set(dayStamp(), forKey: KonvoShared.keyPassDay)
+        d.set(used + 1, forKey: KonvoShared.keyPassN)
+        d.set(true, forKey: KonvoShared.keyPassActive)
+        d.set(Date().timeIntervalSince1970, forKey: KonvoShared.keyPassStart)
+        let passName = PassPolicy.activityName(afterUsed: used)
+        d.set(passName, forKey: KonvoShared.keyPassName)
         // The monitor extension reports its lifecycle to PostHog under the
         // same person; this is how a relock that never fires becomes
         // diagnosable instead of a mystery (first field test, Aug 16).
-        d.set(Purchases.shared.appUserID, forKey: "konvoUid")
+        d.set(Purchases.shared.appUserID, forKey: KonvoShared.keyUid)
         let now = Date()
         let cal = Calendar.current
-        // 16 minutes: Apple rejects schedules under 15, and exactly-15
-        // was in the first cut when the relock never fired on device
-        // (Aug 16), so both suspects changed together: a margin over the
-        // minimum, a stop before start (a leftover registration makes
-        // startMonitoring throw), and the error surfaced to analytics
-        // instead of swallowed.
-        // warningTime is the pass length in disguise: end minus (16 - mins)
-        // puts intervalWillEndWarning exactly `mins` after start. The
-        // Aug 17 field test showed time boundaries fire on the second
-        // while the usage threshold never fired at all.
+        // Every number here derives from PassPolicy: the interval keeps a
+        // margin over Apple's 15-minute minimum, and warningTime (end
+        // minus interval-minus-length) puts intervalWillEndWarning
+        // exactly the pass length after start - wall clock, the boundary
+        // the field proved reliable while the usage threshold never
+        // fired at all (Aug 17).
         let schedule = DeviceActivitySchedule(
             intervalStart: cal.dateComponents(
                 [.hour, .minute, .second], from: now),
             intervalEnd: cal.dateComponents(
-                [.hour, .minute, .second], from: now.addingTimeInterval(16 * 60)),
+                [.hour, .minute, .second],
+                from: now.addingTimeInterval(
+                    Double(PassPolicy.intervalMinutes * 60))),
             repeats: false,
-            warningTime: DateComponents(minute: 16 - mins))
+            warningTime: DateComponents(
+                minute: PassPolicy.warningMinutes(for: mins)))
         let event = DeviceActivityEvent(
             applications: s.applicationTokens, categories: s.categoryTokens,
             webDomains: [], threshold: DateComponents(minute: mins))
         let center = DeviceActivityCenter()
-        center.stopMonitoring([DeviceActivityName("konvoPass"),
-                               DeviceActivityName("konvoPass1"),
-                               DeviceActivityName("konvoPass2")])
+        center.stopMonitoring(
+            PassPolicy.allActivityNames.map { DeviceActivityName($0) })
         do {
             try center.startMonitoring(
                 DeviceActivityName(passName), during: schedule,

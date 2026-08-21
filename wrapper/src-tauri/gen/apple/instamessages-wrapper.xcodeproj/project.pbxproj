@@ -14,22 +14,26 @@
 		2EBC7E4D7763A81BBF587444 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 2A95ADD2DFE026F76C56FE1D /* assets */; };
 		31C709A01E03514554E976AB /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D7BA748251ED6F705D73AA2A /* Metal.framework */; };
 		3274EEB8AD3B404B6E55C41F /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = A79BDBF47F2511D3579F17D6 /* main.mm */; };
+		4523AE038BC42152156819E5 /* PassPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEFCAF782BC03667682D671B /* PassPolicy.swift */; };
 		7E4C87DD927DD830F9FDBDB8 /* KonvoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = E997D26F9E699F957C6A1361 /* KonvoStore.swift */; };
 		7F43833627A6211A434791A2 /* ShieldActionExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 913B0F091B12564F24E58D6A /* ShieldActionExtension.swift */; };
 		9502D46A2189E2D60086EA26 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A6E5C36DED82E23A8C7C3504 /* WebKit.framework */; };
 		9B5DF5C8CE4BA88E0FA13ACD /* KonvoLogo.png in Resources */ = {isa = PBXBuildFile; fileRef = FE982207D66EA4EFCA170A08 /* KonvoLogo.png */; };
 		9E52F315A07D999662409EEA /* ShieldConfigurationExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ACD8AE68354636F98499AAA /* ShieldConfigurationExtension.swift */; };
 		ADD6433FC0CFCBAF85ACFB20 /* KonvoShieldConfig.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 14B65ED4CA9D52ADE94A3E7E /* KonvoShieldConfig.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B3BB87C41B44D4A9D51375BA /* KonvoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE3C0FC389654FDECF063C63 /* KonvoShared.swift */; };
 		B8F3642B8292A97F359997B7 /* SuperwallKit in Frameworks */ = {isa = PBXBuildFile; productRef = 3C6AA4416EF1ACCB09581A48 /* SuperwallKit */; };
 		BB7CE57E41D91F2C0094C7EA /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 95565E088376809829C919A9 /* Security.framework */; };
 		C06E4BDD0E62B3539BDC42A3 /* KonvoShieldAction.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 85782DCABFC440E74D59AE45 /* KonvoShieldAction.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		D48FD654380141E228F332AF /* KonvoActivityMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E4CE2214A0F44F7EFFC81DB /* KonvoActivityMonitor.swift */; };
 		E6CCD902F98D3B0923648D73 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CBEDA7ABE5C91AD11BB61F1 /* libapp.a */; };
 		EAE5D812590C4B65838E552A /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C98BFF9272B89EC4D56B72C1 /* RevenueCat */; };
+		EB1A2BAF9406122B3321E49A /* KonvoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE3C0FC389654FDECF063C63 /* KonvoShared.swift */; };
 		EDF52AAF4B39F02B1B97138F /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 974A7F7F350DA4C43394A266 /* QuartzCore.framework */; };
 		F02D75A876ED4ADCC32147FE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8DD52691ABEE23DEC0327E87 /* Assets.xcassets */; };
 		F23657B56E778145A4750D6C /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C7740352F1FBB08F13A802A3 /* CoreGraphics.framework */; };
 		F872EE291AD812280AFB7B07 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDBA0A83D3429C96EF9809F5 /* MetalKit.framework */; };
+		F92DB226D8DA4DBED23FB703 /* PassPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEFCAF782BC03667682D671B /* PassPolicy.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -104,11 +108,14 @@
 		BE2AF5F44C34C0B8C9A7B3C2 /* instamessages-wrapper_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "instamessages-wrapper_iOS.entitlements"; sourceTree = "<group>"; };
 		C7740352F1FBB08F13A802A3 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		CDBA0A83D3429C96EF9809F5 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		CE3C0FC389654FDECF063C63 /* KonvoShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KonvoShared.swift; sourceTree = "<group>"; };
 		D7BA748251ED6F705D73AA2A /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		DBAB0DB28E788F5B974306D0 /* KonvoShieldAction.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KonvoShieldAction.entitlements; sourceTree = "<group>"; };
 		E997D26F9E699F957C6A1361 /* KonvoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KonvoStore.swift; sourceTree = "<group>"; };
+		EDAEEF92EDE234D49034DDAA /* cage.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = cage.js; sourceTree = "<group>"; };
 		F0537448B6DF47CC3C5820D9 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		FE982207D66EA4EFCA170A08 /* KonvoLogo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = KonvoLogo.png; sourceTree = "<group>"; };
+		FEFCAF782BC03667682D671B /* PassPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassPolicy.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -165,6 +172,15 @@
 				C4FE8784ECD08BC66C3E58F3 /* bindings */,
 			);
 			path = "instamessages-wrapper";
+			sourceTree = "<group>";
+		};
+		5E0FD401C5260144A1B1F795 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				CE3C0FC389654FDECF063C63 /* KonvoShared.swift */,
+				FEFCAF782BC03667682D671B /* PassPolicy.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		5FC35548CDFE6B684B42A092 /* ActivityMonitor */ = {
@@ -237,6 +253,7 @@
 		B7E80B00CDE5E3A5521A3C3B /* src */ = {
 			isa = PBXGroup;
 			children = (
+				EDAEEF92EDE234D49034DDAA /* cage.js */,
 				1E6A599F9CE9A7F681077CEE /* lib.rs */,
 				454A0DCC6B6C3EB03FD1430C /* main.rs */,
 			);
@@ -279,6 +296,7 @@
 				5FC35548CDFE6B684B42A092 /* ActivityMonitor */,
 				1CA1A22555EB1ABFEC3CFE6B /* Externals */,
 				B57AB083899B828789B0E5C1 /* instamessages-wrapper_iOS */,
+				5E0FD401C5260144A1B1F795 /* Shared */,
 				9AF0C4082864B32C4DAC1410 /* ShieldAction */,
 				A427ADE59C66465ABCB0A0E9 /* ShieldConfig */,
 				F005A38DC8BE828C23119EC3 /* Sources */,
@@ -288,7 +306,7 @@
 			);
 			sourceTree = "<group>";
 		};
-		"TEMP_F3811E80-5D83-4C35-99FE-E0BAA1F8DF18" /* x86_64 */ = {
+		"TEMP_D5FF99A1-9299-4EFE-9E1A-07C19A0D18CC" /* x86_64 */ = {
 			isa = PBXGroup;
 			children = (
 			);
@@ -492,6 +510,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				D48FD654380141E228F332AF /* KonvoActivityMonitor.swift in Sources */,
+				EB1A2BAF9406122B3321E49A /* KonvoShared.swift in Sources */,
+				F92DB226D8DA4DBED23FB703 /* PassPolicy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -499,7 +519,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B3BB87C41B44D4A9D51375BA /* KonvoShared.swift in Sources */,
 				7E4C87DD927DD830F9FDBDB8 /* KonvoStore.swift in Sources */,
+				4523AE038BC42152156819E5 /* PassPolicy.swift in Sources */,
 				3274EEB8AD3B404B6E55C41F /* main.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

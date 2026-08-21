@@ -29,6 +29,7 @@ targetTemplates:
     type: application
     sources:
       - path: Sources
+      - path: Shared
     scheme:
       environmentVariables:
         RUST_BACKTRACE: full
@@ -41,6 +42,7 @@ targets:
     platform: iOS
     sources:
       - path: Sources
+      - path: Shared
       - path: Assets.xcassets
       # buildPhase: none, or xcodegen classifies whatever libapp.a happens to
       # be sitting in Externals at generation time as a *resource* and copies
@@ -172,6 +174,7 @@ targets:
     deploymentTarget: "16.0"
     sources:
       - path: ActivityMonitor
+      - path: Shared
     entitlements:
       path: ActivityMonitor/KonvoActivityMonitor.entitlements
       properties:

@@ -12,8 +12,8 @@ standing decisions - read `MEMORY.md` first, especially
 
 ## The working loop (how this session operated; keep it)
 
-Every change: edit -> `cd wrapper/test && python3 extract.py && node
---check cage.js && node test_cage.js && node test_onboarding.js` -> build
+Every change: edit -> `cd wrapper && npm test` (the cage script is a real
+source file at src-tauri/src/cage.js since Aug 21; extract.py is gone) -> build
 `npx @tauri-apps/cli ios build --export-method debugging --ci --features
 konvo-beta` (run in background; ~4 min warm, ~25 min after a cargo feature
 flip) -> **verify the IPA before installing** (a failed export leaves the
