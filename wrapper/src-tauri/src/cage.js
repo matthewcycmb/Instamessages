@@ -1737,6 +1737,18 @@
     // must walk away with Instagram exactly as it was (Aug 21; before
     // this, the block went up at the connect page, before the paywall).
     var cagePending = false;
+    // Setup-only mode (Aug 21): a paying user with no shield - a reinstall
+    // or a new phone - gets the Screen Time step alone, then "You're all
+    // set", then the inbox. Before this the inbox opened unblocked.
+    var setupOnly = false;
+    function cageExit(done) {
+      if (!setupOnly) { swap(perksPage()); return; }
+      setupOnly = false;
+      if (!done) { dismiss(); return; }
+      armCage();
+      swap(readyPage());
+      setTimeout(dismiss, 2200);
+    }
     function armCage(then) {
       if (!cagePending) { if (then) then(); return; }
       cagePending = false;
@@ -1836,7 +1848,8 @@
     }
     var swPending = false, swTried = false, entitlementKnown = false;
     function ensure() {
-      if (wall || cached() || seenSequence() || !atInbox()) return;
+      if (wall || !atInbox()) return;
+      if (!setupOnly && (cached() || seenSequence())) return;
       // A paying customer must never see a frame of this. On a fresh
       // install there is no cache yet, so without waiting for the receipt
       // the sequence starts underneath them and only vanishes once
@@ -1853,7 +1866,7 @@
       // rises the moment Superwall's sheet ends without an entitlement, so
       // a closed sheet never leaves the inbox open. One attempt per
       // session; after that the floor rules.
-      if (window.__konvoSW && !swTried) {
+      if (!setupOnly && window.__konvoSW && !swTried) {
         if (!swPending) {
           swPending = true;
           storekit("paywall", null, function (res) {
@@ -1878,7 +1891,11 @@
       } catch (e) {}
       wall = document.createElement("div");
       wall.id = "im-pay";
-      setPage(PAGES.connected);
+      if (setupOnly) {
+        try { localStorage.konvoCageAsked = "1"; } catch (e) {}
+        track("cage_pitch_viewed", { screen_id: "s12f_cage", via: "reinstall" });
+      }
+      setPage(setupOnly ? cageIntroPage() : PAGES.connected);
       wall.addEventListener("click", function (e) {
         var t = e.target.closest("[data-act]");
         if (!t || !wall) return;
@@ -1898,8 +1915,9 @@
           armCage();
           setTimeout(dismiss, 2200);
         } else if (act === "cage-skip" || act === "cage-done") {
-          // Declined or finished, the road is the same: on to the sell.
-          swap(perksPage());
+          // Declined or finished, the road is the same: on to the sell
+          // (or, in setup-only mode, straight to the inbox).
+          cageExit(act === "cage-done");
         } else if (act === "cage-setup-go") {
           // One flight at a time: Apple's consent dialog sits over the
           // page and a user who keeps tapping the button underneath
@@ -1913,11 +1931,11 @@
           storekit("cageAuthorize", null, function (a) {
             track("cage_authorized", { granted: !!(a && a.authorized) });
             window.__konvoCageBusy = false;
-            if (!a || !a.authorized) { swap(perksPage()); return; }
+            if (!a || !a.authorized) { cageExit(false); return; }
             storekit("cagePick", null, function (p) {
               var n = (p && p.count) || 0;
               track("cage_picked", { count: n });
-              if (!n) { swap(perksPage()); return; }
+              if (!n) { cageExit(false); return; }
               // Picked, not armed: the shield waits for the sequence to
               // end well (see armCage). The selection is stored natively.
               cagePending = true;
@@ -1977,6 +1995,7 @@
       storekit("products", null, function (res) {
         if (res && res.ok) P = res;
       });
+      if (setupOnly) return;
       setTimeout(function () {
         swap(loaderPage(), tickRows);
       }, 1800);
@@ -2000,6 +2019,7 @@
           if (moved) return;
           clearTimeout(toPerks);
           if (s && s.supported) {
+            try { localStorage.konvoCageAsked = "1"; } catch (e) {}
             track("cage_pitch_viewed", { screen_id: "s12f_cage" });
             swap(cageIntroPage());
           } else {
@@ -2152,8 +2172,18 @@
       entitlementKnown = true;
       if (!res) return;
       setCache(!!res.entitled);
-      if (res.entitled) dismiss();
-      else {
+      if (res.entitled) {
+        dismiss();
+        // Once per install: the flag lives in this origin's storage,
+        // which a delete wipes along with the shield's authorization.
+        var asked = false;
+        try { asked = !!localStorage.konvoCageAsked; } catch (e) {}
+        if (!asked) {
+          storekit("cageStatus", null, function (s) {
+            if (s && s.supported && !s.active) { setupOnly = true; ensure(); }
+          });
+        }
+      } else {
         // A lapsed subscription must not hold Instagram hostage: lift the
         // cage unless beta access still covers it. cageOff is a no-op when
         // no cage was ever set.

@@ -41,7 +41,42 @@
   if (!ios && !macDone) {
     document.documentElement.classList.add("macwelcome");
   } else if (ios && !done) {
-    document.documentElement.classList.add("onboard");
+    // A paying user who reinstalled skips the quiz (Aug 21): the receipt
+    // answers through the bridge; silence for 2s means a new user and the
+    // hero shows. The hop to Instagram rides the bridge's native load like
+    // sign-in does - a page navigation is a universal link on iOS and
+    // opens Instagram's own app when it is installed and not yet shielded.
+    // "onboard" goes on at once so the flow script below initialises;
+    // "holding" keeps the splash over it until the verdict lands.
+    document.documentElement.classList.add("onboard", "holding");
+    var decided = false;
+    var decide = function (entitled) {
+      if (decided) return;
+      decided = true;
+      if (!entitled) {
+        document.documentElement.classList.remove("holding");
+        document.dispatchEvent(new Event("konvo-onboard"));
+        return;
+      }
+      try { localStorage.konvoOnboarded = "1"; } catch (e) {}
+      try {
+        window.webkit.messageHandlers.konvoStore.postMessage(
+          { cmd: "appearance", id: 0, productId: "auto" });
+        window.webkit.messageHandlers.konvoStore.postMessage(
+          { cmd: "go", id: 0, productId: "https://www.instagram.com/direct/inbox/" });
+      } catch (e) {}
+      setTimeout(function () {
+        location.replace("https://www.instagram.com/direct/inbox/");
+      }, 1200);
+    };
+    window.__konvoStoreReply = function (id, res) {
+      if (id === 1) decide(!!(res && res.entitled));
+    };
+    try {
+      window.webkit.messageHandlers.konvoStore.postMessage(
+        { cmd: "entitlements", id: 1, productId: "" });
+      setTimeout(function () { decide(false); }, 2000);
+    } catch (e) { decide(false); }
   } else {
     if (ios) {
       // Returning user: the light funnel is behind them and the phone rules
@@ -144,6 +179,8 @@
 
   /* ---- onboarding (fresh iPhone installs only) ---- */
   .onboard #splash { display: none }
+  .onboard.holding #splash { display: flex }
+  .onboard.holding #flow { display: none }
   #flow { display: none }
   .onboard #flow { display: block; position: fixed; inset: 0; overflow: hidden;
                    color: var(--ink); -webkit-tap-highlight-color: transparent;
@@ -672,7 +709,15 @@
         { cmd: "track", id: 0, event: event, props: p });
     } catch (e) {}
   }
-  track("onboarding_screen_viewed", { screen_id: "s1" });
+  // The first view counts when the hero is actually revealed, not while
+  // the splash is still deciding whether this is a paying user.
+  if (document.documentElement.classList.contains("holding")) {
+    document.addEventListener("konvo-onboard", function () {
+      track("onboarding_screen_viewed", { screen_id: "s1" });
+    }, { once: true });
+  } else {
+    track("onboarding_screen_viewed", { screen_id: "s1" });
+  }
 
   // The pact's date line: honest and computed, never a hardcoded date.
   try {

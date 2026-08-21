@@ -51,6 +51,10 @@ function boot(opts = {}) {
       // APP instead, stranding the user outside Konvo.
       if (m.cmd === 'go') dom.nav.push(m.productId);
       if (m.cmd === 'review') dom.reviews = (dom.reviews || 0) + 1;
+      // The receipt check at the splash: answered unless the test wants a
+      // silent bridge; `entitled` makes this a paying user's reinstall.
+      if (m.cmd === 'entitlements' && !opts.silent) setTimeout(() =>
+        dom.window.__konvoStoreReply(m.id, { entitled: !!opts.entitled }), 30);
     } } } };
   dom.went = [];
   dom.window.__loc = { replace: t => dom.went.push(t) };
@@ -92,9 +96,37 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert.deepStrictEqual(again.appearance, ['auto'],
     'a returning iPhone must hand appearance to the phone immediately');
 
+  // 2b. A paying user's reinstall (Aug 21): the receipt answers at the
+  //     splash, the quiz is skipped, and the hop to Instagram is native.
+  const payer = boot({ entitled: true });
+  const silent = boot({ silent: true });
+  await settle(200);
+  assert(payer.window.document.documentElement.classList.contains('holding'),
+    'a paying user must stay on the splash, never the quiz');
+  assert(!payer.events.includes('onboarding_screen_viewed'),
+    'a paying user must not count as an onboarding view');
+  assert.strictEqual(payer.window.localStorage.konvoOnboarded, '1',
+    'the skip must set the once-per-install flag');
+  assert.deepStrictEqual(payer.nav, [INBOX],
+    'the payer hop must go through the native load, never a page navigation');
+  assert(payer.appearance.includes('auto'),
+    'a payer hands appearance to the phone like a returning user');
+  assert(silent.window.document.documentElement.classList.contains('holding'),
+    'a silent bridge holds the splash while the receipt is checked');
+  await settle(2000);
+  assert(!silent.window.document.documentElement.classList.contains('holding'),
+    'a bridge that never answers must not lock a new user out of onboarding');
+  assert.strictEqual(silent.went.length, 0, 'and must not navigate anywhere');
+
   // 3. A fresh iPhone stays, on S1.
   const d = boot();
   const doc = d.window.document;
+  await settle(100);
+  assert(doc.documentElement.classList.contains('onboard') &&
+    !doc.documentElement.classList.contains('holding'),
+    'a new user gets the quiz once the receipt says not entitled');
+  assert(d.events.includes('onboarding_screen_viewed'),
+    'and the hero view is counted once it is shown');
   assert.strictEqual(d.went.length, 0, 'a fresh install must not navigate away');
   assert(doc.getElementById('s1').classList.contains('on'), 'S1 must be showing');
 

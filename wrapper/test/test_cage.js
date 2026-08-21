@@ -893,6 +893,63 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     Its button walks authorize -> pick -> shield -> notify, the
   //     confirmation hands over to perks, and the paywall follows.
   const cageLog = [];
+  //     A paying user's reinstall (Aug 21): entitled, but the shield is
+  //     gone with the old install. The wall rises once with the Screen Time
+  //     step alone, arms on done, says "You're all set", and leaves. An
+  //     entitled user whose shield is up sees nothing.
+  const reLog = [];
+  const reinstall = boot('/direct/inbox/', '', { bridge: (m, d) => {
+    reLog.push(m.cmd === 'track' ? 'track:' + m.event : m.cmd);
+    const r = {
+      entitlements: { entitled: true },
+      cageStatus: { supported: true, authorized: false, picked: false, active: false },
+      cageAuthorize: { authorized: true }, cagePick: { count: 1 },
+      cageOn: { active: true }, notify: { granted: true },
+    }[m.cmd];
+    if (r) d.window.__konvoStoreReply(m.id, r);
+  } });
+  await settle(1200);
+  const rdoc = reinstall.window.document;
+  assert(rdoc.getElementById('im-pay') &&
+    /Connect Konvo to Screen Time/.test(rdoc.getElementById('im-pay').textContent),
+    'an entitled user with no shield must get the Screen Time step, and only that');
+  assert(!/Instagram connected/.test(rdoc.getElementById('im-pay').textContent),
+    'no connected/loader beat for a payer');
+  assert.strictEqual(reinstall.window.localStorage.getItem('konvoCageAsked'), '1',
+    'the ask is recorded so it happens once per install');
+  const rtap = act => rdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new reinstall.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  rtap('cage-setup-go');
+  await settle(500);
+  rtap('cage-done');
+  await settle(300);
+  assert(reLog.includes('cageOn') && reLog.includes('track:cage_enabled'),
+    'done must arm the shield for a payer');
+  assert(/You're all set\./.test(rdoc.getElementById('im-pay').textContent),
+    'the payer ends on "You\'re all set", not the sell');
+  assert(!/No commitment/.test(rdoc.getElementById('im-pay').textContent),
+    'a payer must never see the paywall');
+  await settle(3200);
+  assert(!rdoc.getElementById('im-pay'), 'the wall leaves on its own');
+  const shielded = boot('/direct/inbox/', '', { bridge: (m, d) => {
+    const r = { entitlements: { entitled: true },
+      cageStatus: { supported: true, authorized: true, picked: true, active: true } }[m.cmd];
+    if (r) d.window.__konvoStoreReply(m.id, r);
+  } });
+  await settle(1200);
+  assert(!shielded.window.document.getElementById('im-pay'),
+    'an entitled user whose shield is up sees no wall at all');
+  const askedAlready = boot('/direct/inbox/', '', { bridge: (m, d) => {
+    // The flag is set before the verdict lands, as on a second launch.
+    d.window.localStorage.setItem('konvoCageAsked', '1');
+    const r = { entitlements: { entitled: true },
+      cageStatus: { supported: true, authorized: false, picked: false, active: false } }[m.cmd];
+    if (r) d.window.__konvoStoreReply(m.id, r);
+  } });
+  await settle(1200);
+  assert(!askedAlready.window.document.getElementById('im-pay'),
+    'a payer who already saw the ask this install is not asked again');
+
   const cageReplies = {
     entitlements: { entitled: false },
     products: LIVE_PRODUCTS,
