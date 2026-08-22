@@ -401,16 +401,23 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'connected must auto-advance into the honest loader');
   assert(/Friends' stories kept/.test(payText()),
     'every loader line is a real cage rule');
-  await settle(5200);  // ~7.6s in: the perks comparison
-  assert(/Why Konvo works/.test(payText()),
-    'the loader must auto-advance into the comparison');
-  assert(/No snooze button to cave to/.test(payText()),
-    'every row is a true structural claim');
+  await settle(5200);  // ~7.6s in: the reveal over the real inbox
   const wtap = act => {
     const el = wdoc.querySelector(`[data-act='${act}']`);
     assert(el, `the ${act} control must exist on the current page`);
     el.dispatchEvent(new wallFresh.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   };
+  //     The reveal comes straight off the loader (Aug 22): the wall clears
+  //     over the user's own inbox before any pitch.
+  assert(wdoc.getElementById('im-pay').classList.contains('im-reveal') &&
+    /Your DMs are still here\./.test(payText()),
+    'the loader must auto-advance into the reveal');
+  wtap('keep');
+  await settle(450);
+  assert(/Why Konvo works/.test(payText()),
+    'keep must land on the comparison');
+  assert(/No snooze button to cave to/.test(payText()),
+    'every row is a true structural claim');
   // The delete-Instagram ask is gone (Aug 16): the block replaced it, and
   // perks lead straight to the impact screen.
   //     What the trial is FOR, before the price. The hours are the
@@ -493,6 +500,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const ltap = act => ldoc0.querySelector(`[data-act='${act}']`).dispatchEvent(
     new live.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   // Same route as a real user: perks -> impact -> price.
+  ltap('keep');
+  await settle(450);
   ltap('impact');
   await settle(450);
   ltap('pay');
@@ -587,6 +596,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const btw = act => betaWalk.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new betaWalk.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   const btext = () => betaWalk.window.document.getElementById('im-pay').textContent;
+  btw('keep');
+  await settle(450);
   btw('impact');
   await settle(450);
   assert(/Start your Free Week/.test(btext()) && /reclaim 12 hours back/.test(btext()),
@@ -596,9 +607,13 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/How your free trial works/.test(btext()) && /\$19\.99/.test(btext()),
     'beta must show the real price screen');
   btw('buy-y');
+  await settle(1400);   // no cageStatus answer here: the 900ms fallback confirms
+  assert(/You're in\./.test(btext()),
+    'the beta CTA must let a tester through without StoreKit');
+  btw('done');
   await settle(950);   // dismiss() fades for 850ms before removing the node
   assert(!betaWalk.window.document.getElementById('im-pay'),
-    'the CTA must let a beta tester straight through to their DMs');
+    'and Open my messages drops the wall');
   assert(!betaEvents.includes('purchase'),
     'and must never reach StoreKit');
   assert(betaEvents.includes('beta_free_taken'),
@@ -615,6 +630,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   // Perks -> impact -> price, as a real user walks it.
   const nttap = act => noTrial.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new noTrial.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  nttap('keep');
+  await settle(450);
   nttap('impact');
   await settle(450);
   //     A user with no trial must not be sold one on the way in either.
@@ -642,6 +659,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the fragment must persist into instagram.com-origin storage');
   const qtap = act => quiz.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new quiz.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  qtap('keep');
+  await settle(450);
   qtap('impact');
   await settle(450);
   assert(/reclaim 9 hours back/.test(
@@ -655,34 +674,47 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     products: LIVE_PRODUCTS,
     purchase: { ok: true, entitled: true },
     notify: { ok: true, granted: true },
+    cageStatus: { supported: true, authorized: false, picked: false, active: false },
+    cageAuthorize: { authorized: true }, cagePick: { count: 1 }, cageOn: { active: true },
   }) });
   await settle(8400);
   const bdoc = buyer.window.document;
   const btap = act => bdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new buyer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  btap('keep');
+  await settle(450);
   btap('impact');
   await settle(450);
   btap('pay');
   await settle(450);
+  assert(!posted.includes('cageOn:'), 'no shield before the purchase');
   btap('buy-y');
-  await settle(450);   // crossfade to S14
+  await settle(450);   // crossfade to the Screen Time step
   assert(posted.includes('purchase:konvo.pro.yearly'),
     'the Annual CTA must purchase the yearly product');
+  //     The Screen Time step comes AFTER the money (Aug 22): one last step.
   const stext = bdoc.getElementById('im-pay').textContent;
-  assert(/You're in\./.test(stext) && /Your messages are waiting\./.test(stext),
-    'S14 opens on the confirmation');
+  assert(/One last step: Connect Konvo to Screen Time, securely\./.test(stext),
+    'a purchase leads to the Screen Time step, not a confirmation');
+  assert(posted.includes('notify:7'),
+    'the reminder is scheduled with the trial length the moment the purchase lands');
+  assert(!posted.includes('cageOn:'), 'still no shield before the user connects');
+  btap('cage-setup-go');
+  await settle(600);
+  assert(posted.indexOf('cageOn:') > posted.indexOf('purchase:konvo.pro.yearly'),
+    'the shield arms after the purchase and the pick');
+  const ptext = bdoc.getElementById('im-pay').textContent;
+  assert(/You're protected\./.test(ptext) && /Instagram is blocked\./.test(ptext) &&
+    /Your DMs remain available through Konvo\./.test(ptext),
+    'the last page says protected, blocked, DMs through Konvo');
   const scheck = bdoc.querySelector("#im-pay path[stroke-dasharray='24']");
   assert(scheck && /im-draw/.test(scheck.getAttribute('style') || ''),
-    'the confirmation checkmark must draw itself in');
-  assert(/Free until/.test(stext),
-    'a trial purchase gets the recap line');
-  assert(!/notifications/.test(stext),
-    'S14 asks nothing more (Aug 21): permission was the Screen Time step\'s');
-  assert(posted.includes('notify:7'),
-    'the reminder is scheduled with the trial length the moment S14 opens');
-  btap('done');
-  await settle(950);   // the wall fades off over .8s
-  assert(!bdoc.getElementById('im-pay'), 'Open Konvo must drop the wall');
+    'the checkmark must draw itself in');
+  assert(!bdoc.querySelector('#im-pay [data-act]'), 'the last page has nothing to tap');
+  assert.strictEqual(buyer.window.localStorage.getItem('konvoDone'), '1',
+    'finishing marks the install done, so a lapse later opens on the price');
+  await settle(3600);   // 2.4s hold + the .8s fade, with slack
+  assert(!bdoc.getElementById('im-pay'), 'the last page fades into the inbox on its own');
   assert.strictEqual(buyer.window.localStorage.getItem('konvoPaid'), '1',
     'a purchase must fill the offline cache');
   assert(posted.includes('track:onboarding_completed'),
@@ -698,18 +730,20 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(8400);
   const mtap = act => monthlyBuy.window.document.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new monthlyBuy.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  mtap('keep');
+  await settle(450);
   mtap('impact');
   await settle(450);
   mtap('pay');
   await settle(450);
   mtap('pk-m');
   mtap('buy-m');
-  await settle(450);
+  await settle(1400);   // no cageStatus answer: the 900ms fallback confirmation
   assert(posted.includes('purchase:konvo.pro.monthly'),
     'the Monthly CTA must purchase konvo.pro.monthly');
   assert(/You're in\./.test(
     monthlyBuy.window.document.getElementById('im-pay').textContent),
-    'S14 is generic success copy - true for monthly too');
+    'a bridge that never answers cageStatus still confirms - true for monthly too');
 
   //     The verdict beats the cache in both directions.
   const lapsed = boot('/direct/inbox/', '', { paid: true, bridge: answer({
@@ -720,6 +754,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const ldoc = lapsed.window.document;
   assert(ldoc.getElementById('im-pay'),
     'a lapsed subscription must bring the wall back despite the cache');
+  ldoc.querySelector("[data-act='keep']").dispatchEvent(
+    new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(450);
   ldoc.querySelector("[data-act='impact']").dispatchEvent(
     new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(450);
@@ -729,8 +766,33 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   ldoc.querySelector("[data-act='restore']").dispatchEvent(
     new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   assert(posted.includes('restore:'), 'Restore Purchases must reach the bridge');
+  await settle(1400);
+  assert(/You're in\./.test(ldoc.getElementById('im-pay').textContent),
+    'a successful restore runs the tail (here the fallback confirmation)');
+  ldoc.querySelector("[data-act='done']").dispatchEvent(
+    new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(950);
-  assert(!ldoc.getElementById('im-pay'), 'a successful restore must drop the wall');
+  assert(!ldoc.getElementById('im-pay'), 'and the wall drops');
+  //     A lapsed subscriber on an install that already finished the
+  //     sequence (Aug 22) opens on the price and nothing else: no
+  //     "Instagram connected", no loader, no pitch.
+  const lapsedLog = [];
+  const lapsedDone = boot('/direct/inbox/', '', { paid: true, bridge: (m, d) => {
+    d.window.localStorage.setItem('konvoDone', '1');
+    lapsedLog.push(m.cmd === 'track' ? 'track:' + m.event : m.cmd);
+    const r = { entitlements: { entitled: false }, products: LIVE_PRODUCTS }[m.cmd];
+    if (r) d.window.__konvoStoreReply(m.id, r);
+  } });
+  await settle(1200);
+  const lddoc = lapsedDone.window.document;
+  assert(lddoc.getElementById('im-pay') &&
+    /Yearly Plan/.test(lddoc.getElementById('im-pay').textContent) &&
+    /US\$39\.99/.test(lddoc.getElementById('im-pay').textContent),
+    'a lapsed install must open straight on the paywall with live prices');
+  assert(!/Instagram connected/.test(lddoc.getElementById('im-pay').textContent),
+    'and never replay the connected page');
+  assert(lapsedLog.includes('track:paywall_viewed') && !lapsedLog.includes('track:inbox_reveal_viewed'),
+    'the paywall is what gets tracked, not the pitch');
   const reinstalled = boot('/direct/inbox/', '', { bridge: answer({
     entitlements: { entitled: true },
   }) });
@@ -895,7 +957,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const cageLog = [];
   //     A paying user's reinstall (Aug 21): entitled, but the shield is
   //     gone with the old install. The wall rises once with the Screen Time
-  //     step alone, arms on done, says "You're all set", and leaves. An
+  //     step alone, arms on the pick, says "You're protected", and leaves. An
   //     entitled user whose shield is up sees nothing.
   const reLog = [];
   const reinstall = boot('/direct/inbox/', '', { bridge: (m, d) => {
@@ -920,16 +982,14 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const rtap = act => rdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new reinstall.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   rtap('cage-setup-go');
-  await settle(500);
-  rtap('cage-done');
-  await settle(300);
+  await settle(600);
   assert(reLog.includes('cageOn') && reLog.includes('track:cage_enabled'),
-    'done must arm the shield for a payer');
-  assert(/You're all set\./.test(rdoc.getElementById('im-pay').textContent),
-    'the payer ends on "You\'re all set", not the sell');
+    'the pick must arm the shield for a payer');
+  assert(/You're protected\./.test(rdoc.getElementById('im-pay').textContent),
+    'the payer ends on "You\'re protected", not the sell');
   assert(!/No commitment/.test(rdoc.getElementById('im-pay').textContent),
     'a payer must never see the paywall');
-  await settle(3200);
+  await settle(3600);
   assert(!rdoc.getElementById('im-pay'), 'the wall leaves on its own');
   const shielded = boot('/direct/inbox/', '', { bridge: (m, d) => {
     const r = { entitlements: { entitled: true },
@@ -967,33 +1027,24 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const cdoc = caged.window.document;
   const cactap = act => cdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new caged.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  assert(/Connect Konvo to Screen Time/.test(cdoc.getElementById('im-pay').textContent),
-    'a supported paid build must land on the connect page after the loader');
-  assert(cageLog.includes('track:cage_pitch_viewed'), 'the connect page must be tracked');
-  assert(!cageLog.includes('cageAuthorize'),
-    'nothing native may run before the user says go');
-  cactap('cage-setup-go');
-  await settle(500);
-  const ci = s => cageLog.indexOf(s);
-  assert(ci('cageAuthorize') > -1 && ci('cagePick') > ci('cageAuthorize') &&
-    ci('notify') > ci('cagePick'),
-    'cage setup must run authorize, pick, notify in order');
-  //     Picked, not armed (Aug 21): the shield must not go up before the
-  //     sequence ends well. A user who balks at the price walks away with
-  //     Instagram exactly as it was.
-  assert(!cageLog.includes('cageOn'),
-    'the shield must NOT go up at the connect page, before the paywall');
-  assert(!cageLog.includes('track:cage_enabled'),
-    'nothing may report the shield as up before it is');
-  assert(!cdoc.documentElement.classList.contains('im-caged'),
-    'the pass button must not arm before the shield exists');
-  assert(/Ready to block Instagram/.test(cdoc.getElementById('im-pay').textContent)
-    && !/Instagram is blocked/.test(cdoc.getElementById('im-pay').textContent),
-    'the confirmation must say the block is coming, not that it happened');
-  cactap('cage-done');
+  //     The Screen Time step no longer precedes the sell (Aug 22): the
+  //     loader lands on the reveal, and nothing native runs before the
+  //     money.
+  assert(!cageLog.includes('track:cage_pitch_viewed') && !cageLog.includes('cageAuthorize'),
+    'no Screen Time pitch and nothing native before the purchase');
+  assert(cdoc.getElementById('im-pay').classList.contains('im-reveal'),
+    'the loader must clear the wall to show the real inbox');
+  assert(/Instagram connected/.test(cdoc.getElementById('im-pay').textContent) &&
+    /Your DMs are still here\./.test(cdoc.getElementById('im-pay').textContent) &&
+    /Keep Instagram like this/.test(cdoc.getElementById('im-pay').textContent),
+    'the reveal carries the pill, the headline and the keep button');
+  assert(cageLog.includes('track:inbox_reveal_viewed'), 'the reveal is tracked');
+  cactap('keep');
   await settle(450);
+  assert(!cdoc.getElementById('im-pay').classList.contains('im-reveal'),
+    'keep must make the wall opaque again');
   assert(/No commitment\. Cancel anytime\./.test(cdoc.getElementById('im-pay').textContent),
-    'the confirmation hands over to perks: setup first, sell second');
+    'keep hands over to perks: setup first, sell second');
   cactap('impact');
   await settle(450);
   cactap('pay');
@@ -1001,11 +1052,23 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(!cageLog.includes('cageOn'),
     'reaching the paywall still must not arm the shield');
   cactap('betafree');
-  await settle(950);
-  assert(cageLog.includes('cageOn') && cageLog.includes('track:cage_enabled'),
-    'the sequence ending well (here the beta grant) is what arms the shield');
+  await settle(450);
+  assert(cageLog.includes('track:cage_pitch_viewed') &&
+    /One last step: Connect Konvo to Screen Time, securely\./.test(cdoc.getElementById('im-pay').textContent),
+    'the sequence ending well (here the beta grant) leads to the Screen Time step');
+  assert(!cageLog.includes('cageOn'), 'the grant alone does not arm: the user connects first');
+  cactap('cage-setup-go');
+  await settle(600);
+  const ci = s => cageLog.indexOf(s);
+  assert(ci('cageAuthorize') > -1 && ci('cagePick') > ci('cageAuthorize') &&
+    ci('notify') > ci('cagePick') && ci('cageOn') > ci('notify'),
+    'cage setup must run authorize, pick, notify, then arm, in order');
+  assert(cageLog.includes('track:cage_enabled'), 'the arming is reported');
+  assert(/You're protected\./.test(cdoc.getElementById('im-pay').textContent),
+    'and end on the protected page');
   assert(cdoc.documentElement.classList.contains('im-caged'),
     'the pass button arms in the same session the shield goes up');
+  await settle(3600);   // the protected page holds 2.4s, then the .8s fade
   assert(!cdoc.getElementById('im-pay'),
     'the beta unlock still drops the wall');
 
@@ -1021,30 +1084,35 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const adoc = armed.window.document;
   const atap = act => adoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new armed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  atap('cage-setup-go');
-  await settle(500);
-  atap('cage-done');
+  atap('keep');
   await settle(450);
   atap('impact');
   await settle(450);
   atap('pay');
   await settle(450);
-  assert(!armLog.includes('cageOn'), 'a paid build must not arm before purchase either');
+  assert(!armLog.includes('cageOn') && !armLog.includes('cageAuthorize'),
+    'a paid build must not touch the shield before purchase either');
   atap('buy-y');
   await settle(450);
+  atap('cage-setup-go');
+  await settle(600);
   assert(armLog.indexOf('cageOn') > armLog.indexOf('purchase'),
-    'a successful purchase must arm the shield');
-  assert(/You're in\./.test(adoc.getElementById('im-pay').textContent),
-    'the confirmation follows the arming');
+    'a successful purchase, then the pick, arms the shield');
+  assert(/You're protected\./.test(adoc.getElementById('im-pay').textContent),
+    'the protected page follows the arming');
 
-  //     The free build's ending (Aug 21): Continue on perks shows the
-  //     drawn check and "You're all set.", holds a beat, then the wall
-  //     fades into the inbox by itself - no button.
+  //     The free build's ending: Continue on perks runs the tail. With no
+  //     bridge (this harness, the Mac) there is no shield to set up, so
+  //     the plain confirmation stands in and Open my messages ends it.
   const freeEnd = boot('/direct/inbox/', '', { free: true });
   await settle(8400);
   const edoc = freeEnd.window.document;
   const etap = act => edoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new freeEnd.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert(!/Choose a plan next/.test(edoc.getElementById('im-pay').textContent),
+    'the free build\'s reveal promises no plan');
+  etap('keep');
+  await settle(450);
   assert(/Free\. Nothing to cancel\./.test(edoc.getElementById('im-pay').textContent),
     'the free build must not promise a cancellation it has nothing to cancel');
   assert(/No feed, no Reels, no Explore/.test(edoc.getElementById('im-pay').textContent)
@@ -1052,13 +1120,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the rows must describe the product that exists');
   etap('welcomed');
   await settle(500);
-  assert(/You're all set\./.test(edoc.getElementById('im-pay').textContent)
+  assert(/You're in\./.test(edoc.getElementById('im-pay').textContent)
     && edoc.querySelector("#im-pay path[stroke-dasharray='24']"),
     'the free ending must show the drawn check before the inbox');
-  assert(!edoc.querySelector('#im-pay [data-act]'),
-    'the reveal has nothing to tap');
-  await settle(3400);   // 2.2s hold + the .8s fade, with slack for a loaded machine
-  assert(!edoc.getElementById('im-pay'), 'the reveal must fade into the inbox on its own');
+  etap('done');
+  await settle(950);
+  assert(!edoc.getElementById('im-pay'), 'Open my messages must drop the wall');
   assert.strictEqual(freeEnd.window.localStorage.getItem('konvoWelcomed'), '1',
     'the free ending still marks the sequence done');
 
@@ -1075,10 +1142,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const odoc = oldios.window.document;
   const otap2 = act => odoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new oldios.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  otap2('keep');
+  await settle(450);
   assert(/No commitment\. Cancel anytime\./.test(odoc.getElementById('im-pay').textContent),
-    'an unsupported bridge must land on perks');
+    'an unsupported bridge still reaches perks through the reveal');
   otap2('impact');
-  await settle(500);
+  await settle(450);
   assert(/Start your Free Week/.test(odoc.getElementById('im-pay').textContent),
     'and continue into the impact page');
   assert(!oldLog.includes('track:cage_pitch_viewed'),
@@ -1095,9 +1164,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   } });
   await settle(8400);
   const mdoc = mashed.window.document;
-  const mgo = () => mdoc.querySelector("[data-act='cage-setup-go']")
+  const mact = act => mdoc.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new mashed.window.MouseEvent('click',
       { bubbles: true, cancelable: true }));
+  // The connect page now sits after the grant (Aug 22).
+  for (const a of ['keep', 'impact', 'pay', 'betafree']) { mact(a); await settle(450); }
+  const mgo = () => mact('cage-setup-go');
   mgo(); mgo(); mgo();
   await settle(200);
   assert.strictEqual(mashLog.filter(c => c === 'cageAuthorize').length, 1,

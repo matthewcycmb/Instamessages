@@ -1163,6 +1163,22 @@
       '#im-pay .imp-mid{flex:1;display:flex;flex-direction:column;justify-content:center;' +
       'padding:0 24px;overflow-y:auto;overscroll-behavior:none}' +
       '#im-pay .imp-foot{flex:none;padding:0 20px 34px}' +
+      // The reveal (Aug 22): the wall goes clear over the real inbox, a
+      // pill up top, a sheet at the foot. The button inverts the scheme
+      // so it reads against whatever the inbox is showing.
+      '#im-pay{transition:background .5s ease}' +
+      '#im-pay.im-reveal{background:transparent}' +
+      '#im-pay .imp-pill{position:absolute;top:14px;left:50%;transform:translateX(-50%);' +
+      'display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:999px;' +
+      'background:rgba(18,22,30,.92);color:#5ee0a5;font-size:14px;font-weight:600;' +
+      'white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.3);z-index:2}' +
+      '#im-pay .imp-sheet{position:absolute;left:0;right:0;bottom:0;padding:12px 24px 36px;' +
+      'border-radius:26px 26px 0 0;background:var(--chip);text-align:center;' +
+      'box-shadow:0 -14px 44px rgba(0,0,0,.35)}' +
+      '#im-pay .imp-grab{width:36px;height:5px;border-radius:999px;background:var(--line);' +
+      'margin:0 auto 20px}' +
+      '#im-pay .imp-sheet .imp-btn{background:var(--ink);color:var(--bg);box-shadow:none;' +
+      'margin-top:22px}' +
       '#im-pay .imp-btn{width:100%;min-height:54px;border:0;border-radius:13px;' +
       'background:var(--accent);color:#fff;font-family:inherit;font-size:17px;font-weight:600;' +
       'letter-spacing:-0.012em;box-shadow:0 8px 18px rgba(10,92,240,.24)}' +
@@ -1582,8 +1598,8 @@
       // reads as expected rather than alarming. The footer claim is
       // structural fact: the selection never leaves the device.
       return "<div class='imp-mid' style='padding:24px'>" +
-        "<h2 style='font-size:26px;text-align:center'>Connect Konvo to " +
-        "Screen Time, Securely.</h2>" +
+        "<h2 style='font-size:26px;text-align:center'>One last step: Connect " +
+        "Konvo to Screen Time, securely.</h2>" +
         "<p style='font-size:15px;line-height:1.5;color:var(--mut);margin-top:8px;" +
         "text-align:center'>To block Instagram on this iPhone, Konvo will " +
         "need your permission.</p>" +
@@ -1615,21 +1631,24 @@
         "<button class='imp-btn' data-act='cage-setup-go'>Give permission</button>" +
         "<div class='imp-ghost' data-act='cage-skip'>Not now</div></div>";
     }
-    function cageDonePage() {
-      return "<div class='imp-mid' style='align-items:center;text-align:center'>" +
-        "<span style='width:56px;height:56px;border-radius:50%;background:var(--icbg);" +
-        "display:inline-flex;align-items:center;justify-content:center;color:var(--accent);" +
-        "animation:im-pop .7s cubic-bezier(0.34,1.56,0.64,1) both'>" +
-        "<svg width='26' height='26' viewBox='0 0 24 24' fill='none'" +
-        " stroke='currentColor' stroke-width='2.4' stroke-linecap='round'" +
-        " stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg></span>" +
-        "<h2 style='font-size:28px;margin-top:24px'>Ready to block Instagram</h2>" +
-        "<p style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:12px'>" +
-        "It locks the moment you start Konvo. Until then, nothing changes.</p>" +
-        "</div><div class='imp-foot'>" +
-        "<button class='imp-btn' data-act='cage-done'>Continue</button></div>";
+    // S12d (Aug 22): between "Ready to block" and the perks, the wall
+    // clears and the user's own inbox shows through - the thing they came
+    // for, recognisable, no mockup. The copy states only what the cage
+    // already does in this webview, shield or not.
+    function revealPage() {
+      return "<div class='imp-pill'><svg width='14' height='14' viewBox='0 0 24 24'" +
+        " fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round'" +
+        " stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg>Instagram connected</div>" +
+        "<div class='imp-sheet'><div class='imp-grab'></div>" +
+        "<h2 style='font-size:28px'>Your DMs are still here.</h2>" +
+        "<p style='font-size:15px;line-height:1.5;color:var(--mut);margin-top:10px'>" +
+        "Feed, Reels and Explore are now hidden. Stories, profiles and " +
+        "notifications still work.</p>" +
+        "<button class='imp-btn' data-act='keep'>Keep Instagram like this</button>" +
+        (window.__konvoFree ? "" :
+          "<p style='font-size:14px;color:var(--mut);margin-top:14px'>Choose a plan next</p>") +
+        "</div>";
     }
-
     // S12e: what the trial is FOR, immediately before the price. Three
     // claims, each one a thing the app actually does - no ratings, no user
     // count, no "heal your brain". The hours are the user's own answer,
@@ -1690,7 +1709,7 @@
     // The drawn check: scales in (im-pop) while the stroke runs tip to
     // tail (im-draw). Shared by the paid confirmation and the free
     // build's reveal.
-    function drawnCheck(head) {
+    function drawnCheck(head, sub) {
       return "<svg width='118' height='118' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
         " stroke-width='2' stroke-linecap='round' stroke-linejoin='round'" +
         " style='margin-bottom:38px;color:var(--accent);" +
@@ -1700,15 +1719,16 @@
         "<div style='font-size:44px;font-weight:700;letter-spacing:-0.05em;line-height:1;" +
         "text-align:center'>" + head + "</div>" +
         "<p style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:16px;" +
-        "text-align:center'>Your messages are waiting.</p>";
+        "text-align:center'>" + (sub || "Your messages are waiting.") + "</p>";
     }
 
-    // The free build's reveal (Aug 21): after "Why Konvo works", a beat
-    // of payoff - the check draws, "You're all set.", then the wall
-    // fades into the inbox on its own. Nothing to tap.
-    function readyPage() {
+    // The last page (Aug 22): shown only once the shield is up. The check
+    // draws, a beat, then the wall fades into the inbox on its own.
+    function protectedPage() {
       return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
-        drawnCheck("You're all set.") + "</div>";
+        drawnCheck("You're protected.",
+          "Instagram is blocked. Your DMs remain available through Konvo.") +
+        "</div>";
     }
 
     function successPage(pid) {
@@ -1718,10 +1738,6 @@
       var recap = "";
       if (pid === "konvo.pro.lifetime") recap = "Lifetime access active.";
       else if (td) recap = "Free until " + dateIn(td) + ".";
-      // The timeline promised a reminder before the charge. Scheduled now
-      // that the trial length is known; the permission was asked at the
-      // Screen Time step, so this prompts only someone who skipped it.
-      if (td) storekit("notify", String(td), function () {});
       return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
         drawnCheck("You're in.") +
         (recap ? "<p style='font-size:15px;font-weight:600;margin-top:14px;" +
@@ -1741,13 +1757,45 @@
     // or a new phone - gets the Screen Time step alone, then "You're all
     // set", then the inbox. Before this the inbox opened unblocked.
     var setupOnly = false;
+    // How the Screen Time step ends, wherever it ran: done arms the shield
+    // and shows "You're protected"; skipped, denied or nothing picked goes
+    // to the inbox as it is.
     function cageExit(done) {
-      if (!setupOnly) { swap(perksPage()); return; }
       setupOnly = false;
       if (!done) { dismiss(); return; }
-      armCage();
-      swap(readyPage());
-      setTimeout(dismiss, 2200);
+      armCage(function () {
+        swap(protectedPage());
+        setTimeout(dismiss, 2400);
+      });
+    }
+    // The tail of every successful sequence (Aug 22): purchase, trial,
+    // restore, beta grant or the free build's end lead HERE, and only now
+    // does the Screen Time step run - the shield goes up after the money,
+    // never before. A shield already authorised and picked (a lapsed
+    // subscriber coming back) is simply re-armed. Without iOS 16 there is
+    // no shield to set up, so the plain confirmation stands in.
+    function finish(screen) {
+      track("onboarding_completed", { screen_id: screen });
+      try { localStorage.konvoDone = "1"; } catch (e) {}
+      var td = lastBuy === "konvo.pro.yearly" ? (prod().yearly.trialDays || 0)
+             : lastBuy === "konvo.pro.monthly" ? (prod().monthly.trialDays || 0) : 0;
+      // The timeline promised a reminder before the charge: scheduled now
+      // that the trial length is known. iOS prompts only if never asked.
+      if (td) storekit("notify", String(td), function () {});
+      var moved = false;
+      var fallback = setTimeout(function () {
+        moved = true;
+        swap(successPage(lastBuy));
+      }, 900);
+      storekit("cageStatus", null, function (s) {
+        if (moved) return;
+        clearTimeout(fallback);
+        if (!s || !s.supported) { swap(successPage(lastBuy)); return; }
+        if (s.authorized && s.picked) { cagePending = true; cageExit(true); return; }
+        try { localStorage.konvoCageAsked = "1"; } catch (e) {}
+        track("cage_pitch_viewed", { screen_id: "s12f_cage" });
+        swap(cageIntroPage());
+      });
     }
     function armCage(then) {
       if (!cagePending) { if (then) then(); return; }
@@ -1805,7 +1853,7 @@
           screen_id: "s13_paywall",
         });
         grantBeta();
-        armCage(dismiss);
+        finish("s13_paywall");
         return;
       }
       btn.disabled = true;
@@ -1814,7 +1862,7 @@
         if (res && res.ok && res.entitled) {
           setCache(true);
           lastBuy = productId;
-          armCage(function () { swap(successPage(productId)); });
+          finish("s13_paywall");
         }
       });
     }
@@ -1891,11 +1939,16 @@
       } catch (e) {}
       wall = document.createElement("div");
       wall.id = "im-pay";
+      // A lapsed subscriber on an install that already finished the
+      // sequence sees the price and nothing else (Aug 22): the pitch is
+      // not replayed at someone who has heard it.
+      var lapsed = false;
+      try { lapsed = !!localStorage.konvoDone; } catch (e) {}
       if (setupOnly) {
         try { localStorage.konvoCageAsked = "1"; } catch (e) {}
         track("cage_pitch_viewed", { screen_id: "s12f_cage", via: "reinstall" });
       }
-      setPage(setupOnly ? cageIntroPage() : PAGES.connected);
+      setPage(setupOnly ? cageIntroPage() : lapsed ? "" : PAGES.connected);
       wall.addEventListener("click", function (e) {
         var t = e.target.closest("[data-act]");
         if (!t || !wall) return;
@@ -1907,17 +1960,13 @@
           setPage(pay(plan), true);
         } else if (act === "welcomed") {
           // Free build: the sequence is done, and it does not come back.
-          // The reveal holds for a beat, then dismiss() fades the wall
-          // into the inbox over .8s - the payoff is the inbox appearing.
-          track("onboarding_completed", { screen_id: "s12c_delete" });
           try { localStorage.setItem("konvoWelcomed", "1"); } catch (e) {}
-          swap(readyPage());
-          armCage();
-          setTimeout(dismiss, 2200);
-        } else if (act === "cage-skip" || act === "cage-done") {
-          // Declined or finished, the road is the same: on to the sell
-          // (or, in setup-only mode, straight to the inbox).
-          cageExit(act === "cage-done");
+          finish("s12c_delete");
+        } else if (act === "keep") {
+          wall.classList.remove("im-reveal");
+          swap(perksPage());
+        } else if (act === "cage-skip") {
+          cageExit(false);
         } else if (act === "cage-setup-go") {
           // One flight at a time: Apple's consent dialog sits over the
           // page and a user who keeps tapping the button underneath
@@ -1939,9 +1988,7 @@
               // Picked, not armed: the shield waits for the sequence to
               // end well (see armCage). The selection is stored natively.
               cagePending = true;
-              storekit("notify", null, function () {
-                swap(cageDonePage());
-              });
+              storekit("notify", null, function () { cageExit(true); });
             });
           });
         } else if (act === "impact") {
@@ -1955,7 +2002,7 @@
           // was seen and declined - which is the whole point of showing it.
           track("beta_free_taken", { via: "escape", screen_id: "s13_paywall" });
           grantBeta();
-          armCage(dismiss);
+          finish("s13_paywall");
         } else if (act === "buy-y") {
           buy(t, "konvo.pro.yearly");
         } else if (act === "buy-m") {
@@ -1965,8 +2012,10 @@
         } else if (act === "restore") {
           // Sync then re-read entitlements; unlocking straight to the
           // inbox - a restorer is returning, not starting a trial.
+          // A restorer is returning, not starting a trial - but on this
+          // phone the shield may not exist yet, so the tail still runs.
           storekit("restore", null, function (res) {
-            if (res && res.entitled) { setCache(true); dismiss(); }
+            if (res && res.entitled) { setCache(true); finish("s13_paywall"); }
           });
         } else if (act === "done") {
           track("onboarding_completed", { screen_id: "s14_success" });
@@ -1992,10 +2041,20 @@
       // Live prices arrive while the connected/loader beat plays; the S13
       // render reads whatever answered by then. The cadence is deliberately
       // slow: ~1.8s on connected, ~4.4s of rows ticking, crossfades between.
+      var payShown = false;
+      var showPay = function () {
+        if (payShown || !wall) return;
+        payShown = true;
+        track("paywall_viewed", { variant: "default", screen_id: "s13_paywall", via: "lapsed" });
+        setPage(pay("y"));
+      };
       storekit("products", null, function (res) {
         if (res && res.ok) P = res;
+        if (lapsed) showPay();
       });
       if (setupOnly) return;
+      // Live prices first when they arrive in time; the stand-ins after.
+      if (lapsed) { setTimeout(showPay, 1500); return; }
       setTimeout(function () {
         swap(loaderPage(), tickRows);
       }, 1800);
@@ -2007,25 +2066,11 @@
         // centerpiece). iOS 15 and a bridge that never answers land on
         // perks; the timeout is the hung-bridge fallback, and a MISSING
         // bridge (macOS) answers null instantly through storekit's catch.
-        var moved = false;
-        // 900ms: a bridge that has not answered by then is not answering
-        // (a MISSING bridge answers null instantly), and the tests' walk
-        // clocks need the slack.
-        var toPerks = setTimeout(function () {
-          moved = true;
-          swap(perksPage());
-        }, 900);
-        storekit("cageStatus", null, function (s) {
-          if (moved) return;
-          clearTimeout(toPerks);
-          if (s && s.supported) {
-            try { localStorage.konvoCageAsked = "1"; } catch (e) {}
-            track("cage_pitch_viewed", { screen_id: "s12f_cage" });
-            swap(cageIntroPage());
-          } else {
-            swap(perksPage());
-          }
-        });
+        // The reveal (Aug 22): straight from the loader, the wall clears
+        // over the user's own inbox. The Screen Time step moved to the
+        // tail of the sequence (finish), after the money.
+        track("inbox_reveal_viewed", { screen_id: "s12d_reveal" });
+        swap(revealPage(), function () { if (wall) wall.classList.add("im-reveal"); });
       }, 6200);
     }
 

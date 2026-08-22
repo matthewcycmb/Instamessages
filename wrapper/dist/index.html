@@ -314,8 +314,12 @@
   /* The S8 heroes bleed under a footer wash that lands on the page color,
      whichever scheme owns it. */
   .hero { flex: 1; min-height: 0; position: relative }
+  /* All three phones share one box: sized by height so the frames
+     (three renders with slightly different proportions) read as one
+     size, same top edge, centred. Sizing by width left them 6% apart. */
   .hero img { position: absolute; top: 10px; left: 50%;
-              transform: translateX(-50%); width: min(250px, 64vw) }
+              transform: translateX(-50%); height: min(520px, 128vw);
+              width: auto }
   .herofoot { flex: none; padding: 22px 20px 34px;
               background: linear-gradient(180deg, transparent 0%,
               var(--bg) 34%); position: relative; z-index: 1 }
@@ -596,11 +600,7 @@
       <p class="sub" style="margin-top: 8px">Two 5 minute passes to unlock the
          Instagram app, post a story or Reel, or call someone.</p>
     </div>
-    <div class="hero" style="display: flex; align-items: center;
-         justify-content: center">
-      <img src="pass-hero.png" alt="" style="max-height: 100%;
-           max-width: min(268px, 68vw); object-fit: contain">
-    </div>
+    <div class="hero"><img src="pass-hero.png" alt=""></div>
     <div class="herofoot">
       <div class="dots"><i></i><i></i><i class="on"></i></div>
       <button class="btn" data-next="s2a">Continue</button>
