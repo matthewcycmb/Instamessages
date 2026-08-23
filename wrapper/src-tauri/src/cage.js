@@ -269,6 +269,139 @@
     } catch (e) { stop(); }
   }
 
+  // Login drop-off detail (Aug 23): what people DO on Instagram's own
+  // pages before they vanish. Taps by button label, submits, the error
+  // Instagram shows (classified into an enum, never quoted), and the
+  // moment the app goes to the background with a login page up. Stage
+  // names and enums only; nothing typed is ever read, and a "Continue as
+  // <name>" button loses its name.
+  var loginWatched = false, loginSubmits = 0, loginT0 = Date.now();
+  var loginErrorsSeen = {};
+  function loginStage() {
+    return location.pathname.indexOf("/challenge") !== -1 ? "challenge"
+      : location.pathname.indexOf("two_factor") !== -1 ? "two_factor"
+      : location.pathname.indexOf("/accounts/login") === 0 ? "login" : null;
+  }
+  function classifyLoginError(t) {
+    t = t.toLowerCase();
+    if (/password was incorrect|incorrect password/.test(t)) return "wrong_password";
+    if (/doesn.t belong to an account|username you entered|can.t find an account/.test(t)) return "no_account";
+    if (/security code|check the code|code you entered|code is incorrect/.test(t)) return "two_factor_code";
+    if (/wait a few minutes|try again later|too many|limit/.test(t)) return "rate_limited";
+    if (/suspicious|confirm it.s you|unusual|verify/.test(t)) return "challenge";
+    if (/went wrong|error occurred|try again/.test(t)) return "generic";
+    return "other";
+  }
+  function watchLogin() {
+    if (loginWatched) return;
+    loginWatched = true;
+    document.addEventListener("click", function (e) {
+      var st = loginStage();
+      var b = e.target && e.target.closest && e.target.closest("button,[role=button],a");
+      if (!st || !b) return;
+      var label = (b.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
+      if (!label) return;
+      label = label.replace(/^(continue|log in) as .*$/, "$1 as").slice(0, 24);
+      track("login_tap", { stage: st, label: label });
+    }, true);
+    // The keyboard's Passwords key is the whole trick and nobody looks
+    // for it: say so once, the first time a login field takes focus, and
+    // take it down on submit. Plain words, no promise the phone may not
+    // keep (a phone with nothing saved still sees the key).
+    // The fields must be named BEFORE iOS reads them, which happens at
+    // focus: the 800ms sweep alone lost the race to a quick tap (build
+    // 61 showed the key, 62 did not). So: the moment inputs appear, and
+    // once more inside the focus event, which runs before WebKit reports
+    // the focused field to the keyboard.
+    try {
+      new MutationObserver(function () {
+        var st = loginStage();
+        if (st) hintLoginFields(st);
+      }).observe(document.documentElement, { childList: true, subtree: true });
+    } catch (e) {}
+    var hintShown = false;
+    document.addEventListener("focusin", function (e) {
+      var st = loginStage();
+      var el = e.target;
+      if (st) hintLoginFields(st);
+      if (hintShown || st !== "login" || !el || el.tagName !== "INPUT") return;
+      if (el.type !== "password" && el.name !== "username" && el.name !== "email") return;
+      hintShown = true;
+      // Under Instagram's logo when it can be found, the top edge when not.
+      var top = 14;
+      var logo = document.querySelector("img[alt*='Instagram' i],[aria-label='Instagram'],svg[aria-label*='Instagram' i]");
+      if (logo && logo.getBoundingClientRect) {
+        var r = logo.getBoundingClientRect();
+        if (r.height > 0 && r.bottom < window.innerHeight / 2) top = Math.round(r.bottom + 14);
+      }
+      var tip = document.createElement("div");
+      tip.id = "im-keytip";
+      tip.setAttribute("style", "position:fixed;top:" + top + "px;left:16px;right:16px;" +
+        "z-index:2147483646;padding:12px 18px;border-radius:18px;" +
+        "background:rgba(18,22,30,.94);color:#f2f3f7;font:600 14px/1.35 -apple-system,system-ui,sans-serif;" +
+        "box-shadow:0 4px 18px rgba(0,0,0,.3);text-align:center;pointer-events:none");
+      tip.textContent = "Press \u201CPasswords\u201D above your keyboard and search Instagram to find your account.";
+      (document.body || document.documentElement).appendChild(tip);
+      track("login_keytip_shown", { stage: st });
+    }, true);
+    function dropKeyTip() {
+      var t = document.getElementById("im-keytip");
+      if (t && t.parentNode) t.parentNode.removeChild(t);
+    }
+    document.addEventListener("submit", function () {
+      var st = loginStage();
+      if (!st) return;
+      loginSubmits++;
+      dropKeyTip();
+      track("login_submitted", { stage: st, attempt: loginSubmits });
+    }, true);
+    document.addEventListener("visibilitychange", function () {
+      var st = loginStage();
+      if (document.visibilityState !== "hidden" || !st) return;
+      track("login_left", { stage: st, submits: loginSubmits,
+        seconds: Math.round((Date.now() - loginT0) / 1000) });
+    });
+  }
+  // Keychain AutoFill (Aug 23): Instagram's phone login page marks its
+  // fields autocomplete="on" and keeps them outside any form, which tells
+  // iOS nothing. WebKit in a third-party webview hands the keyboard a
+  // content type only from the autocomplete token (Safari has its own
+  // form analysis), so the saved password never surfaced. Naming the
+  // fields makes the suggestion appear: one tap, Face ID, both filled.
+  // The two-factor code field gets one-time-code, so the SMS code is
+  // offered above the keyboard as well. Reapplied every sweep because a
+  // React re-render can put the old attribute back.
+  function hintLoginFields(st) {
+    var i, els;
+    if (st === "two_factor") {
+      els = document.querySelectorAll("input[name*=code i],input[name*=verification i],input[inputmode=numeric]");
+      for (i = 0; i < els.length; i++) {
+        if (els[i].getAttribute("autocomplete") !== "one-time-code")
+          els[i].setAttribute("autocomplete", "one-time-code");
+      }
+      return;
+    }
+    els = document.querySelectorAll("input[name=username],input[name=email]");
+    for (i = 0; i < els.length; i++) {
+      if (els[i].getAttribute("autocomplete") !== "username")
+        els[i].setAttribute("autocomplete", "username");
+    }
+    els = document.querySelectorAll("input[type=password]");
+    for (i = 0; i < els.length; i++) {
+      if (els[i].getAttribute("autocomplete") !== "current-password")
+        els[i].setAttribute("autocomplete", "current-password");
+    }
+  }
+  function pollLoginErrors(st) {
+    var els = document.querySelectorAll("[role=alert],[id$=ErrorAlert],[data-testid*=error]");
+    for (var i = 0; i < els.length; i++) {
+      var t = (els[i].textContent || "").trim();
+      if (t.length < 8 || loginErrorsSeen[t]) continue;
+      loginErrorsSeen[t] = 1;
+      track("login_error", { stage: st, error: classifyLoginError(t), submits: loginSubmits });
+    }
+  }
+
   function enforce() {
     if (!location.hostname.endsWith("instagram.com")) return;
     if (/iPhone|iPad|iPod/.test(navigator.userAgent)) sizeViewport();
@@ -288,6 +421,11 @@
       // A signed-in visit to these routes is not login friction.
       if (!/(?:^|; )ds_user_id=\d/.test(document.cookie))
         track("login_step", { stage: ls });
+    }
+    if (ls && !/(?:^|; )ds_user_id=\d/.test(document.cookie)) {
+      watchLogin();
+      hintLoginFields(ls);
+      pollLoginErrors(ls);
     }
     // Session rescue: landing on the login page with no session cookie
     // means WebKit lost the cookies (lazy disk flush plus a force-quit;
@@ -1132,7 +1270,7 @@
     style.textContent += "html.im-inbox canvas{transform:scale(1.06)}";
     style.textContent +=
       '#im-pay{--bg:#fff;--ink:#141d33;--mut:#5d6478;--line:#d9d9de;' +
-      '--chip:#f2f2f4;--icbg:#eef3ff;--accent:#0a5cf0}' +
+      '--chip:#f2f2f4;--icbg:#eef3ff;--accent:#0a5cf0;--sheet:rgba(242,242,244,.9)}' +
       // System appearance (Aug 16): the wall follows the phone like the
       // rest of onboarding. Same palette as dist/index.html's dark block;
       // pure black --bg meets the native letterbox with no seam. The
@@ -1140,7 +1278,7 @@
       // order (the first cut lost the cascade and the annual card stayed
       // white with dark-scheme text).
       '@media (prefers-color-scheme: dark){' +
-      '#im-pay#im-pay{--bg:#000;--ink:#f2f3f7;--mut:#9aa0ae;--line:#2a2d36;' +
+      '#im-pay#im-pay{--bg:#000;--ink:#f2f3f7;--mut:#9aa0ae;--line:#2a2d36;--sheet:rgba(24,27,35,.82);' +
       '--chip:#1c1f27;--icbg:#101c33;--accent:#0a84ff}' +
       '#im-pay#im-pay .imp-pk.on{background:#101c33}' +
       // The timeline stem was near-black on black; a visible blue.
@@ -1168,17 +1306,35 @@
       // so it reads against whatever the inbox is showing.
       '#im-pay{transition:background .5s ease}' +
       '#im-pay.im-reveal{background:transparent}' +
+      // The reveal's choreography (Aug 23): the pill drops in with a
+      // spring as the wall clears, its check draws itself, a green ring
+      // breathes out once; the sheet slides up a beat later, translucent
+      // over the inbox and a third shorter than the first cut, so the
+      // inbox is the picture and the sheet the caption.
       '#im-pay .imp-pill{position:absolute;top:14px;left:50%;transform:translateX(-50%);' +
       'display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:999px;' +
       'background:rgba(18,22,30,.92);color:#5ee0a5;font-size:14px;font-weight:600;' +
-      'white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.3);z-index:2}' +
-      '#im-pay .imp-sheet{position:absolute;left:0;right:0;bottom:0;padding:12px 24px 36px;' +
-      'border-radius:26px 26px 0 0;background:var(--chip);text-align:center;' +
-      'box-shadow:0 -14px 44px rgba(0,0,0,.35)}' +
-      '#im-pay .imp-grab{width:36px;height:5px;border-radius:999px;background:var(--line);' +
-      'margin:0 auto 20px}' +
+      'white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.3);z-index:2;' +
+      'animation:im-pilldrop .7s cubic-bezier(.34,1.56,.64,1) .15s both,' +
+      'im-pillring 1.3s ease-out .7s both}' +
+      '@keyframes im-pilldrop{from{transform:translate(-50%,-36px) scale(.8);opacity:0}}' +
+      '@keyframes im-pillring{0%{box-shadow:0 4px 18px rgba(0,0,0,.3),0 0 0 0 rgba(94,224,165,.6)}' +
+      '100%{box-shadow:0 4px 18px rgba(0,0,0,.3),0 0 0 22px rgba(94,224,165,0)}}' +
+      '#im-pay .imp-pill path{stroke-dasharray:24;stroke-dashoffset:24;' +
+      'animation:im-draw .45s ease-out .55s forwards}' +
+      '#im-pay .imp-sheet{position:absolute;left:0;right:0;bottom:0;padding:8px 22px 22px;' +
+      'border-radius:24px 24px 0 0;background:var(--sheet);text-align:center;' +
+      '-webkit-backdrop-filter:saturate(1.4) blur(22px);backdrop-filter:saturate(1.4) blur(22px);' +
+      'box-shadow:0 -10px 36px rgba(0,0,0,.3);' +
+      'animation:im-sheetup .65s cubic-bezier(.32,.72,0,1) .45s both}' +
+      '@keyframes im-sheetup{from{transform:translateY(110%)}}' +
+      '#im-pay .imp-sheet h2{font-size:22px}' +
+      '#im-pay .imp-sheet p{font-size:13.5px;line-height:1.45;color:var(--mut);margin-top:6px}' +
+      '#im-pay .imp-grab{width:34px;height:4px;border-radius:999px;background:var(--line);' +
+      'margin:0 auto 12px}' +
       '#im-pay .imp-sheet .imp-btn{background:var(--ink);color:var(--bg);box-shadow:none;' +
-      'margin-top:22px}' +
+      'margin-top:14px;min-height:48px;font-size:16px}' +
+      '#im-pay .imp-sheet .imp-next{font-size:13px;color:var(--mut);margin-top:10px}' +
       '#im-pay .imp-btn{width:100%;min-height:54px;border:0;border-radius:13px;' +
       'background:var(--accent);color:#fff;font-family:inherit;font-size:17px;font-weight:600;' +
       'letter-spacing:-0.012em;box-shadow:0 8px 18px rgba(10,92,240,.24)}' +
@@ -1640,13 +1796,11 @@
         " fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round'" +
         " stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg>Instagram connected</div>" +
         "<div class='imp-sheet'><div class='imp-grab'></div>" +
-        "<h2 style='font-size:28px'>Your DMs are still here.</h2>" +
-        "<p style='font-size:15px;line-height:1.5;color:var(--mut);margin-top:10px'>" +
-        "Feed, Reels and Explore are now hidden. Stories, profiles and " +
+        "<h2>Your DMs are still here.</h2>" +
+        "<p>Feed, Reels and Explore are now hidden. Stories, profiles and " +
         "notifications still work.</p>" +
         "<button class='imp-btn' data-act='keep'>Keep Instagram like this</button>" +
-        (window.__konvoFree ? "" :
-          "<p style='font-size:14px;color:var(--mut);margin-top:14px'>Choose a plan next</p>") +
+        (window.__konvoFree ? "" : "<p class='imp-next'>Choose a plan next</p>") +
         "</div>";
     }
     // S12e: what the trial is FOR, immediately before the price. Three
@@ -1677,29 +1831,46 @@
       var sub = h
         ? "reclaim " + h + " hour" + (h === 1 ? "" : "s") + " back"
         : "get your evenings back";
-      return "<div class='imp-head' style='height:150px'>" +
+      return "<div class='imp-head' style='height:112px'>" +
         "<div style='position:absolute;inset:0;background:radial-gradient(circle at 50% 30%," +
         "rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 60%)'></div>" +
-        "<div style='position:absolute;left:50%;top:38px;transform:translateX(-50%);" +
+        "<div style='position:absolute;left:50%;top:24px;transform:translateX(-50%);" +
         "width:64px;height:64px;border-radius:18px;background:#fff;display:flex;" +
         "align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(4,30,80,.35)'>" +
         "<svg width='34' height='34' viewBox='0 0 24 24' fill='none' stroke='#0a5cf0' " +
         "stroke-width='2.2' stroke-linejoin='round'><path d='M12 4c-4.4 0-8 3-8 6.8 " +
         "0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z'/>" +
         "</svg></div></div>" +
-        "<div class='imp-mid' style='justify-content:flex-start;padding:26px 26px 0'>" +
+        "<div class='imp-mid' style='justify-content:flex-start;padding:18px 26px 0'>" +
         "<h2 style='font-size:26px;text-align:center;line-height:1.2'>" + head +
         " and<br>" + sub + "</h2>" +
-        "<div style='margin-top:22px'>" +
+        "<div style='margin-top:14px'>" +
         impactRow(CHAT, "Stay connected",
           "Messages, requests and friends' Stories all still work.") +
         impactRow(MOON, "Reclaim your focus",
           "No feed, no Reels, no Explore. Nothing to fall into.") +
         impactRow(SHIELD, "Never get distracted",
           "There is no setting to switch off at 11pm.") +
-        "</div></div>" +
+        "</div>" + reviewCard() + "</div>" +
         "<div class='imp-foot'>" +
         "<button class='imp-btn' data-act='pay'>Continue</button></div>";
+    }
+    // The one review Konvo has (Aug 23): App Store, Canada, Aug 20 2026,
+    // five stars, quoted word for word. The rule stands: nothing invented,
+    // no claim the reviewer did not make. Replace or add only from real
+    // App Store reviews.
+    function reviewCard() {
+      var star = "<svg width='15' height='15' viewBox='0 0 24 24' fill='#f5a623'>" +
+        "<path d='M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z'/></svg>";
+      return "<div style='margin:12px 0 8px;padding:14px 16px;border-radius:16px;" +
+        "background:var(--chip);text-align:left'>" +
+        "<div style='display:flex;gap:2px'>" + star + star + star + star + star + "</div>" +
+        "<p style='font-size:15px;font-weight:700;margin-top:8px'>Best screen time app</p>" +
+        "<p style='font-size:14px;line-height:1.45;color:var(--mut);margin-top:4px'>" +
+        "\u201CI\u2019ve tried so many other screentime apps in the past but they never " +
+        "actually worked. But using Konvo to only access my instagram messages is a " +
+        "game changer trust me\u201D</p>" +
+        "<p style='font-size:12px;color:var(--mut);margin-top:8px'>App Store review</p></div>";
     }
 
     // S14: post-purchase activation. Trial buyers get the recap and the

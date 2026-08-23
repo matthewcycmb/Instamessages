@@ -831,6 +831,86 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert.deepStrictEqual(stages, ['challenge', 'two_factor', 'login'],
     'a signed-in challenge visit must not report');
 
+  //     Login drop-off detail (Aug 23): taps by label, submits, the error
+  //     Instagram shows (as an enum, never its text), and going to the
+  //     background with the page up. Nothing typed ever leaves the page.
+  const detail = [];
+  const loginHtml = `<form id="f"><input name="username" value="alex.chen"><input name="password" type="password" value="hunter2">
+    <button type="submit">Log in</button></form><a href="/accounts/password/reset/">Forgot password?</a>
+    <button>Continue as alex.chen</button><div id="errbox"></div>`;
+  const lp = boot('/accounts/login/', loginHtml, { loggedOut: true, bridge: m => {
+    if (m.cmd === 'track') detail.push([m.event, m.props]);
+  } });
+  await settle(900);
+  const ldoc2 = lp.window.document;
+  const lclick = el => el.dispatchEvent(new lp.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  lclick(ldoc2.querySelector('a'));
+  lclick(ldoc2.querySelectorAll('button')[1]);
+  //     The Passwords-key hint: shown once on the first login field focus,
+  //     gone on submit.
+  //     Named before focus is read: a freshly inserted field is hinted by
+  //     the observer, without waiting for the sweep.
+  const late = ldoc2.createElement('input'); late.name = 'username'; late.type = 'text';
+  ldoc2.getElementById('f').appendChild(late);
+  await settle(50);
+  assert.strictEqual(late.getAttribute('autocomplete'), 'username',
+    'a field that appears late must be named at once, not on the next sweep');
+  ldoc2.querySelector('input[name=username]').dispatchEvent(new lp.window.Event('focusin', { bubbles: true }));
+  assert(/Press \u201CPasswords\u201D above your keyboard and search Instagram to find your account\./.test(
+    (ldoc2.getElementById('im-keytip') || {}).textContent || ''),
+    'focusing a login field must show the Passwords-key hint with the agreed wording');
+  ldoc2.querySelector('input[name=password]').dispatchEvent(new lp.window.Event('focusin', { bubbles: true }));
+  assert.strictEqual(ldoc2.querySelectorAll('#im-keytip').length, 1, 'the hint shows once, not per field');
+  ldoc2.getElementById('f').dispatchEvent(new lp.window.Event('submit', { bubbles: true, cancelable: true }));
+  assert(!ldoc2.getElementById('im-keytip'), 'submit takes the hint down');
+  ldoc2.getElementById('errbox').innerHTML =
+    '<p role="alert" id="slfErrorAlert">Sorry, your password was incorrect. Please double-check your password.</p>';
+  await settle(900);
+  Object.defineProperty(ldoc2, 'visibilityState', { value: 'hidden', configurable: true });
+  ldoc2.dispatchEvent(new lp.window.Event('visibilitychange'));
+  const names = detail.map(d => d[0]);
+  assert(names.includes('login_step'), 'the stage still reports');
+  const taps = detail.filter(d => d[0] === 'login_tap').map(d => d[1].label);
+  assert.deepStrictEqual(taps, ['forgot password?', 'continue as'],
+    'taps report their label, and a saved-login button loses the name');
+  const sub = detail.find(d => d[0] === 'login_submitted');
+  assert(sub && sub[1].stage === 'login' && sub[1].attempt === 1, 'a submit reports the stage and attempt');
+  const err = detail.find(d => d[0] === 'login_error');
+  assert(err && err[1].error === 'wrong_password' && err[1].submits === 1,
+    'an Instagram error reports as an enum with the submit count');
+  assert.strictEqual(detail.filter(d => d[0] === 'login_error').length, 1,
+    'the same error reports once, not on every sweep');
+  const left = detail.find(d => d[0] === 'login_left');
+  assert(left && left[1].stage === 'login' && left[1].submits === 1 && typeof left[1].seconds === 'number',
+    'backgrounding with the page up reports where and after how many tries');
+  const blob = JSON.stringify(detail);
+  assert(!/alex\.chen|hunter2|double-check/.test(blob),
+    'nothing typed and no error text may ever reach the bridge');
+  //     Keychain AutoFill (Aug 23): the sweep names the fields for iOS.
+  //     Instagram ships them as autocomplete="on", which the keyboard
+  //     ignores; username / current-password is what surfaces the saved
+  //     password. The two-factor code field gets one-time-code.
+  assert.strictEqual(ldoc2.querySelector('input[name=username]').getAttribute('autocomplete'), 'username',
+    'the username field must be named for AutoFill');
+  assert.strictEqual(ldoc2.querySelector('input[name=password]').getAttribute('autocomplete'), 'current-password',
+    'the password field must be named for AutoFill');
+  ldoc2.querySelector('input[name=username]').setAttribute('autocomplete', 'on');
+  await settle(900);
+  assert.strictEqual(ldoc2.querySelector('input[name=username]').getAttribute('autocomplete'), 'username',
+    'a re-render that puts "on" back is corrected on the next sweep');
+  const tfa = boot('/accounts/login/two_factor/', '<input name="verificationCode" inputmode="numeric" autocomplete="on">',
+    { loggedOut: true, bridge: () => {} });
+  await settle(900);
+  assert.strictEqual(tfa.window.document.querySelector('input').getAttribute('autocomplete'), 'one-time-code',
+    'the two-factor code field must offer the SMS code');
+  const signedLoginDetail = boot('/accounts/login/', loginHtml, { bridge: m => {
+    if (m.cmd === 'track' && /^login_(tap|submitted|error|left)$/.test(m.event)) detail.push(['SIGNED', m.event]);
+  } });
+  await settle(900);
+  signedLoginDetail.window.document.getElementById('f').dispatchEvent(
+    new signedLoginDetail.window.Event('submit', { bubbles: true, cancelable: true }));
+  assert(!detail.some(d => d[0] === 'SIGNED'), 'a signed-in visit to the login route reports no detail');
+
   //     Session rescue: a logged-out login page asks native for the
   //     cookie snapshot ONCE, and a restored snapshot goes back to the
   //     inbox. WebKit loses cookies on a force-quit soon after login
