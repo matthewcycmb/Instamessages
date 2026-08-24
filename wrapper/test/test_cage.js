@@ -836,6 +836,19 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert.deepStrictEqual(stages, ['challenge', 'two_factor', 'login'],
     'a signed-in challenge visit must not report');
 
+  //     The search-mode back arrow (Aug 24): hidden by the cage's CSS, its
+  //     rect is zeros, so it is found by structure - same subtree as the
+  //     search input - and tagged .im-keep-back on the sweep.
+  const searchHtml = `<header><a href="/"><svg aria-label="Back"></svg></a></header>
+    <div><div><a href="#back"><svg aria-label="Back"></svg></a><input type="text" placeholder="Search"></div></div>`;
+  const searchPage = boot('/direct/inbox/', searchHtml, { bridge: () => {} });
+  await settle(1000);
+  const sdoc2 = searchPage.window.document;
+  assert(sdoc2.querySelector("a[href='#back']").classList.contains('im-keep-back'),
+    'the arrow beside the search input must be tagged to survive the hiding');
+  assert(!sdoc2.querySelector("header a").classList.contains('im-keep-back'),
+    'the header escape arrow must stay hidden');
+
   //     Login drop-off detail (Aug 23): taps by label, submits, the error
   //     Instagram shows (as an enum, never its text), and going to the
   //     background with the page up. Nothing typed ever leaves the page.

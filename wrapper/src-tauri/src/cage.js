@@ -414,6 +414,7 @@
   function enforce() {
     if (!location.hostname.endsWith("instagram.com")) return;
     if (/iPhone|iPad|iPod/.test(navigator.userAgent)) sizeViewport();
+    if (atInbox()) sweepKeepBack();
     if (blocked(location.pathname)) {
       try { window.stop(); } catch (e) {}
       location.replace("/direct/inbox/");
@@ -567,17 +568,29 @@
   // SPA) fire neither and simply do not animate.
   // Search mode is a route the URL never changes for, so the class carries
   // it: focusing a search box unhides Instagram's own way back out.
-  function keepSearchBack(input) {
-    var box = input.getBoundingClientRect();
-    var mid = box.top + box.height / 2;
-    var arrows = document.querySelectorAll(
-      "a:has(svg[aria-label='Back']),[role='button']:has(svg[aria-label='Back'])");
-    for (var i = 0; i < arrows.length; i++) {
-      // Same row as the field it belongs to. The header's escape arrow
-      // sits a row above and stays hidden.
-      var r = arrows[i].getBoundingClientRect();
-      var same = Math.abs(r.top + r.height / 2 - mid) < box.height;
-      arrows[i].classList.toggle("im-keep-back", same);
+  // Search mode outlives the keyboard, and the arrow is display:none by
+  // the time we look (our own back-button CSS hides it), so its bounding
+  // box is zeros and no geometry can find it - which is why the tag never
+  // landed (Aug 24, device). Structure instead of geometry: the arrow that
+  // belongs to search lives in the same small subtree as the search
+  // input, so walk up a few levels from every text input and tag any Back
+  // arrow found there. The header's escape arrow sits in another subtree
+  // and stays hidden. Re-tagged every sweep because re-renders replace
+  // the node; a tagged node that leaves the DOM needs no untagging.
+  function sweepKeepBack() {
+    var inputs = document.querySelectorAll("input[type=text],input:not([type])");
+    for (var i = 0; i < inputs.length; i++) {
+      var node = inputs[i];
+      for (var up = 0; up < 4 && node; up++) {
+        node = node.parentElement;
+        if (!node || node === document.body) break;
+        var arrows = node.querySelectorAll(
+          "a:has(svg[aria-label='Back']),[role='button']:has(svg[aria-label='Back'])");
+        if (arrows.length) {
+          for (var j = 0; j < arrows.length; j++) arrows[j].classList.add("im-keep-back");
+          break;
+        }
+      }
     }
   }
   document.addEventListener("focusin", function (e) {
@@ -589,16 +602,8 @@
     // Instagram renders the search-mode back arrow a beat after focus, and
     // sometimes re-renders it again; one shot missed it.
     [60, 250, 600].forEach(function (ms) {
-      setTimeout(function () { keepSearchBack(t); }, ms);
+      setTimeout(sweepKeepBack, ms);
     });
-  }, true);
-  document.addEventListener("focusout", function () {
-    setTimeout(function () {
-      var a = document.activeElement;
-      if (a && a.tagName === "INPUT") return;
-      var kept = document.querySelectorAll(".im-keep-back");
-      for (var i = 0; i < kept.length; i++) kept[i].classList.remove("im-keep-back");
-    }, 0);
   }, true);
 
   var isPhone = /iPhone|iPad|iPod/.test(navigator.userAgent);
