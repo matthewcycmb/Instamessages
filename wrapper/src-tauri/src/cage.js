@@ -319,35 +319,10 @@
         if (st) hintLoginFields(st);
       }).observe(document.documentElement, { childList: true, subtree: true });
     } catch (e) {}
-    var hintShown = false;
-    document.addEventListener("focusin", function (e) {
+    document.addEventListener("focusin", function () {
       var st = loginStage();
-      var el = e.target;
       if (st) hintLoginFields(st);
-      if (hintShown || st !== "login" || !el || el.tagName !== "INPUT") return;
-      if (el.type !== "password" && el.name !== "username" && el.name !== "email") return;
-      hintShown = true;
-      // Under Instagram's logo when it can be found, the top edge when not.
-      var top = 14;
-      var logo = document.querySelector("img[alt*='Instagram' i],[aria-label='Instagram'],svg[aria-label*='Instagram' i]");
-      if (logo && logo.getBoundingClientRect) {
-        var r = logo.getBoundingClientRect();
-        if (r.height > 0 && r.bottom < window.innerHeight / 2) top = Math.round(r.bottom + 14);
-      }
-      var tip = document.createElement("div");
-      tip.id = "im-keytip";
-      tip.setAttribute("style", "position:fixed;top:" + top + "px;left:16px;right:16px;" +
-        "z-index:2147483646;padding:12px 18px;border-radius:18px;" +
-        "background:rgba(18,22,30,.94);color:#f2f3f7;font:600 14px/1.35 -apple-system,system-ui,sans-serif;" +
-        "box-shadow:0 4px 18px rgba(0,0,0,.3);text-align:center;pointer-events:none");
-      tip.textContent = "Press \u201CPasswords\u201D above your keyboard and search Instagram to find your account.";
-      (document.body || document.documentElement).appendChild(tip);
-      track("login_keytip_shown", { stage: st });
     }, true);
-    function dropKeyTip() {
-      var t = document.getElementById("im-keytip");
-      if (t && t.parentNode) t.parentNode.removeChild(t);
-    }
     document.addEventListener("submit", function () {
       var st = loginStage();
       if (!st) return;
@@ -392,6 +367,40 @@
         els[i].setAttribute("autocomplete", "current-password");
     }
   }
+  // The hint shows the moment the sign-in form is on screen (Aug 23), not
+  // on the first tap: the sweep calls this until the form exists.
+  var hintShown = false, hintTries = 0;
+  function showKeyTip(st) {
+    if (hintShown || st !== "login") return;
+    if (!document.querySelector("input[name=username],input[name=email],input[type=password]")) return;
+    // Under Instagram's logo. The logo image lays out a beat after the
+    // inputs, so wait for it to have a size (TestFlight 66 pinned the tip
+    // to the top edge by racing it); after ~4s of sweeps, top edge it is.
+    var top = 14, pinned = false;
+    var logo = document.querySelector("img[alt*='Instagram' i],[aria-label='Instagram'],svg[aria-label*='Instagram' i]");
+    if (logo && logo.getBoundingClientRect) {
+      var r = logo.getBoundingClientRect();
+      if (r.height > 0 && r.bottom < window.innerHeight / 2) {
+        top = Math.round(r.bottom + 14);
+        pinned = true;
+      }
+    }
+    if (!pinned && hintTries++ < 5) return;
+    hintShown = true;
+    var tip = document.createElement("div");
+    tip.id = "im-keytip";
+    tip.setAttribute("style", "position:fixed;top:" + top + "px;left:16px;right:16px;" +
+      "z-index:2147483646;padding:12px 18px;border-radius:18px;" +
+      "background:rgba(18,22,30,.94);color:#f2f3f7;font:600 14px/1.35 -apple-system,system-ui,sans-serif;" +
+      "box-shadow:0 4px 18px rgba(0,0,0,.3);text-align:center;pointer-events:none");
+    tip.textContent = "Press \u201CPasswords\u201D above your keyboard and search Instagram to find your account.";
+    (document.body || document.documentElement).appendChild(tip);
+    track("login_keytip_shown", { stage: st });
+  }
+  function dropKeyTip() {
+    var t = document.getElementById("im-keytip");
+    if (t && t.parentNode) t.parentNode.removeChild(t);
+  }
   function pollLoginErrors(st) {
     var els = document.querySelectorAll("[role=alert],[id$=ErrorAlert],[data-testid*=error]");
     for (var i = 0; i < els.length; i++) {
@@ -425,6 +434,7 @@
     if (ls && !/(?:^|; )ds_user_id=\d/.test(document.cookie)) {
       watchLogin();
       hintLoginFields(ls);
+      showKeyTip(ls);
       pollLoginErrors(ls);
     }
     // Session rescue: landing on the login page with no session cookie
@@ -1682,8 +1692,10 @@
         "<div class='imp-mid' style='justify-content:flex-start;padding:24px 24px 0'>" +
         "<div style='text-align:center'>" +
         "<h2 style='font-size:24px'>" +
-        (td || mtd ? "How your free trial works" : "How your plan works") + "</h2>" +
-        "<p style='font-size:15px;color:var(--ink);margin-top:10px'>" + head + "</p>" +
+        (lapsedWall ? "Your plan ended."
+          : td || mtd ? "How your free trial works" : "How your plan works") + "</h2>" +
+        "<p style='font-size:15px;color:var(--ink);margin-top:10px'>" +
+        (lapsedWall ? "Instagram is unblocked until you pick a plan. " : "") + head + "</p>" +
         (mot ? "<p style='font-size:14px;font-weight:600;color:var(--accent);" +
           "margin-top:8px'>" + mot + "</p>" : "") + "</div>" +
         proofStrip() +
@@ -1945,7 +1957,11 @@
     // never before. A shield already authorised and picked (a lapsed
     // subscriber coming back) is simply re-armed. Without iOS 16 there is
     // no shield to set up, so the plain confirmation stands in.
+    // A lapsed subscriber's wall says why it is there (Aug 23): the plan
+    // ended and the shield is down until they pick one. Cleared by finish.
+    var lapsedWall = false;
     function finish(screen) {
+      lapsedWall = false;
       track("onboarding_completed", { screen_id: screen });
       try { localStorage.konvoDone = "1"; } catch (e) {}
       var td = lastBuy === "konvo.pro.yearly" ? (prod().yearly.trialDays || 0)
@@ -2115,6 +2131,7 @@
       // not replayed at someone who has heard it.
       var lapsed = false;
       try { lapsed = !!localStorage.konvoDone; } catch (e) {}
+      lapsedWall = lapsed && !setupOnly;
       if (setupOnly) {
         try { localStorage.konvoCageAsked = "1"; } catch (e) {}
         track("cage_pitch_viewed", { screen_id: "s12f_cage", via: "reinstall" });

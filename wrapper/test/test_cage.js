@@ -791,6 +791,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'a lapsed install must open straight on the paywall with live prices');
   assert(!/Instagram connected/.test(lddoc.getElementById('im-pay').textContent),
     'and never replay the connected page');
+  assert(/Your plan ended\./.test(lddoc.getElementById('im-pay').textContent) &&
+    /Instagram is unblocked until you pick a plan\./.test(lddoc.getElementById('im-pay').textContent),
+    'the lapsed wall says why it is there');
+  assert(!lddoc.querySelector("#im-pay [data-act='notready']") && !lddoc.querySelector("#im-pay [data-act='done']"),
+    'and offers no way past it but a plan or Restore');
   assert(lapsedLog.includes('track:paywall_viewed') && !lapsedLog.includes('track:inbox_reveal_viewed'),
     'the paywall is what gets tracked, not the pitch');
   const reinstalled = boot('/direct/inbox/', '', { bridge: answer({
@@ -855,10 +860,15 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(50);
   assert.strictEqual(late.getAttribute('autocomplete'), 'username',
     'a field that appears late must be named at once, not on the next sweep');
-  ldoc2.querySelector('input[name=username]').dispatchEvent(new lp.window.Event('focusin', { bubbles: true }));
+  //     The hint waits for Instagram's logo to lay out; with none in this
+  //     fixture it appears after the retry cap, still untapped.
+  assert(!ldoc2.getElementById('im-keytip'),
+    'no hint while the logo could still appear');
+  await settle(4200);
   assert(/Press \u201CPasswords\u201D above your keyboard and search Instagram to find your account\./.test(
     (ldoc2.getElementById('im-keytip') || {}).textContent || ''),
-    'focusing a login field must show the Passwords-key hint with the agreed wording');
+    'landing on the sign-in form must show the Passwords-key hint, untapped');
+  ldoc2.querySelector('input[name=username]').dispatchEvent(new lp.window.Event('focusin', { bubbles: true }));
   ldoc2.querySelector('input[name=password]').dispatchEvent(new lp.window.Event('focusin', { bubbles: true }));
   assert.strictEqual(ldoc2.querySelectorAll('#im-keytip').length, 1, 'the hint shows once, not per field');
   ldoc2.getElementById('f').dispatchEvent(new lp.window.Event('submit', { bubbles: true, cancelable: true }));
