@@ -1,0 +1,14 @@
+{
+  "bundle": {
+    "targets": ["app"],
+    "category": "Productivity",
+    "macOS": {
+      "entitlements": "./Entitlements.mas.plist",
+      "signingIdentity": "Apple Distribution: Yi Hyun Park (JBTFJ7JD4R)",
+      "minimumSystemVersion": "12.0",
+      "files": {
+        "embedded.provisionprofile": "./embedded.provisionprofile"
+      }
+    }
+  }
+}
