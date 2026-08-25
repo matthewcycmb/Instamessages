@@ -25,9 +25,7 @@ export const APP_STORE_URL =
 // handles the rest (installs TestFlight, redeems the code).
 export const TESTFLIGHT_URL = "https://testflight.apple.com/join/SH37gxDw";
 
-// The desktop builds are signed but NOT notarized: Apple has not enabled the
-// notary service for this team yet (statusCode 7000, "Team is not yet
-// configured for notarization"). Until that clears, the platform rows render
-// disabled rather than handing anyone a download Gatekeeper will block.
-export const MAC_DMG: string | null = null;
-export const WINDOWS_EXE: string | null = null;
+// The Mac App Store listing (macOS 1.2.0+). The download modal's platform
+// step and the extension's /blocked page both send desktop users here.
+export const MAC_APP_STORE_URL =
+  "https://apps.apple.com/hk/app/konvo-dms-only/id6794756261?l=en-GB";

@@ -371,6 +371,10 @@
   // on the first tap: the sweep calls this until the form exists.
   var hintShown = false, hintTries = 0;
   function showKeyTip(st) {
+    // The Passwords key is an iOS keyboard affordance; a Mac has no key
+    // bar above the keyboard, so the tip is iPhone-only (1.3.0 pulled it
+    // from the Mac build, where it read as nonsense over the login form).
+    if (!/iPhone|iPad|iPod/.test(navigator.userAgent)) return;
     if (hintShown || st !== "login") return;
     if (!document.querySelector("input[name=username],input[name=email],input[type=password]")) return;
     // Under Instagram's logo. The logo image lays out a beat after the

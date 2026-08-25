@@ -220,7 +220,7 @@ export function Landing({
         {cta()}
       </div>
 
-      {open && <DownloadModal onClose={() => setOpen(false)} inAppBrowser={inAppBrowser} desktop={desktop} />}
+      {open && <DownloadModal onClose={() => setOpen(false)} />}
 
       {/* footer */}
       <div className="lp-foot lp-below" style={{ width: "100%", boxSizing: "border-box", borderTop: "1px solid #e9ecf2", padding: "48px 24px 24px", maxWidth: SHELL, margin: "0 auto" }}>

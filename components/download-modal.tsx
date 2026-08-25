@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import posthog from "posthog-js";
 import { track } from "@/lib/analytics";
-import { CHROME_STORE_URL, MAC_DMG, TESTFLIGHT_URL, WINDOWS_EXE } from "@/lib/links";
+import { CHROME_STORE_URL, MAC_APP_STORE_URL } from "@/lib/links";
 
 const CARD: React.CSSProperties = {
   position: "relative",
@@ -33,25 +32,21 @@ const H2: React.CSSProperties = {
 const SUB: React.CSSProperties = { fontSize: 15, lineHeight: 1.5, color: "#5a6478" };
 
 /**
- * The install flow, opened by the download buttons. Two shapes, because the
- * two platforms owe the visitor different things.
+ * The desktop install flow, opened by the Download Konvo buttons: the
+ * extension first (it is what actually blocks instagram.com in the browser),
+ * then the Mac App Store. The email step is gone (Aug 25): the store link
+ * is public now, so there is nothing to wait for.
  *
- * Phone: email, then the TestFlight link. That is the whole product today.
- *
- * Desktop: email, then the extension, then the platform picker. The desktop
- * app cannot be handed over yet (signed but not notarized), so the platform
- * rows render disabled rather than serving a download Gatekeeper will refuse.
+ * The extension step's primary button starts as Add to Chrome. Once the
+ * visitor taps it, or leaves the tab and comes back (installing happens in
+ * the Web Store, so any return trip means they at least saw it), the same
+ * blue button reads "I've added it, continue" and advances. localStorage
+ * remembers across visits.
  */
-export function DownloadModal({
-  onClose,
-  inAppBrowser,
-  desktop,
-}: {
-  onClose: () => void;
-  inAppBrowser?: boolean;
-  desktop?: boolean;
-}) {
-  const [step, setStep] = useState<"email" | "extension" | "platform">("email");
+export function DownloadModal({ onClose }: { onClose: () => void }) {
+  const [step, setStep] = useState<"extension" | "platform">("extension");
+  const [extAdded, setExtAdded] = useState(false);
+
   // The page behind the modal used to scroll under the finger, so the card
   // drifted around while you typed. Freeze the body for as long as it is up,
   // and put the scrollbar's width back so the layout does not jump.
@@ -66,27 +61,29 @@ export function DownloadModal({
       body.style.paddingRight = prev.pad;
     };
   }, []);
-  const sent = step !== "email";
-  const setSent = (v: boolean) => setStep(v ? (desktop ? "extension" : "platform") : "email");
-  const [email, setEmail] = useState("");
-  const [err, setErr] = useState("");
 
-  function submitEmail(e: React.FormEvent) {
-    e.preventDefault();
-    const value = email.trim();
-    // One trust-boundary check; client side is enough for a mailing list.
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value)) {
-      setErr("That email doesn't look right.");
-      return;
-    }
-    setErr("");
-    // No backend, by design. PostHog is the list: it already runs on the
-    // site, it exports, and it keeps the address attached to the person.
+  useEffect(() => {
     try {
-      posthog.setPersonProperties?.({ email: value });
+      if (localStorage.getItem("konvoExtAdded")) setExtAdded(true);
     } catch {}
-    track("beta_email_submitted", { in_app_browser: !!inAppBrowser, desktop: !!desktop });
-    setSent(true);
+    const onVisibility = () => {
+      try {
+        if (document.visibilityState === "hidden") {
+          localStorage.setItem("konvoExtAdded", "1");
+        } else if (localStorage.getItem("konvoExtAdded")) {
+          setExtAdded(true);
+        }
+      } catch {}
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
+  function addToChrome() {
+    track("extension_opened");
+    try {
+      localStorage.setItem("konvoExtAdded", "1");
+    } catch {}
   }
 
   return (
@@ -107,112 +104,48 @@ export function DownloadModal({
 
       <div style={CARD}>
         <Close onClose={onClose} />
-        {inAppBrowser && <SafariNote />}
 
-        {!sent ? (
+        {step === "extension" ? (
           <>
-            <div style={EYEBROW}>STEP 1 OF {desktop ? 3 : 2}</div>
-            <h2 style={H2}>{desktop ? "Download Konvo" : "Get the beta"}</h2>
-            <p style={{ ...SUB, margin: "0 0 26px" }}>
-              {desktop
-                ? "Enter your email to get started with Konvo."
-                : "Konvo is on iPhone right now. Leave your email and the TestFlight link is on the next screen."}
-            </p>
-            <form onSubmit={submitEmail}>
-              <input
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@email.com"
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  border: `1px solid ${err ? "#d64541" : "#e6e9ef"}`,
-                  borderRadius: 12,
-                  padding: "15px 16px",
-                  marginBottom: err ? 8 : 16,
-                  fontSize: 16,
-                  fontFamily: "inherit",
-                  color: "#0f1b33",
-                  outline: "none",
-                }}
-              />
-              {err && (
-                <p style={{ fontSize: 13, color: "#d64541", margin: "0 0 12px" }}>{err}</p>
-              )}
-              <button type="submit" style={PRIMARY}>
-                Continue
-              </button>
-            </form>
-            <p style={{ fontSize: 12, color: "#98a1b0", margin: "16px 0 0" }}>
-              One email when the full app launches. Nothing else, ever.
-            </p>
-          </>
-        ) : step === "extension" ? (
-          <>
-            <div style={EYEBROW}>STEP 2 OF 3</div>
-            <h2 style={H2}>Add the extension</h2>
-            <p style={{ ...SUB, margin: "0 0 22px" }}>
+            <div style={EYEBROW}>STEP 1 OF 2</div>
+            <h2 style={H2}>Add the chrome extension</h2>
+            <p style={{ ...SUB, margin: "0 0 18px" }}>
               The app can&apos;t block instagram.com in your browser. The
               extension can.
             </p>
-            <a
-              href={CHROME_STORE_URL ?? "#"}
-              target="_blank"
-              rel="noopener"
-              onClick={() => track("extension_opened")}
-              style={{ ...PRIMARY, display: "block", textAlign: "center", lineHeight: "54px", textDecoration: "none" }}
-            >
-              Add to Chrome
-            </a>
-            <button
-              onClick={() => setStep("platform")}
-              style={{
-                width: "100%", background: "none", border: 0, marginTop: 14,
-                padding: 6, fontFamily: "inherit", fontSize: 15, fontWeight: 500,
-                color: "#5a6478", cursor: "pointer",
-              }}
-            >
-              I&apos;ve added it, continue
-            </button>
-          </>
-        ) : desktop ? (
-          <>
-            <div style={EYEBROW}>STEP 3 OF 3</div>
-            <h2 style={H2}>Select your platform</h2>
-            <p style={{ ...SUB, margin: "0 0 6px" }}>
-              Choose your operating system to download Konvo.
-            </p>
-            <PlatformRow os="MACOS" name="Universal" href={MAC_DMG} icon={<AppleMark />} />
-            <PlatformRow os="WINDOWS" name="x64" href={WINDOWS_EXE} icon={<WindowsMark />} />
-            <p style={{ fontSize: 12, color: "#98a1b0", margin: "18px 0 0" }}>
-              The desktop app is still going through Apple&apos;s notarization.
-              You&apos;re on the list, and the email above is how you&apos;ll hear
-              the moment it opens.
-            </p>
+            <ListingCard />
+            {extAdded ? (
+              <button onClick={() => setStep("platform")} style={PRIMARY}>
+                I&apos;ve added it, continue
+              </button>
+            ) : (
+              <a
+                href={CHROME_STORE_URL ?? "#"}
+                target="_blank"
+                rel="noopener"
+                onClick={addToChrome}
+                style={{ ...PRIMARY, display: "block", textAlign: "center", lineHeight: "54px", textDecoration: "none" }}
+              >
+                Add to Chrome
+              </a>
+            )}
           </>
         ) : (
           <>
             <div style={EYEBROW}>STEP 2 OF 2</div>
-            <h2 style={H2}>You&apos;re in.</h2>
+            <h2 style={H2}>Download for Mac</h2>
             <p style={{ ...SUB, margin: "0 0 22px" }}>
-              TestFlight is Apple&apos;s own app for trying apps before release.
-              If you don&apos;t have it yet, the link installs it first.
+              Konvo: DMs Only is on the Mac App Store.
             </p>
             <a
-              href={TESTFLIGHT_URL}
+              href={MAC_APP_STORE_URL}
               target="_blank"
               rel="noopener"
-              onClick={() => track("beta_testflight_opened")}
+              onClick={() => track("mac_store_opened")}
               style={{ ...PRIMARY, display: "block", textAlign: "center", lineHeight: "54px", textDecoration: "none" }}
             >
-              Open in TestFlight
+              Download on the Mac App Store
             </a>
-            <p style={{ fontSize: 12, color: "#98a1b0", margin: "16px 0 0" }}>
-              Tap Accept, then Install. Konvo lands on your home screen.
-            </p>
           </>
         )}
       </div>
@@ -221,28 +154,46 @@ export function DownloadModal({
 }
 
 /**
- * The biggest invisible drop-off: a link tapped inside Instagram opens in
- * Instagram's own browser, where TestFlight redemption usually fails. Say it
- * in their words, above the form.
+ * What the Web Store listing looks like, so the visitor recognises the page
+ * the button opens. Drawn in place (the icon is the real one) rather than a
+ * screenshot that blurs on retina.
  */
-function SafariNote() {
+function ListingCard() {
+  const chip: React.CSSProperties = {
+    background: "#f1f3f7",
+    borderRadius: 999,
+    padding: "7px 14px",
+    fontSize: 13,
+    fontWeight: 500,
+    color: "#0f1b33",
+    whiteSpace: "nowrap",
+  };
   return (
     <div
       style={{
-        background: "#fff4e5",
-        border: "1px solid #f0d9b5",
-        borderRadius: 12,
-        color: "#6b4b16",
-        padding: "11px 14px",
-        fontSize: 14,
-        lineHeight: 1.45,
+        border: "1px solid #e6e9ef",
+        borderRadius: 16,
+        padding: "18px 20px",
         margin: "0 0 18px",
       }}
     >
-      <strong style={{ fontWeight: 600 }}>Open this in Safari first.</strong> Tap
-      the <strong style={{ fontWeight: 600 }}>•••</strong> at the top right, then{" "}
-      <strong style={{ fontWeight: 600 }}>Open in browser</strong>. Installing
-      from inside Instagram usually fails.
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <img
+          src="/icon-192.png"
+          alt=""
+          width={48}
+          height={48}
+          style={{ borderRadius: 11, display: "block" }}
+        />
+        <span style={{ fontSize: 21, fontWeight: 700, letterSpacing: "-0.02em", color: "#0f1b33" }}>
+          Konvo: DMs Only
+        </span>
+      </div>
+      <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+        <span style={chip}>Extension</span>
+        <span style={chip}>Workflow &amp; Planning</span>
+        <span style={{ ...chip, background: "none", padding: "7px 2px", color: "#5a6478" }}>3 users</span>
+      </div>
     </div>
   );
 }
@@ -261,74 +212,6 @@ const PRIMARY: React.CSSProperties = {
   cursor: "pointer",
   boxShadow: "0 10px 24px rgba(20,60,150,0.28), inset 0 1px 0 rgba(255,255,255,0.4)",
 };
-
-/**
- * One operating system per row. `href` of null means the build exists but
- * cannot be handed over yet, so the row states why instead of pretending to
- * be a link - a download that Gatekeeper blocks is worse than no download.
- */
-function PlatformRow({
-  os,
-  name,
-  href,
-  icon,
-}: {
-  os: string;
-  name: string;
-  href: string | null;
-  icon: React.ReactNode;
-}) {
-  const inner = (
-    <>
-      <span style={{ width: 26, display: "flex", justifyContent: "center", flex: "none" }}>{icon}</span>
-      <span style={{ flex: 1 }}>
-        <span style={{ display: "block", fontSize: 11, fontWeight: 600, letterSpacing: "0.08em", color: "#98a1b0" }}>
-          {os}
-        </span>
-        <span style={{ display: "block", fontSize: 17, fontWeight: 600, letterSpacing: "-0.02em", color: "#0f1b33", marginTop: 2 }}>
-          {name}
-        </span>
-      </span>
-      {href ? (
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#0f1b33" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M5 12h14" />
-          <path d="m12 5 7 7-7 7" />
-        </svg>
-      ) : (
-        <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", color: "#98a1b0" }}>SOON</span>
-      )}
-    </>
-  );
-  const row: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    gap: 14,
-    padding: "15px 4px",
-    borderTop: "1px solid #e6e9ef",
-    textDecoration: "none",
-  };
-  return href ? (
-    <a href={href} style={{ ...row, cursor: "pointer" }}>{inner}</a>
-  ) : (
-    <div aria-disabled="true" style={{ ...row, opacity: 0.45, cursor: "default" }}>{inner}</div>
-  );
-}
-
-function AppleMark() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#0f1b33" aria-hidden>
-      <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-    </svg>
-  );
-}
-
-function WindowsMark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="#0f1b33" aria-hidden>
-      <path d="M3 5.6 10.2 4.6v6.9H3V5.6Zm8.4-1.2L21 3v8.5h-9.6V4.4ZM3 12.7h7.2v6.9L3 18.5v-5.8Zm8.4 0H21V21l-9.6-1.3v-7Z" />
-    </svg>
-  );
-}
 
 function Close({ onClose }: { onClose: () => void }) {
   return (

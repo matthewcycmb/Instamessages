@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { MAC_APP_STORE_URL } from "@/lib/links";
 
 export const metadata: Metadata = {
   title: "Instagram is blocked | Konvo",
@@ -95,11 +96,11 @@ export default function BlockedPage() {
           Open Konvo
         </a>
         <a
-          href="/"
+          href={MAC_APP_STORE_URL}
           style={{ fontSize: 14, color: "#636366", marginTop: 18 }}
           className="transition-colors hover:text-white"
         >
-          Don&rsquo;t have the app? Get it here
+          Don&rsquo;t have the app? Get it on the Mac App Store
         </a>
       </div>
       <div

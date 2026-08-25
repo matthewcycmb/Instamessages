@@ -926,6 +926,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(900);
   assert.strictEqual(tfa.window.document.querySelector('input').getAttribute('autocomplete'), 'one-time-code',
     'the two-factor code field must offer the SMS code');
+  //     The Passwords-key hint is an iOS keyboard affordance: a Mac build
+  //     must never show it over the login form (1.3.0).
+  const macLogin = boot('/accounts/login/', loginHtml, { loggedOut: true, ua: DESKTOP, bridge: () => {} });
+  await settle(4600);
+  assert(!macLogin.window.document.getElementById('im-keytip'),
+    'the Passwords hint must not appear on macOS');
   const signedLoginDetail = boot('/accounts/login/', loginHtml, { bridge: m => {
     if (m.cmd === 'track' && /^login_(tap|submitted|error|left)$/.test(m.event)) detail.push(['SIGNED', m.event]);
   } });
