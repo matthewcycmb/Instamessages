@@ -73,9 +73,7 @@ export function Landing({
         <div className="lp-hero-row" style={{ flex: 1, maxWidth: SHELL, margin: "0 auto", width: "100%", boxSizing: "border-box", position: "relative" }}>
           <div className="lp-hero-copy">
             <h1 className="lp-h1" style={{ fontWeight: 700, letterSpacing: "-0.04em", lineHeight: 1.05, margin: 0 }}>
-              Use Instagram
-              <br />
-              for messaging
+              Konvo: DM&rsquo;s Only
             </h1>
             {/* The paragraph is desktop-only. On a phone the headline already
                 says it, and a second wall of text pushed the button and the
@@ -97,9 +95,9 @@ export function Landing({
             </div>
             <img
               className="lp-macshot"
-              src="/app.png"
-              alt="Konvo app"
-              style={{ width: "100%", maxWidth: 560, borderRadius: 14, boxShadow: "0 30px 80px rgba(20,50,110,0.3)" }}
+              src="/laptop-mock.png"
+              alt="Konvo on a MacBook"
+              style={{ width: "100%", maxWidth: 640, filter: "drop-shadow(0 30px 60px rgba(20,50,110,0.35))" }}
             />
           </div>
         </div>

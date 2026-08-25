@@ -4,8 +4,8 @@ import { PostHogProvider } from "@/components/posthog-provider";
 import { HumanBehaviorInit } from "./HumanBehaviorInit";
 
 export const metadata: Metadata = {
-  title: "Konvo",
-  description: "Keep your DMs. Block the rest.",
+  title: "Konvo: DM’s Only",
+  description: "Message on Instagram without the Feed, Explore, or Reels.",
   icons: {
     icon: "/icon.svg",
     apple: "/apple-touch-icon.png",
@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#b4d0ea",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

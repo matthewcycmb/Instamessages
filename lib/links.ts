@@ -16,8 +16,10 @@ export const MAC_ZIP =
 
 // Approved 2026-08-21. Every mobile CTA on the site is an App Store badge
 // pointing here; TestFlight below is only left for the desktop modal's
-// "on iPhone" row.
-export const APP_STORE_URL = "https://apps.apple.com/us/app/konvo-dms-only/id6794756261";
+// "on iPhone" row. The pt/ct params are the ASC campaign token so site
+// clicks show up under App Analytics > Acquisition > Campaigns as "Konvo".
+export const APP_STORE_URL =
+  "https://apps.apple.com/app/apple-store/id6794756261?pt=129211722&ct=Konvo&mt=8";
 
 // Public join link for the External Friends TestFlight group; Apple's page
 // handles the rest (installs TestFlight, redeems the code).
