@@ -51,14 +51,11 @@ export default function TermsPage() {
           </p>
           <ul className="mt-2 list-disc space-y-2 pl-5">
             <li>
-              <span className="text-ink">Yearly, $29.99/year</span>, with a 7-day free
+              <span className="text-ink">Yearly, $19.99/year</span>, with a 7-day free
               trial. You are charged when the trial ends unless you cancel before.
             </li>
             <li>
-              <span className="text-ink">Monthly, $4.99/month</span>, no trial.
-            </li>
-            <li>
-              <span className="text-ink">Weekly, $1.99/week</span>, no trial.
+              <span className="text-ink">Monthly, $6.99/month</span>, no trial.
             </li>
           </ul>
           <p className="mt-2">

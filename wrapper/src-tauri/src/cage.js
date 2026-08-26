@@ -1549,8 +1549,8 @@
     // money in shipping paths). These stand-ins render only when the bridge
     // is absent (tests, builds without the Swift class).
     var FALLBACK = { yearly: { price: '$19.99', perWeek: '$0.38',
-                               perMonth: '$1.67', savePct: 58, trialDays: 7 },
-                     monthly: { price: '$3.99' },
+                               perMonth: '$1.67', savePct: 76, trialDays: 7 },
+                     monthly: { price: '$6.99' },
                      lifetime: { price: '$19.99' } };
     var P = null;
     function prod() {
@@ -1805,8 +1805,11 @@
         "color:var(--mut);margin-top:14px'>Your information is protected by " +
         "Apple and stays 100% on your phone.</p>" +
         "</div><div class='imp-foot'>" +
-        "<button class='imp-btn' data-act='cage-setup-go'>Give permission</button>" +
-        "<div class='imp-ghost' data-act='cage-skip'>Not now</div></div>";
+        // No "Not now" since Aug 25: everyone who reaches this page has
+        // paid (or holds a grant), and the shield is what they paid for.
+        // The only way past is the system dialog itself - denying it still
+        // proceeds, because an app cannot trap someone on an OS permission.
+        "<button class='imp-btn' data-act='cage-setup-go'>Give permission</button></div>";
     }
     // S12d (Aug 22): between "Ready to block" and the perks, the wall
     // clears and the user's own inbox shows through - the thing they came
@@ -2091,9 +2094,20 @@
       }, 300);
     }
     var swPending = false, swTried = false, entitlementKnown = false;
+    var skipTracked = false;
     function ensure() {
       if (wall || !atInbox()) return;
-      if (!setupOnly && (cached() || seenSequence())) return;
+      if (!setupOnly && (cached() || seenSequence())) {
+        // Returning users (paid cache, or a finished/granted sequence) fire
+        // login and inbox events but never remount the wall. Say so once
+        // per session, or funnels read them as a post-login drop-off - the
+        // Aug 25 analysis lost a day to exactly that.
+        if (!skipTracked) {
+          skipTracked = true;
+          track("sequence_skipped", { reason: cached() ? "entitled" : "seen" });
+        }
+        return;
+      }
       // A paying customer must never see a frame of this. On a fresh
       // install there is no cache yet, so without waiting for the receipt
       // the sequence starts underneath them and only vanishes once
@@ -2162,8 +2176,6 @@
         } else if (act === "keep") {
           wall.classList.remove("im-reveal");
           swap(perksPage());
-        } else if (act === "cage-skip") {
-          cageExit(false);
         } else if (act === "cage-setup-go") {
           // One flight at a time: Apple's consent dialog sits over the
           // page and a user who keeps tapping the button underneath

@@ -439,14 +439,14 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'Continue on the perks page must reach S13');
   assert(/First 7 days free, then \$19\.99 a year\./.test(payText()),
     'the headline states the real yearly charge');
-  assert(/SAVE 58%/.test(payText()) && !/POPULAR|RECOMMENDED/.test(payText()),
+  assert(/SAVE 76%/.test(payText()) && !/POPULAR|RECOMMENDED/.test(payText()),
     'the Yearly badge is the live saving');
   assert(/Yearly Plan/.test(payText()) && /Monthly Plan/.test(payText())
     && !/Annual/.test(payText()),
     'the plans are called Yearly Plan and Monthly Plan, never Annual');
   assert(/\$1\.67\/month/.test(payText()) && /\$19\.99\/year/.test(payText()),
     'the Yearly card: monthly equivalent as the price, yearly charge beneath');
-  assert(/\$3\.99\/month/.test(payText()) && !/Try free/.test(payText()),
+  assert(/\$6\.99\/month/.test(payText()) && !/Try free/.test(payText()),
     'the Monthly card carries its price; no card carries a trial line (Aug 21)');
   assert(!wdoc.querySelector("#im-pay [data-act='notready']"),
     'no x on the paywall (Aug 21): the plans are the only choice');
@@ -467,11 +467,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     truth. Monthly has no trial (ASC, Aug 21 evening).
   wtap('pk-m');
   assert(/How your plan works/.test(payText()) &&
-    /\$3\.99 a month, cancel anytime\./.test(payText()),
+    /\$6\.99 a month, cancel anytime\./.test(payText()),
     'the Monthly story states its price and no trial');
   assert(/Continue with Monthly/.test(payText()) && !/free/.test(payText()),
     'the Monthly CTA promises nothing free');
-  assert(/Every month/.test(payText()) && /Renews at \$3\.99/.test(payText()),
+  assert(/Every month/.test(payText()) && /Renews at \$6\.99/.test(payText()),
     'the Monthly timeline says how much and how often');
   assert(!/forever/i.test(payText()),
     'the word forever is banned copy');
@@ -1165,6 +1165,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(cageLog.includes('track:cage_pitch_viewed') &&
     /One last step: Connect Konvo to Screen Time, securely\./.test(cdoc.getElementById('im-pay').textContent),
     'the sequence ending well (here the beta grant) leads to the Screen Time step');
+  assert(!cdoc.querySelector("[data-act='cage-skip']") &&
+    !/Not now/.test(cdoc.getElementById('im-pay').textContent),
+    'the Screen Time step has no opt-out: whoever reaches it connects or answers the system dialog');
   assert(!cageLog.includes('cageOn'), 'the grant alone does not arm: the user connects first');
   cactap('cage-setup-go');
   await settle(600);
