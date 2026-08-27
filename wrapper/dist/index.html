@@ -793,23 +793,12 @@
     if (id === "s4b") { prime(); sequence("s4b", 3400, "s5"); }
     if (id === "s5") reveal();
     if (id === "s6") columns();
-    if (id === "s7") { outcome(); askReview(); }
+    if (id === "s7") outcome();
   }
 
-  // The system's "Enjoying Konvo?" sheet, asked once, on the screen that
-  // names the years they get back. iOS decides whether to actually show
-  // it (never in TestFlight, throttled in the store); we only ask.
-  var reviewAsked = false;
-  function askReview() {
-    if (reviewAsked) return;
-    reviewAsked = true;
-    setTimeout(function () {
-      try {
-        window.webkit.messageHandlers.konvoStore.postMessage(
-          { cmd: "review", id: 0 });
-      } catch (e) {}
-    }, 1200);
-  }
+  // The rating ask left onboarding on Aug 27 (App Review 5.6.3: no rating
+  // requests before the user knows the app). It now lives in the cage,
+  // gated on the third distinct day the inbox settles.
 
   // The honest calculating beat between the questions and the reveal: the
   // pills tick with the user's own answers, the "projecting" teaser stays

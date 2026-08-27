@@ -40,6 +40,7 @@ function boot(path, html, opts = {}) {
   if (opts.free) dom.window.__konvoFree = true;
   if (opts.welcomed) dom.window.localStorage.setItem('konvoWelcomed', '1');
   if (opts.betaFree) dom.window.localStorage.setItem('konvoBetaFree', '1');
+  if (opts.seed) for (const k in opts.seed) dom.window.localStorage.setItem(k, opts.seed[k]);
   if (opts.patch) dom.window.localStorage.setItem('konvoPatch', JSON.stringify(opts.patch));
   if (opts.bridge) dom.window.webkit = { messageHandlers: { konvoStore: {
     postMessage: m => opts.bridge(m, dom) } } };
@@ -984,6 +985,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
         if (m.cmd === 'track' && m.event === 'inbox_ready') ready.push(m.props);
         if (m.cmd === 'track' && m.event === 'thread_ready') tready.push(m.props);
         if (m.cmd === 'cookieSave') ready.saves = (ready.saves || 0) + 1;
+        if (m.cmd === 'review') ready.reviews = (ready.reviews || 0) + 1;
       } });
   // jsdom rects are all zero; give the username element a real one so the
   // title finder (and the identity capture riding on it) can see it.
@@ -1005,6 +1007,27 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the first settle must set the Instagram id');
   assert.strictEqual(ready[0].$set.ig_username, 'matthew_c',
     'the handle must come from the sized title element');
+  assert(!ready.reviews && inboxed.window.localStorage.konvoUseDays === '1'
+    && !inboxed.window.localStorage.konvoReviewAsked,
+    'a first-day inbox never asks for a rating (5.6.3): it only counts the day');
+
+  //     The rating ask waits for the third distinct day of settled use,
+  //     then fires once and never again (moved out of onboarding Aug 27,
+  //     App Review 5.6.3).
+  const revLog = [];
+  const dayThree = boot('/direct/inbox/', '<div role="row">a message</div>', {
+    paid: true,
+    seed: { konvoUseDays: '2', konvoLastDay: 'not-today' },
+    bridge: m => {
+      if (m.cmd === 'review') revLog.push(1);
+      if (m.cmd === 'track' && m.event === 'review_asked') revLog.asked = true;
+    } });
+  await settle(2600);
+  assert.strictEqual(revLog.length, 1,
+    'the third distinct day of settled use asks for the rating, once');
+  assert(revLog.asked, 'the ask reports itself');
+  assert.strictEqual(dayThree.window.localStorage.konvoReviewAsked, '1',
+    'and the flag stops any repeat');
   inboxed.window.__loc.pathname = '/direct/t/111/';
   // The 800ms route tick plus the 180ms quiet window: the crossing can
   // take up to ~1.1s to report, so the wait is generous on purpose.

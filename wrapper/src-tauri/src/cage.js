@@ -415,6 +415,28 @@
     }
   }
 
+  // The rating ask (moved here Aug 27, App Review 5.6.3): asked once, on
+  // the third distinct day the inbox settles - by then the person has
+  // signed in, come back twice, and knows what the app is. Never while
+  // the wall is up (rating a paywall is not a moment), and iOS still
+  // decides whether a sheet actually appears.
+  function maybeAskReview() {
+    try {
+      if (localStorage.konvoReviewAsked) return;
+      var today = new Date().toDateString();
+      if (localStorage.konvoLastDay !== today) {
+        localStorage.konvoLastDay = today;
+        localStorage.konvoUseDays =
+          (parseInt(localStorage.konvoUseDays, 10) || 0) + 1;
+      }
+      if ((parseInt(localStorage.konvoUseDays, 10) || 0) < 3) return;
+      if (document.getElementById("im-pay")) return;
+      localStorage.konvoReviewAsked = "1";
+      track("review_asked", {});
+      storekit("review", null, function () {});
+    } catch (e) {}
+  }
+
   function enforce() {
     if (!location.hostname.endsWith("instagram.com")) return;
     if (/iPhone|iPad|iPod/.test(navigator.userAgent)) sizeViewport();
@@ -543,6 +565,7 @@
               }
             } catch (e) {}
             track("inbox_ready", rp);
+            maybeAskReview();
             // A settled inbox is proof these cookies are the good
             // ones: snapshot them natively so a force-quit cannot
             // lose the session (see the login rescue above).

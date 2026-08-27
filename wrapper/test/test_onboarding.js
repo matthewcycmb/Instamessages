@@ -221,8 +221,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'attribution hands straight to privacy (the finale moved into the wall, Aug 21)');
   assert(d.events.includes('attribution'), 'the source must be tracked');
   assert(!doc.getElementById('s8f'), 'the finale page is gone from the document');
-  assert.strictEqual(d.reviews, 1,
-    'the system review sheet is asked exactly once, on the years-back screen');
+  assert.strictEqual(d.reviews || 0, 0,
+    'no rating ask anywhere in onboarding (App Review 5.6.3): it waits for the third day of use');
   assert(!doc.getElementById('s9t').classList.contains('on'),
     'the testimonial screen must stay skipped while QUOTES is empty (release blocker)');
   assert(!d.window.localStorage.konvoOnboarded,
