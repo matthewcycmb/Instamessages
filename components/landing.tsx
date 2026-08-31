@@ -289,6 +289,10 @@ const FAQ = [
     a: "No. Your messages send and read from your account, same as always.",
   },
   {
+    q: "Can I get notifications for new messages?",
+    a: "Not while Instagram is blocked. iOS silences a blocked app's notifications, and that is Apple's rule for every blocker, not a Konvo choice. Konvo cannot send its own either: your login never touches our servers, so nothing on our side can see a message arrive. If you keep Instagram installed with only its Message notifications turned on, your DMs come through whenever the block is down, like during your daily five minute pass.",
+  },
+  {
     q: "Does Konvo work on Android?",
     a: "Not yet. iPhone today, Android next. Leave your email and you'll hear when it's ready.",
   },

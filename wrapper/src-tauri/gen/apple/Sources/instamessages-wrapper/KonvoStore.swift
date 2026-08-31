@@ -19,6 +19,7 @@ import DeviceActivity
 import FamilyControls
 import Foundation
 import ManagedSettings
+import Network
 import RevenueCat
 import SafariServices
 import StoreKit
@@ -1026,8 +1027,23 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
 
     // PostHog capture, fire-and-forget. distinct_id is RevenueCat's
     // anonymous app user id so funnels join revenue without any account.
+    // Which network carried the event: the stuck-chat reports (Aug 27)
+    // were undiagnosable without this one dimension. Kept through the
+    // build 74-76 revert - it is detection, not behavior.
+    private static var netType = "unknown"
+    private static let netMonitor: NWPathMonitor = {
+        let m = NWPathMonitor()
+        m.pathUpdateHandler = { path in
+            netType = path.usesInterfaceType(.cellular) ? "cellular"
+                : path.usesInterfaceType(.wifi) ? "wifi" : "other"
+        }
+        m.start(queue: .global(qos: .background))
+        return m
+    }()
     static func track(_ event: String, _ props: [String: Any]) {
+        _ = netMonitor
         var properties = props
+        properties["net"] = netType
         properties["platform"] = "ios"
         // Every event carries the build number: funnels that mixed builds
         // faked drop-offs twice (retired screens, new screens). Filtering

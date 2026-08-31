@@ -72,8 +72,8 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         # The build patches both from tauri.conf.json; these only matter if
         # xcodegen regenerates between builds, so keep them current-ish.
-        CFBundleShortVersionString: 1.2.0
-        CFBundleVersion: "73"
+        CFBundleShortVersionString: 1.3.0
+        CFBundleVersion: "78"
     entitlements:
       path: instamessages-wrapper_iOS/instamessages-wrapper_iOS.entitlements
       properties:
@@ -155,8 +155,8 @@ targets:
       path: ShieldConfig/Info.plist
       properties:
         CFBundleDisplayName: Konvo Shield
-        CFBundleShortVersionString: 1.2.0
-        CFBundleVersion: "73"
+        CFBundleShortVersionString: 1.3.0
+        CFBundleVersion: "78"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
@@ -185,8 +185,8 @@ targets:
       path: ActivityMonitor/Info.plist
       properties:
         CFBundleDisplayName: Konvo Relock
-        CFBundleShortVersionString: 1.2.0
-        CFBundleVersion: "73"
+        CFBundleShortVersionString: 1.3.0
+        CFBundleVersion: "78"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KonvoActivityMonitor
@@ -212,8 +212,8 @@ targets:
       path: ShieldAction/Info.plist
       properties:
         CFBundleDisplayName: Konvo Shield Action
-        CFBundleShortVersionString: 1.2.0
-        CFBundleVersion: "73"
+        CFBundleShortVersionString: 1.3.0
+        CFBundleVersion: "78"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-action-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension

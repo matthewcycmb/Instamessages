@@ -415,6 +415,17 @@
     }
   }
 
+  // Cage exceptions were invisible until the stuck-chat hunt; three per
+  // session, message only, nothing from the page's content.
+  window.addEventListener("error", function (e) {
+    try {
+      var n = +(sessionStorage.konvoErrs || 0);
+      if (n >= 3) return;
+      sessionStorage.konvoErrs = n + 1;
+      track("cage_error", { msg: String((e && e.message) || "").slice(0, 120) });
+    } catch (x) {}
+  });
+
   // The rating ask (moved here Aug 27, App Review 5.6.3): asked once, on
   // the third distinct day the inbox settles - by then the person has
   // signed in, come back twice, and knows what the app is. Never while
@@ -521,7 +532,15 @@
         // when the fetch lands - quiet alone once reported 181ms "ready"
         // on a stuck skeleton. rows 0 at the cap IS the stuck-chat signal.
         var threadRows = function () {
-          return document.querySelectorAll("div[role='row']").length;
+          // div[role='group'] is a message bubble in Instagram's CURRENT
+          // thread markup - verified against the live DOM on device (Aug
+          // 31, Web Inspector probe: 9 groups on a 9-bubble chat, zero
+          // role='row' anywhere). The old row selector never matched in
+          // production and pinned every thread_ready at the cap with
+          // rows 0 - see the konvo-dead-thread-probe memory. If rows
+          // flatlines at 0 across all builds again, the markup moved
+          // again: re-probe on device before trusting any thread metric.
+          return document.querySelectorAll("div[role='group']").length;
         };
         settle(function () { return threadRows() > 0; }, 10000, function (ms) {
           track("thread_ready", { ms: ms, rows: threadRows() });
@@ -1576,8 +1595,29 @@
                      monthly: { price: '$6.99' },
                      lifetime: { price: '$19.99' } };
     var P = null;
+    // Assigned at wall mount; "Try again" on the pending page re-kicks it.
+    var fetchProducts = function () {};
     function prod() {
       return P && P.yearly && P.monthly && P.lifetime ? P : FALLBACK;
+    }
+    function pricesReady() {
+      return !!(P && P.yearly && P.monthly && P.lifetime);
+    }
+    // No stand-in money on a purchasable screen, ever (Aug 31): a
+    // fallback price painted while Apple's sheet charges the user's real
+    // localized one is exactly the mismatch a checkout caught on device.
+    // Until RevenueCat answers with the storefront's own prices, the
+    // paywall is this page - nothing quotable, nothing buyable - and the
+    // retry loop repaints it the moment prices land, in the user's own
+    // currency because that is the only kind of price that ever renders.
+    function pricePendingPage() {
+      return "<div class='imp-mid' id='im-pricewait' style='align-items:center;" +
+        "text-align:center;padding:0 34px'>" +
+        "<h2 style='font-size:24px'>Loading your plans&hellip;</h2>" +
+        "<p style='font-size:14.5px;line-height:1.5;color:var(--mut);margin-top:10px'>" +
+        "Prices show in your local currency.</p>" +
+        "</div><div class='imp-foot'>" +
+        "<div class='imp-ghost' data-act='pay'>Try again</div></div>";
     }
 
     // The S2 motive + computed weekly hours, carried across origins in the
@@ -1650,6 +1690,7 @@
     // describes a trial that will not happen. Lifetime is a one-time
     // purchase: one-step story, "Lifetime access", never "forever".
     function pay(plan) {
+      if (!pricesReady()) return pricePendingPage();
       var pr = prod(), y = pr.yearly, m = pr.monthly, l = pr.lifetime;
       var td = plan === "y" ? (y.trialDays || 0) : 0;
       var sp = y.savePct || 0;
@@ -2120,6 +2161,18 @@
     var skipTracked = false;
     function ensure() {
       if (wall || !atInbox()) return;
+      // The login conversion is a fact about the session, not the wall
+      // (Aug 31): an entitled restorer is dismissed before the wall ever
+      // mounts, and the old wall-mount tracking missed every one of them
+      // - six silent sign-ins on build 60 alone, person-matched. Counted
+      // here, ahead of every early return, once per install.
+      try {
+        if (!localStorage.konvoLoginTracked &&
+            /(?:^|; )ds_user_id=\d/.test(document.cookie)) {
+          localStorage.konvoLoginTracked = "1";
+          track("login_succeeded", { screen_id: "s12_connected" });
+        }
+      } catch (e) {}
       if (!setupOnly && (cached() || seenSequence())) {
         // Returning users (paid cache, or a finished/granted sequence) fire
         // login and inbox events but never remount the wall. Say so once
@@ -2164,12 +2217,6 @@
       // The wall follows the system now (Aug 16); the pin only matters
       // for the lapsed-subscription case where it rises over a live app.
       appearance("auto");
-      try {
-        if (!localStorage.konvoLoginTracked) {
-          localStorage.konvoLoginTracked = "1";
-          track("login_succeeded", { screen_id: "s12_connected" });
-        }
-      } catch (e) {}
       wall = document.createElement("div");
       wall.id = "im-pay";
       // A lapsed subscriber on an install that already finished the
@@ -2228,6 +2275,7 @@
           swap(impactPage());
         } else if (act === "pay") {
           track("paywall_viewed", { variant: "default", screen_id: "s13_paywall" });
+          if (!pricesReady()) fetchProducts();
           swap(pay("y"));
         } else if (act === "betafree") {
           // Beta only: unlock without charging, and record that the price
@@ -2280,10 +2328,22 @@
         track("paywall_viewed", { variant: "default", screen_id: "s13_paywall", via: "lapsed" });
         setPage(pay("y"));
       };
-      storekit("products", null, function (res) {
-        if (res && res.ok) P = res;
-        if (lapsed) showPay();
-      });
+      var priceTries = 0;
+      fetchProducts = function () {
+        storekit("products", null, function (res) {
+          if (res && res.ok) {
+            P = res;
+            // A pending paywall repaints itself with the real localized
+            // prices the moment they exist.
+            if (wall && document.getElementById("im-pricewait")) setPage(pay("y"), true);
+            if (lapsed) showPay();
+            return;
+          }
+          if (lapsed) showPay();
+          if (priceTries++ < 40 && wall) setTimeout(fetchProducts, 2500);
+        });
+      };
+      fetchProducts();
       if (setupOnly) return;
       // Live prices first when they arrive in time; the stand-ins after.
       if (lapsed) { setTimeout(showPay, 1500); return; }

@@ -349,7 +349,14 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     S13 three-package paywall, on real timers. The Mac never does, a
   //     cached konvoPaid suppresses it with no bridge round-trip, and it
   //     only rises at the inbox, never over a thread.
-  const wallFresh = boot('/direct/inbox/', '', { hash: '#konvo=15' });
+  // The walkthrough's bridge answers products like production does (Aug
+  // 31): the wall no longer paints stand-in money, so a priced S13 needs
+  // a live reply. The values are what the assertions below quote.
+  const wallFresh = boot('/direct/inbox/', '', { hash: '#konvo=15', bridge: (m, d) => {
+    if (m.cmd === 'products') d.window.__konvoStoreReply(m.id, { ok: true,
+      yearly: { price: '$19.99', perWeek: '$0.38', perMonth: '$1.67', savePct: 76, trialDays: 7 },
+      monthly: { price: '$6.99' }, lifetime: { price: '$19.99' } });
+  } });
   const wallDesk = boot('/direct/inbox/', '', { ua: DESKTOP });
   const wallPaid = boot('/direct/inbox/', '', { paid: true });
   const wallThread = boot('/direct/t/123/', '');
@@ -526,6 +533,21 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(posted.includes('track:login_succeeded') &&
     posted.includes('track:paywall_viewed'),
     'the funnel events must reach the bridge');
+
+  //     The login count is a fact about the session, not the wall (Aug
+  //     31): an entitled restorer is dismissed before the wall mounts,
+  //     and the old wall-mount tracking missed every one - six silent
+  //     sign-ins on build 60 alone. Once per install, wall or no wall.
+  const restLog = [];
+  const restorer = boot('/direct/inbox/', '', { bridge: (m, d) => {
+    if (m.cmd === 'track') restLog.push(m.event);
+    if (m.cmd === 'entitlements') d.window.__konvoStoreReply(m.id, { entitled: true });
+  } });
+  await settle(3400);   // boot verify + several enforce sweeps
+  assert(!restorer.window.document.getElementById('im-pay'),
+    'an entitled session must never see the wall');
+  assert.strictEqual(restLog.filter(e => e === 'login_succeeded').length, 1,
+    'the dismissed-wall restorer still counts as a login, exactly once');
 
   //     Opening a conversation is the only signal that the app was USED
   //     rather than merely launched, so it must fire once per crossing
@@ -750,6 +772,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const lapsed = boot('/direct/inbox/', '', { paid: true, bridge: answer({
     entitlements: { entitled: false },
     restore: { ok: true, entitled: true },
+    products: { ok: true,
+      yearly: { price: '$19.99', perWeek: '$0.38', perMonth: '$1.67', savePct: 76, trialDays: 7 },
+      monthly: { price: '$6.99' }, lifetime: { price: '$19.99' } },
   }) });
   await settle(9600);
   const ldoc = lapsed.window.document;
@@ -980,7 +1005,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const inboxed = boot('/direct/inbox/',
     '<a href="/direct/t/111/">a</a><a href="/direct/t/222/">b</a>' +
     '<a href="/someone/">profile</a><span id="me">matthew_c</span>' +
-    '<div role="row">a message</div>',
+    '<div role="group">a message</div>',
     { bridge: m => {
         if (m.cmd === 'track' && m.event === 'inbox_ready') ready.push(m.props);
         if (m.cmd === 'track' && m.event === 'thread_ready') tready.push(m.props);
@@ -1028,6 +1053,56 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(revLog.asked, 'the ask reports itself');
   assert.strictEqual(dayThree.window.localStorage.konvoReviewAsked, '1',
     'and the flag stops any repeat');
+
+  //     Page errors report with their message, capped at three a session.
+  //     (The stall detector that lived here was removed Aug 31: its
+  //     message-row probe never matched Instagram's real markup, so it
+  //     reloaded and flagged healthy chats.)
+  const errLog = [];
+  const errFix = boot('/direct/t/9/', '', { bridge: m => {
+    if (m.cmd === 'track') errLog.push(m.event); } });
+  await settle(900);
+  for (let i = 0; i < 5; i++) {
+    errFix.window.dispatchEvent(
+      new errFix.window.ErrorEvent('error', { message: 'boom ' + i }));
+  }
+  assert.strictEqual(errLog.filter(e => e === 'cage_error').length, 3,
+    'page errors report with their message, capped at three a session');
+
+  //     No stand-in money (Aug 31): a wall whose products call fails
+  //     shows a priceless loading page - the fallback numbers painting
+  //     while Apple's sheet charged the real localized price was a field
+  //     bug. The retry lands and the wall repaints itself in the user's
+  //     own currency.
+  let allowProducts = false;
+  const lateP = boot('/direct/inbox/', '', { hash: '#konvo=15', bridge: (m, d) => {
+    if (m.cmd === 'products') d.window.__konvoStoreReply(m.id, allowProducts
+      ? { ok: true,
+          yearly: { price: 'A$34.99', perWeek: 'A$0.67', perMonth: 'A$2.92', savePct: 71, trialDays: 7 },
+          monthly: { price: 'A$9.99' }, lifetime: { price: 'A$34.99' } }
+      : { ok: false });
+  } });
+  const lpdoc = lateP.window.document;
+  const lpText = () => (lpdoc.getElementById('im-pay') || {}).textContent || '';
+  const lptap = act => {
+    const el = lpdoc.querySelector(`#im-pay [data-act='${act}']`);
+    if (el) el.dispatchEvent(new lateP.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  };
+  // The silent bridge delays the mount behind the 2.5s entitlement
+  // timeout, so fixed sleeps race the sequence: poll for each button.
+  const lpwalk = async (act) => {
+    for (let i = 0; i < 60 && !lpdoc.querySelector(`#im-pay [data-act='${act}']`); i++) await settle(200);
+    lptap(act); await settle(450);
+  };
+  await lpwalk('keep');
+  await lpwalk('impact');
+  await lpwalk('pay');
+  assert(/Loading your plans/.test(lpText()) && !/\$/.test(lpText()),
+    'a wall without live prices shows the loading page and not one dollar sign');
+  allowProducts = true;
+  await settle(3200);   // the 2.5s retry answers and repaints
+  assert(/A\$34\.99/.test(lpText()) && /A\$9\.99/.test(lpText()),
+    "the retry repaints the paywall in the user's own currency");
   inboxed.window.__loc.pathname = '/direct/t/111/';
   // The 800ms route tick plus the 180ms quiet window: the crossing can
   // take up to ~1.1s to report, so the wait is generous on purpose.
@@ -1048,7 +1123,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     cancels its predecessor, so an inbox the user bounced off never
   //     reports, and only the thread actually reached does.
   const cx = [];
-  const crossing = boot('/direct/inbox/', '<div role="row">m</div>',
+  const crossing = boot('/direct/inbox/', '<div role="group">m</div>',
     { bridge: m => { if (m.cmd === 'track') cx.push(m.event); } });
   // Cross synchronously, the same tick the inbox settle started: a settle
   // needs 180ms of quiet to complete, so this is always mid-settle, with
