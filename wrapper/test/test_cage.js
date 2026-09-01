@@ -1056,6 +1056,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(600);
   assert.strictEqual(typeof swBoot.window.navigator.serviceWorker, 'object',
     'the stub stands in where WKWebView has nothing');
+  assert.strictEqual(typeof swBoot.window.ServiceWorkerRegistration, 'function',
+    'the class global exists too: the wedged device died on exactly ' +
+    '"Can\'t find variable: ServiceWorkerRegistration" (Sep 1)');
+  assert(new swBoot.window.ServiceWorkerRegistration() instanceof swBoot.window.ServiceWorkerRegistration,
+    'instanceof works against the stubbed class');
   const swReg = await swBoot.window.navigator.serviceWorker.getRegistrations();
   assert(Array.isArray(swReg) && swReg.length === 0, 'no registrations ever exist');
   swBoot.window.dispatchEvent(Object.assign(new swBoot.window.Event('unhandledrejection'),

@@ -20,6 +20,15 @@
   // A quiet stub keeps such code walking: registrations never exist,
   // register never settles, nothing ever fires.
   try {
+    // The class globals too: the caught boot error on the wedged device
+    // read, verbatim, "Can't find variable: ServiceWorkerRegistration".
+    // Plain constructors: instanceof works, prototype exists, nothing runs.
+    if (typeof window.ServiceWorkerRegistration === "undefined")
+      window.ServiceWorkerRegistration = function ServiceWorkerRegistration() {};
+    if (typeof window.ServiceWorker === "undefined")
+      window.ServiceWorker = function ServiceWorker() {};
+    if (typeof window.ServiceWorkerContainer === "undefined")
+      window.ServiceWorkerContainer = function ServiceWorkerContainer() {};
     if (typeof navigator.serviceWorker === "undefined") {
       var swPending = new Promise(function () {});
       Object.defineProperty(navigator, "serviceWorker", {
