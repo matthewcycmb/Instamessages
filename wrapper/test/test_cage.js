@@ -439,8 +439,15 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the loader must auto-advance into the reveal');
   wtap('keep');
   await settle(450);
-  assert(/Start your Free Week/.test(payText()),
-    'keep lands on the impact page: the comparison page is gone (Sep 1)');
+  //     The comparison page is back (Sep 1 evening): eight plain rows,
+  //     Instagram | Konvo, row one checked on both sides.
+  assert(/Same account\. Different app\./.test(payText()) && /No feed\. Ever\./.test(payText())
+    && /Two 5 minute passes a day\. No snooze\./.test(payText()) && /No commitment\. Cancel anytime\./.test(payText()),
+    'keep lands on the comparison page');
+  assert(!/[—]/.test(payText()) && !/\d+K\+|game changer/.test(payText()),
+    'the comparison page carries no em dashes and no invented proof');
+  wtap('impact');
+  await settle(450);
   assert(/users love Konvo/.test(payText()) &&
     (wdoc.querySelector('#im-pay .imp-proof img') || {}).getAttribute('src').indexOf('data:image/png;base64,') === 0,
     'the proof block (the laurel image, caption live) sits at the foot of the free-week page');
@@ -450,8 +457,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   // perks lead straight to the impact screen.
   //     What the trial is FOR, before the price. The hours are the
   //     user's own quiz answer, carried across the origin boundary.
-  assert(/Start your Free Week/.test(payText()),
-    'the impact page opens on the free week');
+  assert(/Try 7 days for free and/.test(payText()),
+    'the impact page opens on the free week, in Matthew\'s words (Sep 1)');
   assert(/reclaim 15 hours back/.test(payText()),
     "the impact page must use the visitor's own number from the quiz");
   assert(/Stay connected/.test(payText()) && /Reclaim your focus/.test(payText())
@@ -527,6 +534,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new live.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   // Same route as a real user: perks -> impact -> price.
   ltap('keep');
+  await settle(450);
+  ltap('impact');
   await settle(450);
   ltap('pay');
   await settle(450);
@@ -637,7 +646,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const btext = () => betaWalk.window.document.getElementById('im-pay').textContent;
   btw('keep');
   await settle(450);
-  assert(/Start your Free Week/.test(btext()) && /reclaim 12 hours back/.test(btext()),
+  btw('impact');
+  await settle(450);
+  assert(/Try 7 days for free/.test(btext()) && /reclaim 12 hours back/.test(btext()),
     'beta must show the impact screen, with this visitor\'s own hours');
   btw('pay');
   await settle(450);
@@ -669,6 +680,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new noTrial.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   nttap('keep');
   await settle(450);
+  nttap('impact');
+  await settle(450);
   //     A user with no trial must not be sold one on the way in either.
   const itext = noTrial.window.document.getElementById('im-pay').textContent;
   assert(!/Free Week|days free/.test(itext),
@@ -696,6 +709,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new quiz.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   qtap('keep');
   await settle(450);
+  qtap('impact');
+  await settle(450);
   assert(/reclaim 9 hours back/.test(
     quiz.window.document.getElementById('im-pay').textContent),
     'the impact screen must speak the hours this visitor actually answered');
@@ -715,6 +730,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const btap = act => bdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new buyer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   btap('keep');
+  await settle(450);
+  btap('impact');
   await settle(450);
   btap('pay');
   await settle(450);
@@ -788,6 +805,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new monthlyBuy.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   mtap('keep');
   await settle(450);
+  mtap('impact');
+  await settle(450);
   mtap('pay');
   await settle(450);
   mtap('pk-m');
@@ -820,6 +839,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new d.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   rcTap(rcBuy, 'keep'); rcTap(rcNone, 'keep');
   await settle(450);
+  rcTap(rcBuy, 'impact'); rcTap(rcNone, 'impact');
+  await settle(450);
   rcTap(rcBuy, 'pay'); rcTap(rcNone, 'pay');
   await settle(1400);
   assert(posted.includes('rcPaywall:'),
@@ -846,6 +867,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(ldoc.getElementById('im-pay'),
     'a lapsed subscription must bring the wall back despite the cache');
   ldoc.querySelector("[data-act='keep']").dispatchEvent(
+    new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(450);
+  ldoc.querySelector("[data-act='impact']").dispatchEvent(
     new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(450);
   ldoc.querySelector("[data-act='pay']").dispatchEvent(
@@ -984,27 +1008,40 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   ldoc2.querySelector('input[name=username]').dispatchEvent(new lp.window.Event('focusin', { bubbles: true }));
   ldoc2.querySelector('input[name=password]').dispatchEvent(new lp.window.Event('focusin', { bubbles: true }));
   assert.strictEqual(ldoc2.querySelectorAll('#im-keytip').length, 1, 'the hint shows once, not per field');
+  //     Instagram's Log in is a React button, not a form submit (Sep 1):
+  //     the tap with a filled password is the submit, and the native
+  //     submit right after it is the same attempt, counted once.
+  ldoc2.querySelector('input[name=password]').value = 'hunter2';
+  ldoc2.getElementById('f').insertAdjacentHTML('beforeend', '<button type="button" id="loginbtn">Log in</button>');
+  ldoc2.getElementById('loginbtn').dispatchEvent(new lp.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   ldoc2.getElementById('f').dispatchEvent(new lp.window.Event('submit', { bubbles: true, cancelable: true }));
   assert(!ldoc2.getElementById('im-keytip'), 'submit takes the hint down');
   ldoc2.getElementById('errbox').innerHTML =
-    '<p role="alert" id="slfErrorAlert">Sorry, your password was incorrect. Please double-check your password.</p>';
+    '<p role="alert" id="slfErrorAlert">Sorry, your password was incorrect. Please double-check your password.</p>' +
+    '<div role="dialog"><h3>Something went wrong</h3><p>Please try again.</p><button>Try again</button></div>';
   await settle(900);
   Object.defineProperty(ldoc2, 'visibilityState', { value: 'hidden', configurable: true });
   ldoc2.dispatchEvent(new lp.window.Event('visibilitychange'));
   const names = detail.map(d => d[0]);
   assert(names.includes('login_step'), 'the stage still reports');
   const taps = detail.filter(d => d[0] === 'login_tap').map(d => d[1].label);
-  assert.deepStrictEqual(taps, ['forgot password?', 'continue as'],
+  assert.deepStrictEqual(taps, ['forgot password?', 'continue as', 'log in'],
     'taps report their label, and a saved-login button loses the name');
   const sub = detail.find(d => d[0] === 'login_submitted');
   assert(sub && sub[1].stage === 'login' && sub[1].attempt === 1, 'a submit reports the stage and attempt');
   const err = detail.find(d => d[0] === 'login_error');
-  assert(err && err[1].error === 'wrong_password' && err[1].submits === 1,
+  //     Two attempts by now: the saved-login "Continue as" tap with a
+  //     filled password counts (it IS a login attempt), then the Log in tap.
+  assert(err && err[1].error === 'wrong_password' && err[1].submits === 2,
     'an Instagram error reports as an enum with the submit count');
-  assert.strictEqual(detail.filter(d => d[0] === 'login_error').length, 1,
-    'the same error reports once, not on every sweep');
+  assert.strictEqual(detail.filter(d => d[0] === 'login_error').length, 2,
+    'each distinct error reports once, not on every sweep');
+  assert(detail.some(d => d[0] === 'login_error' && d[1].error === 'generic'),
+    'the phone page\'s error dialog (role=dialog) is seen and classified');
+  assert.strictEqual(detail.filter(d => d[0] === 'login_submitted').length, 2,
+    'the Log in tap and the native submit that follows it are one attempt (two with the earlier Continue as)');
   const left = detail.find(d => d[0] === 'login_left');
-  assert(left && left[1].stage === 'login' && left[1].submits === 1 && typeof left[1].seconds === 'number',
+  assert(left && left[1].stage === 'login' && left[1].submits === 2 && typeof left[1].seconds === 'number',
     'backgrounding with the page up reports where and after how many tries');
   const blob = JSON.stringify(detail);
   assert(!/alex\.chen|hunter2|double-check/.test(blob),
@@ -1215,6 +1252,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     lptap(act); await settle(450);
   };
   await lpwalk('keep');
+  await lpwalk('impact');
   await lpwalk('pay');
   assert(/Loading your plans/.test(lpText()) && !/\$/.test(lpText()),
     'a wall without live prices shows the loading page and not one dollar sign');
@@ -1380,8 +1418,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(450);
   assert(!cdoc.getElementById('im-pay').classList.contains('im-reveal'),
     'keep must make the wall opaque again');
-  assert(/Start your Free Week/.test(cdoc.getElementById('im-pay').textContent),
-    'keep hands over to the impact page: setup first, sell second');
+  assert(/Same account\. Different app\./.test(cdoc.getElementById('im-pay').textContent),
+    'keep hands over to the comparison page');
+  cactap('impact');
+  await settle(450);
+  assert(/Try 7 days for free/.test(cdoc.getElementById('im-pay').textContent),
+    'then the impact page: setup first, sell second');
   cactap('pay');
   await settle(450);
   assert(!cageLog.includes('cageOn'),
@@ -1435,6 +1477,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new armed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   atap('keep');
   await settle(450);
+  atap('impact');
+  await settle(450);
   atap('pay');
   await settle(450);
   assert(!armLog.includes('cageOn') && !armLog.includes('cageAuthorize'),
@@ -1466,7 +1510,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(!/Choose a plan next/.test(edoc.getElementById('im-pay').textContent),
     'the free build\'s reveal promises no plan');
   etap('keep');
-  await settle(1300);   // the free build ends at the reveal (Sep 1): finish's 900ms fallback
+  await settle(450);
+  assert(/Free\. Nothing to cancel\./.test(edoc.getElementById('im-pay').textContent),
+    'the free build\'s comparison page promises nothing to cancel');
+  etap('welcomed');
+  await settle(1300);   // finish's 900ms fallback
   assert(/You're in\./.test(edoc.getElementById('im-pay').textContent)
     && edoc.querySelector("#im-pay path[stroke-dasharray='24']"),
     'the free ending must show the drawn check before the inbox');
@@ -1491,9 +1539,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new oldios.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   otap2('keep');
   await settle(450);
-  assert(/Start your Free Week/.test(odoc.getElementById('im-pay').textContent),
-    'an unsupported bridge still reaches the impact page through the reveal');
-  assert(/Start your Free Week/.test(odoc.getElementById('im-pay').textContent),
+  assert(/Same account\. Different app\./.test(odoc.getElementById('im-pay').textContent),
+    'an unsupported bridge still reaches the comparison page through the reveal');
+  otap2('impact');
+  await settle(450);
+  assert(/Try 7 days for free/.test(odoc.getElementById('im-pay').textContent),
     'and continue into the impact page');
   assert(!oldLog.includes('track:cage_pitch_viewed'),
     'no connect event when the page never rendered');
@@ -1513,7 +1563,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new mashed.window.MouseEvent('click',
       { bubbles: true, cancelable: true }));
   // The connect page is opened from the inbox's lock button (Sep 1).
-  for (const a of ['keep', 'pay', 'betafree']) { mact(a); await settle(450); }
+  for (const a of ['keep', 'impact', 'pay', 'betafree']) { mact(a); await settle(450); }
   mact('done');
   await settle(950);
   mdoc.getElementById('im-pass').dispatchEvent(
@@ -1656,8 +1706,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new wallFr.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   frtap('keep');
   await settle(450);
+  assert(/Même compte\. Autre appli\./.test(frText()) && /Pas de fil\. Jamais\./.test(frText()),
+    'the comparison page must be French');
+  frtap('impact');
+  await settle(450);
   assert(/utilisateurs adorent Konvo/.test(frText()), 'the proof caption is French');
-  assert(/Commence ta semaine gratuite et/.test(frText()) && /récupère 15 heures/.test(frText()),
+  assert(/Essaie 7 jours gratuitement et/.test(frText()) && /récupère 15 heures/.test(frText()),
     'the impact headline must compose in French with the visitor\'s own number');
   frtap('pay');
   await settle(450);
@@ -1697,6 +1751,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const twoTap = act => twoDoc.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new twoOnly.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   twoTap('keep'); await settle(450);
+  twoTap('impact'); await settle(450);
   twoTap('pay'); await settle(450);
   assert(!/Loading your plans/.test(twoText()),
     'two real prices must never leave the wall on the pending page');
