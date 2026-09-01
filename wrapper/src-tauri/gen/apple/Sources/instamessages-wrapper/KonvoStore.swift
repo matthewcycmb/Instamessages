@@ -28,6 +28,7 @@ import SwiftUI
 import UIKit
 import UserNotifications
 import WebKit
+import UserJot
 
 // Superwall's purchase controller, delegating all money movement to
 // RevenueCat — the official integration (superwall.com/docs/ios/guides/
@@ -91,7 +92,17 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             purchaseController: purchaseController)
         purchaseController.syncSubscriptionStatus()
         Superwall.shared.identify(userId: Purchases.shared.appUserID)
+        // UserJot (Sep 1): the feedback board, presented natively because
+        // Instagram's CSP would block their web widget inside the page.
+        // Same anonymous id as the two above, so a post joins PostHog.
+        DispatchQueue.main.async {
+            UserJot.setup(projectId: userJotProject)
+            UserJot.identify(userId: Purchases.shared.appUserID)
+        }
     }()
+
+    // UserJot dashboard > Settings > Login > Secrets > Project ID.
+    private static let userJotProject = "cmthvmiur00u90kmt3vple0uu"
 
     // iOS pins a form accessory bar (the ^ v Done strip) above every
     // keyboard in a WKWebView. No public API removes it; the accepted
@@ -559,9 +570,14 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                 // The letterbox above and below the safe-area-pinned webview
                 // is the root view; CSS cannot reach it, so a screen that
                 // must fill the whole phone has to say so through here.
+                // Explicit black/white, not .systemBackground: in this
+                // hierarchy that resolves to the elevated dark grey
+                // (#1C1C1E) and framed the pure-black wall with grey bands
+                // above and below (device, Sep 1). The wall and Instagram's
+                // dark theme are #000, light is #fff.
                 let bg: UIColor = blue
                     ? UIColor(red: 10 / 255, green: 92 / 255, blue: 240 / 255, alpha: 1)
-                    : .systemBackground
+                    : UIColor { $0.userInterfaceStyle == .dark ? .black : .white }
                 root?.view.backgroundColor = bg
                 webView.backgroundColor = bg
                 webView.scrollView.backgroundColor = bg
@@ -877,6 +893,10 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             guard #available(iOS 16.0, *) else { return ["active": false] }
             cageClear()
             return ["active": false]
+        case "feedback":
+            // The UserJot board as a sheet over the webview (Sep 1).
+            DispatchQueue.main.async { UserJot.showFeedback() }
+            return ["ok": true]
         case "review":
             // The system's rating sheet, asked from the onboarding screen
             // that names the years they get back. iOS owns whether it

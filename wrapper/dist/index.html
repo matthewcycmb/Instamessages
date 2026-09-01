@@ -596,9 +596,11 @@
 
   <div class="screen" id="s8c">
     <div class="body" style="flex: none; padding: 84px 24px 0">
-      <h2 style="font-size: 26px">You are given 2 passes a day.</h2>
-      <p class="sub" style="margin-top: 8px">Two 5 minute passes to unlock the
-         Instagram app, post a story or Reel, or call someone.</p>
+      <!-- 23px, not the tour's 26px: the headline is 318px wide at 23px
+           (measured, SF Pro Bold) and fits one line on 375pt phones. -->
+      <h2 style="font-size: 23px">Lock the app when you&rsquo;re ready.</h2>
+      <p class="sub" style="margin-top: 8px">You keep two 5 minute passes a
+         day to post a story or call someone.</p>
     </div>
     <div class="hero"><img src="pass-hero.png" alt=""></div>
     <div class="herofoot">
@@ -674,6 +676,242 @@
 (function () {
   if (!document.documentElement.classList.contains("onboard")) return;
 
+  // The funnel speaks the phone's language (Aug 31): fr, zh (any script,
+  // rendered Traditional), ko, else English. Keys are the English copy;
+  // a missing entry falls back to it, so the worst case is English, never
+  // a blank. cage.js carries its own table for the post-login screens.
+  var LANG = (function () {
+    var l = String((navigator.languages && navigator.languages[0]) ||
+      navigator.language || "").toLowerCase();
+    return /^fr/.test(l) ? "fr" : /^zh/.test(l) ? "zh" : /^ko/.test(l) ? "ko" : "en";
+  })();
+  var I18N = {
+    fr: {
+      "Instagram without the Feed, Reels or Explore.": "Instagram sans le fil, sans Reels, sans Explorer.",
+      "Your DMs and friends’ Stories still work.": "Tes DM et les stories de tes amis marchent toujours.",
+      "Get started": "Commencer",
+      "Why do you want to stop scrolling?": "Pourquoi tu veux arrêter de scroller ?",
+      "Pick the one that is most true.": "Choisis celle qui te ressemble le plus.",
+      "I keep comparing myself to everyone": "Je me compare tout le temps aux autres",
+      "I'm always distracted on my phone": "Mon téléphone me distrait en permanence",
+      "My attention span is cooked": "Mon attention est complètement cramée",
+      "I can't focus for that long": "Je n'arrive pas à me concentrer longtemps",
+      "I'm less present with friends & family": "Je suis moins là pour mes proches",
+      "Where did you hear about Konvo?": "Où as-tu entendu parler de Konvo ?",
+      "A friend": "Un proche",
+      "Somewhere else": "Ailleurs",
+      "What’s your average screen time on Instagram per day?": "Combien de temps passes-tu sur Instagram par jour, en moyenne ?",
+      "Best guess is fine.": "Une estimation suffit.",
+      "< 1 hour": "< 1 heure",
+      "1 - 2 hours": "1 - 2 heures",
+      "2 - 3 hours": "2 - 3 heures",
+      "3 - 4 hours": "3 - 4 heures",
+      "> 4 hours": "> 4 heures",
+      "Not sure": "Je ne sais pas",
+      "How long do you spend messaging on Instagram per day?": "Combien de temps passes-tu en messages sur Instagram par jour ?",
+      "An estimate is fine.": "Une estimation suffit.",
+      "< 10 mins": "< 10 min",
+      "10 - 20 mins": "10 - 20 min",
+      "20 - 30 mins": "20 - 30 min",
+      "30 - 45 mins": "30 - 45 min",
+      "45 - 60 mins": "45 - 60 min",
+      "I don’t know": "Aucune idée",
+      "Adding it up": "On fait le calcul",
+      "Projecting the years ahead…": "Projection sur les années à venir…",
+      "At your current pace, Instagram is on track to take": "À ce rythme, Instagram va te prendre",
+      "of your life distracted on your phone.": "de ta vie, le nez sur ton téléphone.",
+      "Tap to continue": "Touche l'écran pour continuer",
+      "But staying connected only takes a fraction of that.": "Mais rester en contact n'en prend qu'une fraction.",
+      "Instagram now": "Instagram aujourd'hui",
+      "With Konvo": "Avec Konvo",
+      "See what changes": "Voir ce qui change",
+      "You don’t have to give up DMs or Stories.": "Pas besoin de renoncer aux DM ni aux stories.",
+      "Konvo could help you get back": "Konvo pourrait te rendre",
+      "of your life.": "de ta vie.",
+      "See what stays": "Voir ce qui reste",
+      "No Feed. No Reels. No Explore.": "Pas de fil. Pas de Reels. Pas d'Explorer.",
+      "They’re removed completely, so there’s nothing pulling you into a scroll.": "Ils sont retirés pour de bon : plus rien ne t'entraîne dans un scroll.",
+      "Next": "Suivant",
+      "Your messages stay.": "Tes messages restent.",
+      "DMs, group chats, voice notes and friends’ Stories still work.": "DM, groupes, vocaux et stories de tes amis marchent toujours.",
+      "Lock the app when you’re ready.": "Verrouille l'app quand tu veux.",
+      "You keep two 5 minute passes a day to post a story or call someone.": "Tu gardes deux passes de 5 minutes par jour pour poster une story ou appeler quelqu'un.",
+      "Continue": "Continuer",
+      "What early users say": "Ce qu'en disent les premiers utilisateurs",
+      "Konvo does not collect your Instagram information.": "Konvo ne collecte aucune information de ton compte Instagram.",
+      "Your password goes to Instagram, never to us": "Ton mot de passe va à Instagram, jamais à nous",
+      "Your messages are never stored by us": "Tes messages ne sont jamais stockés chez nous",
+      "Your session stays on this phone": "Ta session reste sur ce téléphone",
+      "Got it, sign in": "Compris, me connecter",
+      "Opening Instagram sign-in…": "Ouverture de la connexion Instagram…",
+      "8 h +": "8 h +",
+      "{h} h {r} m": "{h} h {r}",
+      "{h} h": "{h} h",
+      "{r} m": "{r} min",
+      "{t} a day on Instagram": "{t} par jour sur Instagram",
+      "About {n} minutes messaging": "Environ {n} minutes en messages",
+      "{n} years": "{n} ans",
+      "{t} / day": "{t} / jour",
+      "{n} m / day": "{n} min / jour"
+    },
+    zh: {
+      "Instagram without the Feed, Reels or Explore.": "沒有動態、Reels 和探索的 Instagram。",
+      "Your DMs and friends’ Stories still work.": "私訊和朋友的限時動態照常使用。",
+      "Get started": "開始",
+      "Why do you want to stop scrolling?": "你為什麼想停止滑手機？",
+      "Pick the one that is most true.": "選一個最貼近你的。",
+      "I keep comparing myself to everyone": "我總是拿自己跟別人比較",
+      "I'm always distracted on my phone": "手機讓我一直分心",
+      "My attention span is cooked": "我的專注力已經廢了",
+      "I can't focus for that long": "我沒辦法專心那麼久",
+      "I'm less present with friends & family": "跟朋友家人在一起時心不在焉",
+      "Where did you hear about Konvo?": "你從哪裡知道 Konvo？",
+      "A friend": "朋友",
+      "Somewhere else": "其他地方",
+      "What’s your average screen time on Instagram per day?": "你每天平均花多少時間在 Instagram？",
+      "Best guess is fine.": "大概就好。",
+      "< 1 hour": "少於 1 小時",
+      "1 - 2 hours": "1 - 2 小時",
+      "2 - 3 hours": "2 - 3 小時",
+      "3 - 4 hours": "3 - 4 小時",
+      "> 4 hours": "超過 4 小時",
+      "Not sure": "不確定",
+      "How long do you spend messaging on Instagram per day?": "你每天花多少時間在 Instagram 傳訊息？",
+      "An estimate is fine.": "估計一下就好。",
+      "< 10 mins": "少於 10 分鐘",
+      "10 - 20 mins": "10 - 20 分鐘",
+      "20 - 30 mins": "20 - 30 分鐘",
+      "30 - 45 mins": "30 - 45 分鐘",
+      "45 - 60 mins": "45 - 60 分鐘",
+      "I don’t know": "我不知道",
+      "Adding it up": "算一算",
+      "Projecting the years ahead…": "推算未來的年數…",
+      "At your current pace, Instagram is on track to take": "照這個速度，Instagram 將會拿走你",
+      "of your life distracted on your phone.": "的人生，全耗在盯著手機上。",
+      "Tap to continue": "點一下繼續",
+      "But staying connected only takes a fraction of that.": "但保持聯繫，其實只需要其中一小部分。",
+      "Instagram now": "現在的 Instagram",
+      "With Konvo": "用 Konvo",
+      "See what changes": "看看會改變什麼",
+      "You don’t have to give up DMs or Stories.": "你不用放棄私訊或限時動態。",
+      "Konvo could help you get back": "Konvo 可以幫你拿回",
+      "of your life.": "的人生。",
+      "See what stays": "看看會留下什麼",
+      "No Feed. No Reels. No Explore.": "沒有動態。沒有 Reels。沒有探索。",
+      "They’re removed completely, so there’s nothing pulling you into a scroll.": "它們被徹底移除，沒有任何東西會把你拉進去滑。",
+      "Next": "下一步",
+      "Your messages stay.": "你的訊息還在。",
+      "DMs, group chats, voice notes and friends’ Stories still work.": "私訊、群組、語音訊息和朋友的限時動態照常使用。",
+      "Lock the app when you’re ready.": "準備好了再鎖住 App。",
+      "You keep two 5 minute passes a day to post a story or call someone.": "你每天保留兩張 5 分鐘通行證，用來發限時動態或打電話。",
+      "Continue": "繼續",
+      "What early users say": "早期用戶怎麼說",
+      "Konvo does not collect your Instagram information.": "Konvo 不會收集你的 Instagram 資料。",
+      "Your password goes to Instagram, never to us": "密碼只會送到 Instagram，不會經過我們",
+      "Your messages are never stored by us": "我們不會儲存你的訊息",
+      "Your session stays on this phone": "登入狀態只留在這支手機",
+      "Got it, sign in": "明白了，登入",
+      "Opening Instagram sign-in…": "正在開啟 Instagram 登入…",
+      "8 h +": "8 小時+",
+      "{h} h {r} m": "{h} 小時 {r} 分",
+      "{h} h": "{h} 小時",
+      "{r} m": "{r} 分鐘",
+      "{t} a day on Instagram": "每天 {t} 在 Instagram 上",
+      "About {n} minutes messaging": "大約 {n} 分鐘在傳訊息",
+      "{n} years": "{n} 年",
+      "{t} / day": "每天 {t}",
+      "{n} m / day": "每天 {n} 分鐘"
+    },
+    ko: {
+      "Instagram without the Feed, Reels or Explore.": "피드, 릴스, 탐색 탭 없는 인스타그램.",
+      "Your DMs and friends’ Stories still work.": "DM과 친구들의 스토리는 그대로예요.",
+      "Get started": "시작하기",
+      "Why do you want to stop scrolling?": "왜 스크롤을 멈추고 싶으세요?",
+      "Pick the one that is most true.": "가장 가까운 걸 골라 주세요.",
+      "I keep comparing myself to everyone": "자꾸 남들과 비교하게 돼요",
+      "I'm always distracted on my phone": "폰 때문에 늘 산만해요",
+      "My attention span is cooked": "집중력이 완전히 망가졌어요",
+      "I can't focus for that long": "오래 집중을 못 하겠어요",
+      "I'm less present with friends & family": "친구, 가족과 있어도 딴 데 정신이 팔려요",
+      "Where did you hear about Konvo?": "Konvo를 어디서 알게 되셨어요?",
+      "A friend": "친구",
+      "Somewhere else": "다른 곳",
+      "What’s your average screen time on Instagram per day?": "하루 평균 인스타그램 사용 시간은 얼마나 되나요?",
+      "Best guess is fine.": "대략이면 돼요.",
+      "< 1 hour": "1시간 미만",
+      "1 - 2 hours": "1 - 2시간",
+      "2 - 3 hours": "2 - 3시간",
+      "3 - 4 hours": "3 - 4시간",
+      "> 4 hours": "4시간 이상",
+      "Not sure": "잘 모르겠어요",
+      "How long do you spend messaging on Instagram per day?": "하루에 인스타그램 메시지에는 얼마나 쓰나요?",
+      "An estimate is fine.": "대략이면 돼요.",
+      "< 10 mins": "10분 미만",
+      "10 - 20 mins": "10 - 20분",
+      "20 - 30 mins": "20 - 30분",
+      "30 - 45 mins": "30 - 45분",
+      "45 - 60 mins": "45 - 60분",
+      "I don’t know": "모르겠어요",
+      "Adding it up": "계산 중",
+      "Projecting the years ahead…": "앞으로의 시간을 계산하는 중…",
+      "At your current pace, Instagram is on track to take": "지금 속도라면, 인스타그램이 가져갈 시간은",
+      "of your life distracted on your phone.": "폰에 정신 팔린 채 흘러가는 당신의 인생이에요.",
+      "Tap to continue": "화면을 눌러 계속",
+      "But staying connected only takes a fraction of that.": "하지만 연락을 이어가는 데 드는 시간은 그중 아주 일부예요.",
+      "Instagram now": "지금 인스타그램",
+      "With Konvo": "Konvo와 함께",
+      "See what changes": "무엇이 달라지는지 보기",
+      "You don’t have to give up DMs or Stories.": "DM이나 스토리를 포기할 필요는 없어요.",
+      "Konvo could help you get back": "Konvo가 되찾아 줄 수 있는 시간은",
+      "of your life.": "당신 인생의 시간이에요.",
+      "See what stays": "무엇이 남는지 보기",
+      "No Feed. No Reels. No Explore.": "피드 없음. 릴스 없음. 탐색 없음.",
+      "They’re removed completely, so there’s nothing pulling you into a scroll.": "완전히 사라져서, 스크롤로 끌어당기는 게 아무것도 없어요.",
+      "Next": "다음",
+      "Your messages stay.": "메시지는 그대로예요.",
+      "DMs, group chats, voice notes and friends’ Stories still work.": "DM, 그룹 채팅, 음성 메시지, 친구들의 스토리 모두 그대로 써요.",
+      "Lock the app when you’re ready.": "준비되면 앱을 잠그세요.",
+      "You keep two 5 minute passes a day to post a story or call someone.": "스토리를 올리거나 전화할 때 쓸 5분 패스가 하루 2번 남아요.",
+      "Continue": "계속",
+      "What early users say": "먼저 써본 사람들의 이야기",
+      "Konvo does not collect your Instagram information.": "Konvo는 인스타그램 정보를 수집하지 않아요.",
+      "Your password goes to Instagram, never to us": "비밀번호는 인스타그램으로만 가고, 저희에겐 오지 않아요",
+      "Your messages are never stored by us": "메시지는 저희 서버에 저장되지 않아요",
+      "Your session stays on this phone": "로그인 세션은 이 폰에만 남아요",
+      "Got it, sign in": "알겠어요, 로그인",
+      "Opening Instagram sign-in…": "인스타그램 로그인 여는 중…",
+      "8 h +": "8시간+",
+      "{h} h {r} m": "{h}시간 {r}분",
+      "{h} h": "{h}시간",
+      "{r} m": "{r}분",
+      "{t} a day on Instagram": "하루 {t} 인스타그램",
+      "About {n} minutes messaging": "메시지는 약 {n}분",
+      "{n} years": "{n}년",
+      "{t} / day": "하루 {t}",
+      "{n} m / day": "하루 {n}분"
+    }
+  };
+  function T(s, v) {
+    var r = (I18N[LANG] || {})[s] || s;
+    if (v) for (var k in v) r = r.split("{" + k + "}").join(v[k]);
+    return r;
+  }
+  document.documentElement.lang = LANG === "zh" ? "zh-Hant" : LANG;
+  // Every option keeps its English label as the analytics enum before the
+  // walk below repaints it: quiz_answered reads the same in Paris as in
+  // Portland, and the PostHog tiles keep matching.
+  var opts0 = document.querySelectorAll("#flow .opt");
+  for (var oi = 0; oi < opts0.length; oi++) {
+    opts0[oi].dataset.en = opts0[oi].textContent.trim();
+  }
+  if (LANG !== "en") {
+    var tw = document.createTreeWalker(document.getElementById("flow"), NodeFilter.SHOW_TEXT), tn;
+    while ((tn = tw.nextNode())) {
+      var tk = tn.nodeValue.replace(/\s+/g, " ").trim();
+      if (tk && I18N[LANG][tk]) tn.nodeValue = I18N[LANG][tk];
+    }
+  }
+
   // Quiz state. M is the messaging range's upper bound; "I don't know" is a
   // transparent 20-minute estimate.
 
@@ -705,6 +943,9 @@
       // initialization script, so both surfaces label events identically.
       p.variant = window.__konvoBeta ? "beta"
         : window.__konvoFree ? "free" : "default";
+      // The phone's own tag (fr-FR, zh-Hant-HK, ko-KR): which languages
+      // users actually run, not which table rendered.
+      p.lang = navigator.language;
       window.webkit.messageHandlers.konvoStore.postMessage(
         { cmd: "track", id: 0, event: event, props: p });
     } catch (e) {}
@@ -719,12 +960,6 @@
     track("onboarding_screen_viewed", { screen_id: "s1" });
   }
 
-  // The pact's date line: honest and computed, never a hardcoded date.
-  try {
-    document.getElementById("pactdate").textContent = "Your Konvo starts today, " +
-      new Date().toLocaleDateString(undefined, { month: "long", day: "numeric" }) + ".";
-  } catch (e) {}
-
   function mins() {
     var sel = document.querySelector("#s3 .opt.sel");
     return sel ? +sel.dataset.m : 150;
@@ -734,9 +969,10 @@
     return sel ? +sel.dataset.m : 20;
   }
   function fmt(m) {
-    if (m >= 480) return "8 h +";
+    if (m >= 480) return T("8 h +");
     var h = Math.floor(m / 60), r = m % 60;
-    return h ? (r ? h + " h " + r + " m" : h + " h") : r + " m";
+    return h ? (r ? T("{h} h {r} m", { h: h, r: r }) : T("{h} h", { h: h }))
+             : T("{r} m", { r: r });
   }
 
   // The disclosed projection (sheet header, locked): full 24 h days over the
@@ -805,9 +1041,9 @@
   // dim, then the dark reveal fades in.
   function prime() {
     document.getElementById("p-time").textContent =
-      fmt(mins()) + " a day on Instagram";
+      T("{t} a day on Instagram", { t: fmt(mins()) });
     document.getElementById("p-msg").textContent =
-      "About " + msgMins() + " minutes messaging";
+      T("About {n} minutes messaging", { n: msgMins() });
   }
   function sequence(id, total, then) {
     var items = document.getElementById(id).querySelectorAll(".pill");
@@ -841,7 +1077,7 @@
 
   function reveal() {
     var y = document.getElementById("years-lost");
-    y.textContent = years(mins()) + " years";
+    y.textContent = T("{n} years", { n: years(mins()) });
     // Remove, force reflow, re-add: the standard restart. The wait is the
     // CSS animation-delay now, so a re-entry cannot stack timers or land a
     // stale pop on a screen the user has already left.
@@ -852,8 +1088,8 @@
 
   function columns() {
     var t = mins(), m = Math.min(msgMins(), t);
-    document.getElementById("col-now-v").textContent = fmt(t) + " / day";
-    document.getElementById("col-dm-v").textContent = m + " m / day";
+    document.getElementById("col-now-v").textContent = T("{t} / day", { t: fmt(t) });
+    document.getElementById("col-dm-v").textContent = T("{n} m / day", { n: m });
     // Proportional heights against the fixed 190px column; the blue one
     // keeps a minimum so it never vanishes (sheet annotation).
     document.getElementById("col-dm").style.height =
@@ -863,7 +1099,7 @@
   function outcome() {
     var t = mins(), m = Math.min(msgMins(), t);
     var y = document.getElementById("years-back");
-    y.textContent = years(t - m) + " years";
+    y.textContent = T("{n} years", { n: years(t - m) });
     y.classList.remove("pop");
     void y.offsetWidth;
     y.classList.add("pop");
@@ -894,7 +1130,7 @@
     // re-schedule the advance.
     busy = Date.now() + 1250;
     var screen = opt.closest(".screen").id;
-    // The answer is the option's visible label: a fixed enum, and the only
+    // The answer is the option's ENGLISH label: a fixed enum, and the only
     // key that separates "2 - 3 hours" from "Not sure" (same data-m).
     // The personal question first, then the numbers; the marketing
     // question waits until after the tour (why -> screen time ->
@@ -903,7 +1139,7 @@
                  s4: ["messaging", "s4b"] };
     track("quiz_answered", {
       question: QUIZ[screen][0],
-      answer: opt.textContent.trim(),
+      answer: opt.dataset.en || opt.textContent.trim(),
       screen_id: screen,
     });
     // Tap-to-select auto-advances after a beat; no Continue on option

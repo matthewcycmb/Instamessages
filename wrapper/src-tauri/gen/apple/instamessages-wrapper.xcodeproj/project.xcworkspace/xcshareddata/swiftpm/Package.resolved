@@ -1,5 +1,5 @@
 {
-  "originHash" : "7021048f854e047ebe415d969702446c290b9f670b91490522d56dfe6bf8ec8f",
+  "originHash" : "238164ce464cb507da56218480cf0bc956ff4eda75f93b731ac8e99a4c1fb79e",
   "pins" : [
     {
       "identity" : "purchases-ios",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "3c360d5512d9ac1aa4805c63c19c274f8d8ce958",
         "version" : "4.16.1"
+      }
+    },
+    {
+      "identity" : "userjot-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/UserJot/userjot-ios",
+      "state" : {
+        "revision" : "8597775dfbf70a16bce37fe913a5eca230ed9f17",
+        "version" : "0.3.0"
       }
     }
   ],

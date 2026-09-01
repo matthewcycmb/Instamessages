@@ -32,6 +32,13 @@ function boot(opts = {}) {
   });
   Object.defineProperty(dom.window.navigator, 'userAgent',
     { value: opts.ua || IPHONE, configurable: true });
+  // The phone's language, as WebKit reports it (fr-FR, zh-CN, ko-KR).
+  if (opts.lang) {
+    Object.defineProperty(dom.window.navigator, 'language',
+      { value: opts.lang, configurable: true });
+    Object.defineProperty(dom.window.navigator, 'languages',
+      { value: [opts.lang], configurable: true });
+  }
   if (opts.onboarded) dom.window.localStorage.konvoOnboarded = '1';
   if (opts.macWelcomed) dom.window.localStorage.konvoMacWelcomed = '1';
   // The bridge mock splits streams: appearance changes and funnel events.
@@ -205,7 +212,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   tap('#s8b [data-next]');                      // Next
   assert(doc.getElementById('s8c').classList.contains('on'),
     'the pass hero must follow: users must learn the five-minute unlock exists');
-  assert(/You are given 2 passes a day/.test(doc.getElementById('s8c').textContent)
+  assert(/Lock the app when you’re ready/.test(doc.getElementById('s8c').textContent)
     && doc.querySelector('#s8c img[src="pass-hero.png"]'),
     'the pass hero must show the sheet mockup');
   await settle(1100);
@@ -296,6 +303,76 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   otap('#signin');
   assert(one.nav[0].startsWith(INBOX + '#konvo='),
     'the handoff carries the hours even from the minimum answers');
+
+  // 9. The funnel speaks the phone's language (Aug 31). The table is
+  //    complete (same keys in fr/zh/ko, every T() key and every visible
+  //    text node covered, no em dashes), a French phone repaints the markup
+  //    AND the JS-built numbers, the analytics enum stays English whatever
+  //    the screen says, zh-CN reads Traditional, and an unknown language
+  //    is plain English, untouched.
+  const I18N = eval('(' + HTML.match(/var I18N = (\{[\s\S]*?\n  \});/)[1] + ')');
+  const LANGS = ['fr', 'zh', 'ko'];
+  const keysOf = l => Object.keys(I18N[l]).sort().join('\n');
+  assert(LANGS.every(l => keysOf(l) === keysOf('fr')),
+    'every language must carry exactly the same keys');
+  for (const m of SCRIPTS[2].matchAll(/\bT\("([^"]+)"/g))
+    assert(I18N.fr[m[1]] !== undefined, `T() key without a translation: ${m[1]}`);
+  for (const l of LANGS) for (const [k, v] of Object.entries(I18N[l]))
+    assert(!/—/.test(v) && v.length, `bad ${l} entry for: ${k}`);
+  const en = boot();
+  await settle(100);
+  const BRANDS = new Set(['Konvo', 'TikTok', 'Instagram', 'App Store']);
+  const tw = en.window.document.createTreeWalker(
+    en.window.document.getElementById('flow'), 4);
+  let tn, covered = 0;
+  while ((tn = tw.nextNode())) {
+    const k = tn.nodeValue.replace(/\s+/g, ' ').trim();
+    if (!k || BRANDS.has(k) || tn.parentElement.id) continue;   // ids = JS-owned
+    assert(I18N.fr[k] !== undefined, `markup text without a translation: ${k}`);
+    covered++;
+  }
+  assert(covered > 40, 'the walker must have seen the whole funnel, saw ' + covered);
+  const fr = boot({ lang: 'fr-FR' });
+  const fdoc = fr.window.document;
+  await settle(100);
+  assert.strictEqual(fdoc.documentElement.lang, 'fr');
+  assert.strictEqual(fdoc.querySelector('#s1 h1').textContent,
+    I18N.fr['Instagram without the Feed, Reels or Explore.'],
+    'the hero headline must repaint in French');
+  assert(!/Get started/.test(fdoc.getElementById('flow').textContent),
+    'no English button may survive on a French phone');
+  assert(fr.tracked.length && fr.tracked.every(m => m.props.lang === 'fr-FR'),
+    'every event carries the phone language tag');
+  const ftap = sel => fdoc.querySelector(sel).click();
+  ftap('#s1 [data-next]');
+  await settle(1100);
+  ftap("#s2c .opt[data-why='attention']");
+  await settle(1400);
+  const fwhy = fr.tracked.find(m => m.event === 'quiz_answered');
+  assert.strictEqual(fwhy.props.answer, 'My attention span is cooked',
+    'the quiz enum must stay English on a French phone, or the PostHog tiles break');
+  await settle(1100);
+  ftap("#s3 .opt[data-m='150']");
+  await settle(1400);
+  await settle(1100);
+  ftap("#s4 .opt[data-m='20']:not([data-est])");
+  await settle(400);
+  assert.strictEqual(fdoc.getElementById('p-time').textContent,
+    '2 h 30 par jour sur Instagram', 'the JS-built loader line must be French');
+  assert.strictEqual(fdoc.getElementById('p-msg').textContent,
+    'Environ 20 minutes en messages');
+  await settle(3400);
+  assert.strictEqual(fdoc.getElementById('years-lost').textContent, '7 ans',
+    'the reveal number must carry its French unit');
+  const zh = boot({ lang: 'zh-CN' });
+  const de = boot({ lang: 'de-DE' });
+  await settle(100);
+  assert.strictEqual(zh.window.document.querySelector('#s1 h1').textContent,
+    I18N.zh['Instagram without the Feed, Reels or Explore.'],
+    'a Simplified Chinese phone reads Traditional, not English');
+  assert.strictEqual(de.window.document.documentElement.lang, 'en');
+  assert(/Get started/.test(de.window.document.getElementById('flow').textContent),
+    'an unsupported language is plain English');
 
   console.log('ALL ONBOARDING TESTS PASS');
   process.exit(0);

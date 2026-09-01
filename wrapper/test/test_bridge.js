@@ -21,6 +21,7 @@ const TABLE = {
   appearance:    { arg: '"light" | "dark" | "blue" | "auto"', replies: [] },
   go:            { arg: 'in-app URL navigated natively (universal-link trap)', replies: [] },
   review:        { arg: 'unused (the system rating sheet; iOS decides if it shows)', replies: [] },
+  feedback:      { arg: 'unused (the UserJot board as a native sheet)', replies: ['ok'] },
   cookieSave:    { arg: 'unused', replies: ['ok', 'n'] },
   cookieRestore: { arg: 'unused', replies: ['restored', 'n'] },
   cageStatus:    { arg: 'unused', replies: ['supported', 'authorized', 'picked',

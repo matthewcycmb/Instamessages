@@ -25,9 +25,323 @@
       // not tell variants apart have already lied twice.
       p.variant = window.__konvoBeta ? "beta"
         : window.__konvoFree ? "free" : "default";
+      p.lang = navigator.language;
       window.webkit.messageHandlers.konvoStore.postMessage(
         { cmd: "track", id: 0, event: event, props: p });
     } catch (e) {}
+  }
+
+  // The sequence speaks the phone's language (Aug 31): fr, zh (any
+  // script, rendered Traditional), ko, else English. Same shape as
+  // dist/index.html's table, its own keys: the English copy, so a missing
+  // entry can only ever show English. Money lines say exactly what the
+  // English says, never more. The Screen Time replica mirrors Apple's own
+  // dialog wording in each language, which is why it alone says "vous".
+  var LANG = (function () {
+    var l = String((navigator.languages && navigator.languages[0]) ||
+      navigator.language || "").toLowerCase();
+    return /^fr/.test(l) ? "fr" : /^zh/.test(l) ? "zh" : /^ko/.test(l) ? "ko" : "en";
+  })();
+  var I18N = {
+    fr: {
+      "Instagram connected.": "Instagram connecté.",
+      "Your DMs and Stories are ready.": "Tes DM et tes stories sont prêts.",
+      "Setting up your Konvo": "Préparation de ton Konvo",
+      "Feed hidden": "Fil masqué",
+      "Reels hidden": "Reels masqués",
+      "Explore hidden": "Explorer masqué",
+      "Messages kept": "Messages conservés",
+      "Friends' stories kept": "Stories de tes amis conservées",
+      "Why Konvo works": "Pourquoi Konvo marche",
+      "What you get": "Ce que tu as",
+      "LIMIT APPS": "LIMITES D'APP",
+      "No feed, no Reels, no Explore": "Pas de fil, pas de Reels, pas d'Explorer",
+      "Lock the Instagram app when you're ready": "Verrouille l'app Instagram quand tu veux",
+      "Two 5 minute passes a day once it's locked": "Deux passes de 5 min par jour une fois verrouillée",
+      "No snooze button to cave to": "Pas de bouton « plus tard » pour craquer",
+      "Every DM and Story, nothing missing": "Tous tes DM et stories, rien ne manque",
+      "Free. Nothing to cancel.": "Gratuit. Rien à annuler.",
+      "No commitment. Cancel anytime.": "Sans engagement. Annule quand tu veux.",
+      "Continue": "Continuer",
+      "Loading your plans&hellip;": "Chargement de tes formules&hellip;",
+      "Prices show in your local currency.": "Les prix s'affichent dans ta devise.",
+      "Try again": "Réessayer",
+      "First {n} days free, then {price} a month.": "{n} premiers jours gratuits, puis {price} par mois.",
+      "Start your free {n} days": "Commencer mes {n} jours gratuits",
+      "No commitment, cancel anytime": "Sans engagement, annule quand tu veux",
+      "Today": "Aujourd'hui",
+      "Unlock your DMs and Stories in Konvo. Pay $0.": "Débloque tes DM et stories dans Konvo. Tu ne paies rien.",
+      "In {n} days": "Dans {n} jours",
+      "You'll be charged {price} on <b>{date}</b>, <b>cancel anytime</b> before.": "{price} seront prélevés le <b>{date}</b>. <b>Annule quand tu veux</b> avant.",
+      "{price} a month, cancel anytime.": "{price} par mois, annulable à tout moment.",
+      "Continue with Monthly": "Continuer en mensuel",
+      "Unlock your DMs and Stories in Konvo. Pay {price}.": "Débloque tes DM et stories dans Konvo. Tu paies {price}.",
+      "Every month": "Chaque mois",
+      "Renews at {price}, <b>cancel anytime</b>.": "Renouvelé à {price}, <b>annulable à tout moment</b>.",
+      "{price} once. Lifetime access.": "{price} une seule fois. Accès à vie.",
+      "Get Lifetime access": "Obtenir l'accès à vie",
+      "Pay once. No subscription.": "Un seul paiement. Pas d'abonnement.",
+      "Pay {price} once. That's it.": "Tu paies {price} une fois. C'est tout.",
+      "First {n} days free, then {price} a year.": "{n} premiers jours gratuits, puis {price} par an.",
+      "Halfway through. We'll remind you before anything is charged.": "À mi-parcours. On te préviendra avant tout prélèvement.",
+      "You'll be charged on <b>{date}</b>, <b>cancel anytime</b> before.": "Prélèvement le <b>{date}</b>. <b>Annule quand tu veux</b> avant.",
+      "{price} a year ({m}/month).": "{price} par an ({m}/mois).",
+      "Continue with Yearly": "Continuer en annuel",
+      "Unlock your DMs and Stories in Konvo.": "Débloque tes DM et stories dans Konvo.",
+      "In 12 months": "Dans 12 mois",
+      "Renews at {price}, <b>cancel anytime</b> before.": "Renouvelé à {price}, <b>annulable à tout moment</b> avant.",
+      "Your plan ended.": "Ta formule est terminée.",
+      "How your free trial works": "Comment marche ton essai gratuit",
+      "How your plan works": "Comment marche ta formule",
+      "Instagram is unblocked until you pick a plan. ": "Instagram est débloqué jusqu'à ce que tu choisisses une formule. ",
+      "SAVE {n}%": "-{n} %",
+      "POPULAR": "POPULAIRE",
+      "Yearly Plan": "Annuel",
+      "Monthly Plan": "Mensuel",
+      "{price}/month": "{price}/mois",
+      "{price}/year": "{price}/an",
+      "Terms of Use": "Conditions d'utilisation",
+      "Privacy Policy": "Confidentialité",
+      "Restore": "Restaurer",
+      "Free during beta": "Gratuit pendant la bêta",
+      "Connect Konvo to Screen Time, securely.": "Connecte Konvo à Temps d'écran, en toute sécurité.",
+      "To block Instagram on this iPhone, Konvo will need your permission.": "Pour bloquer Instagram sur cet iPhone, Konvo a besoin de ta permission.",
+      "&ldquo;Konvo&rdquo; Would Like to Access Screen Time": "« Konvo » souhaite accéder à Temps d'écran",
+      "Providing &ldquo;Konvo&rdquo; access to Screen Time may allow it to see your activity data, restrict content, and limit the usage of apps and websites.": "Autoriser « Konvo » à accéder à Temps d'écran peut lui permettre de voir vos données d'activité, de restreindre du contenu et de limiter l'utilisation des apps et des sites web.",
+      "Don&rsquo;t Allow": "Ne pas autoriser",
+      "Your information is protected by Apple and stays 100% on your phone.": "Tes informations sont protégées par Apple et restent à 100 % sur ton téléphone.",
+      "Give permission": "Donner la permission",
+      "Instagram connected": "Instagram connecté",
+      "Your DMs are still here.": "Tes DM sont toujours là.",
+      "Feed, Reels and Explore are now hidden. Stories, profiles and notifications still work.": "Fil, Reels et Explorer sont maintenant masqués. Stories, profils et notifications marchent toujours.",
+      "Keep Instagram like this": "Garder Instagram comme ça",
+      "Choose a plan next": "Ensuite, choisis une formule",
+      "Start your Free Week": "Commence ta semaine gratuite",
+      "Start using Konvo": "Commence à utiliser Konvo",
+      "reclaim 1 hour back": "récupère 1 heure",
+      "reclaim {n} hours back": "récupère {n} heures",
+      "get your evenings back": "récupère tes soirées",
+      "{head} and<br>{sub}": "{head} et<br>{sub}",
+      "Stay connected": "Reste en contact",
+      "Messages, requests and friends' Stories all still work.": "Messages, invitations et stories de tes amis marchent toujours.",
+      "Reclaim your focus": "Retrouve ta concentration",
+      "No feed, no Reels, no Explore. Nothing to fall into.": "Pas de fil, pas de Reels, pas d'Explorer. Rien où tomber.",
+      "Lock it when you're ready": "Verrouille quand tu veux",
+      "One tap locks the Instagram app. Two passes a day, no snooze.": "Un tap verrouille l'app Instagram. Deux passes par jour, pas de bouton « plus tard ».",
+      "App Store review": "Avis App Store",
+      "Your messages are waiting.": "Tes messages t'attendent.",
+      "You're protected.": "Protection activée.",
+      "Instagram is blocked. Your DMs remain available through Konvo.": "Instagram est bloqué. Tes DM restent accessibles dans Konvo.",
+      "Lifetime access active.": "Accès à vie activé.",
+      "Free until {date}.": "Gratuit jusqu'au {date}.",
+      "You're in.": "C'est parti.",
+      "Open my messages": "Ouvrir mes messages",
+      "Ready to lock the Instagram app?": "On verrouille l'app Instagram ?",
+      "Konvo keeps your DMs. Two 5 minute passes a day.": "Konvo garde tes DM. Deux passes de 5 minutes par jour.",
+      "Block Instagram": "Bloquer Instagram",
+      "Not now": "Pas maintenant"
+    },
+    zh: {
+      "Instagram connected.": "Instagram 已連結。",
+      "Your DMs and Stories are ready.": "你的私訊和限時動態準備好了。",
+      "Setting up your Konvo": "正在設定你的 Konvo",
+      "Feed hidden": "已隱藏動態",
+      "Reels hidden": "已隱藏 Reels",
+      "Explore hidden": "已隱藏探索",
+      "Messages kept": "保留訊息",
+      "Friends' stories kept": "保留朋友的限時動態",
+      "Why Konvo works": "為什麼 Konvo 有效",
+      "What you get": "你會得到",
+      "LIMIT APPS": "App 限制",
+      "No feed, no Reels, no Explore": "沒有動態、Reels 和探索",
+      "Lock the Instagram app when you're ready": "準備好了再鎖住 Instagram App",
+      "Two 5 minute passes a day once it's locked": "鎖住後每天兩張 5 分鐘通行證",
+      "No snooze button to cave to": "沒有可以讓你妥協的「稍後」按鈕",
+      "Every DM and Story, nothing missing": "每一則私訊和限時動態，一個都不少",
+      "Free. Nothing to cancel.": "免費。不需要取消任何東西。",
+      "No commitment. Cancel anytime.": "無綁約。隨時取消。",
+      "Continue": "繼續",
+      "Loading your plans&hellip;": "正在載入方案&hellip;",
+      "Prices show in your local currency.": "價格以你的當地貨幣顯示。",
+      "Try again": "再試一次",
+      "First {n} days free, then {price} a month.": "前 {n} 天免費，之後每月 {price}。",
+      "Start your free {n} days": "開始 {n} 天免費試用",
+      "No commitment, cancel anytime": "無綁約，隨時取消",
+      "Today": "今天",
+      "Unlock your DMs and Stories in Konvo. Pay $0.": "在 Konvo 解鎖私訊和限時動態。今天不收費。",
+      "In {n} days": "{n} 天後",
+      "You'll be charged {price} on <b>{date}</b>, <b>cancel anytime</b> before.": "<b>{date}</b> 將收取 {price}，之前<b>隨時可取消</b>。",
+      "{price} a month, cancel anytime.": "每月 {price}，隨時取消。",
+      "Continue with Monthly": "選擇月付",
+      "Unlock your DMs and Stories in Konvo. Pay {price}.": "在 Konvo 解鎖私訊和限時動態。支付 {price}。",
+      "Every month": "每個月",
+      "Renews at {price}, <b>cancel anytime</b>.": "以 {price} 續訂，<b>隨時可取消</b>。",
+      "{price} once. Lifetime access.": "一次付 {price}。終身使用。",
+      "Get Lifetime access": "取得終身使用權",
+      "Pay once. No subscription.": "只付一次。沒有訂閱。",
+      "Pay {price} once. That's it.": "付 {price} 一次。就這樣。",
+      "First {n} days free, then {price} a year.": "前 {n} 天免費，之後每年 {price}。",
+      "Halfway through. We'll remind you before anything is charged.": "試用過半。收費前我們會提醒你。",
+      "You'll be charged on <b>{date}</b>, <b>cancel anytime</b> before.": "<b>{date}</b> 開始收費，之前<b>隨時可取消</b>。",
+      "{price} a year ({m}/month).": "每年 {price}（每月 {m}）。",
+      "Continue with Yearly": "選擇年付",
+      "Unlock your DMs and Stories in Konvo.": "在 Konvo 解鎖私訊和限時動態。",
+      "In 12 months": "12 個月後",
+      "Renews at {price}, <b>cancel anytime</b> before.": "以 {price} 續訂，之前<b>隨時可取消</b>。",
+      "Your plan ended.": "你的方案已結束。",
+      "How your free trial works": "免費試用是這樣運作的",
+      "How your plan works": "方案是這樣運作的",
+      "Instagram is unblocked until you pick a plan. ": "在你選擇方案之前，Instagram 不會被封鎖。",
+      "SAVE {n}%": "省 {n}%",
+      "POPULAR": "熱門",
+      "Yearly Plan": "年付",
+      "Monthly Plan": "月付",
+      "{price}/month": "{price}/月",
+      "{price}/year": "{price}/年",
+      "Terms of Use": "使用條款",
+      "Privacy Policy": "隱私權政策",
+      "Restore": "恢復購買",
+      "Free during beta": "測試期間免費",
+      "Connect Konvo to Screen Time, securely.": "安全地將 Konvo 連結到「螢幕使用時間」。",
+      "To block Instagram on this iPhone, Konvo will need your permission.": "要在這支 iPhone 封鎖 Instagram，Konvo 需要你的許可。",
+      "&ldquo;Konvo&rdquo; Would Like to Access Screen Time": "「Konvo」想要取用「螢幕使用時間」",
+      "Providing &ldquo;Konvo&rdquo; access to Screen Time may allow it to see your activity data, restrict content, and limit the usage of apps and websites.": "允許「Konvo」取用「螢幕使用時間」可能讓它查看你的活動資料、限制內容，以及限制 App 和網站的使用。",
+      "Don&rsquo;t Allow": "不允許",
+      "Your information is protected by Apple and stays 100% on your phone.": "你的資料由 Apple 保護，100% 留在你的手機上。",
+      "Give permission": "授予許可",
+      "Instagram connected": "Instagram 已連結",
+      "Your DMs are still here.": "你的私訊都還在。",
+      "Feed, Reels and Explore are now hidden. Stories, profiles and notifications still work.": "動態、Reels 和探索已隱藏。限時動態、個人檔案和通知照常使用。",
+      "Keep Instagram like this": "就讓 Instagram 保持這樣",
+      "Choose a plan next": "接著選擇方案",
+      "Start your Free Week": "開始免費一週",
+      "Start using Konvo": "開始使用 Konvo",
+      "reclaim 1 hour back": "拿回 1 小時",
+      "reclaim {n} hours back": "拿回 {n} 小時",
+      "get your evenings back": "拿回你的夜晚",
+      "{head} and<br>{sub}": "{head}，<br>{sub}",
+      "Stay connected": "保持聯繫",
+      "Messages, requests and friends' Stories all still work.": "訊息、邀請和朋友的限時動態都照常使用。",
+      "Reclaim your focus": "找回專注力",
+      "No feed, no Reels, no Explore. Nothing to fall into.": "沒有動態、Reels 和探索。沒有東西可以讓你陷進去。",
+      "Lock it when you're ready": "準備好了再鎖",
+      "One tap locks the Instagram app. Two passes a day, no snooze.": "一鍵鎖住 Instagram App。每天兩張通行證，沒有「稍後」。",
+      "App Store review": "App Store 評論",
+      "Your messages are waiting.": "你的訊息在等你。",
+      "You're protected.": "保護已啟用。",
+      "Instagram is blocked. Your DMs remain available through Konvo.": "Instagram 已封鎖。你的私訊仍可透過 Konvo 使用。",
+      "Lifetime access active.": "終身使用已啟用。",
+      "Free until {date}.": "{date} 前免費。",
+      "You're in.": "搞定。",
+      "Open my messages": "打開我的訊息",
+      "Ready to lock the Instagram app?": "要鎖住 Instagram App 了嗎？",
+      "Konvo keeps your DMs. Two 5 minute passes a day.": "Konvo 保留你的私訊。每天兩張 5 分鐘通行證。",
+      "Block Instagram": "封鎖 Instagram",
+      "Not now": "先不要"
+    },
+    ko: {
+      "Instagram connected.": "인스타그램 연결 완료.",
+      "Your DMs and Stories are ready.": "DM과 스토리가 준비됐어요.",
+      "Setting up your Konvo": "Konvo 설정 중",
+      "Feed hidden": "피드 숨김",
+      "Reels hidden": "릴스 숨김",
+      "Explore hidden": "탐색 탭 숨김",
+      "Messages kept": "메시지 유지",
+      "Friends' stories kept": "친구 스토리 유지",
+      "Why Konvo works": "Konvo가 효과 있는 이유",
+      "What you get": "제공 기능",
+      "LIMIT APPS": "앱 제한",
+      "No feed, no Reels, no Explore": "피드, 릴스, 탐색 없음",
+      "Lock the Instagram app when you're ready": "준비되면 인스타그램 앱 잠그기",
+      "Two 5 minute passes a day once it's locked": "잠근 후엔 하루 5분 패스 2번",
+      "No snooze button to cave to": "유혹에 넘어갈 '나중에' 버튼이 없어요",
+      "Every DM and Story, nothing missing": "DM과 스토리는 하나도 빠짐없이",
+      "Free. Nothing to cancel.": "무료예요. 해지할 것도 없어요.",
+      "No commitment. Cancel anytime.": "약정 없음. 언제든 해지.",
+      "Continue": "계속",
+      "Loading your plans&hellip;": "플랜 불러오는 중&hellip;",
+      "Prices show in your local currency.": "가격은 현지 통화로 표시돼요.",
+      "Try again": "다시 시도",
+      "First {n} days free, then {price} a month.": "처음 {n}일 무료, 이후 월 {price}.",
+      "Start your free {n} days": "무료 {n}일 시작하기",
+      "No commitment, cancel anytime": "약정 없음, 언제든 해지",
+      "Today": "오늘",
+      "Unlock your DMs and Stories in Konvo. Pay $0.": "Konvo에서 DM과 스토리 잠금 해제. 오늘은 결제 없음.",
+      "In {n} days": "{n}일 후",
+      "You'll be charged {price} on <b>{date}</b>, <b>cancel anytime</b> before.": "<b>{date}</b>에 {price}가 결제돼요. 그 전에 <b>언제든 해지</b>할 수 있어요.",
+      "{price} a month, cancel anytime.": "월 {price}, 언제든 해지.",
+      "Continue with Monthly": "월간 플랜으로 계속",
+      "Unlock your DMs and Stories in Konvo. Pay {price}.": "Konvo에서 DM과 스토리 잠금 해제. {price} 결제.",
+      "Every month": "매달",
+      "Renews at {price}, <b>cancel anytime</b>.": "{price}로 갱신, <b>언제든 해지</b>.",
+      "{price} once. Lifetime access.": "{price} 한 번. 평생 이용.",
+      "Get Lifetime access": "평생 이용권 받기",
+      "Pay once. No subscription.": "한 번만 결제. 구독 없음.",
+      "Pay {price} once. That's it.": "{price} 한 번 결제. 끝이에요.",
+      "First {n} days free, then {price} a year.": "처음 {n}일 무료, 이후 연 {price}.",
+      "Halfway through. We'll remind you before anything is charged.": "절반 지점. 결제 전에 미리 알려드릴게요.",
+      "You'll be charged on <b>{date}</b>, <b>cancel anytime</b> before.": "<b>{date}</b>에 결제돼요. 그 전에 <b>언제든 해지</b>할 수 있어요.",
+      "{price} a year ({m}/month).": "연 {price} (월 {m}).",
+      "Continue with Yearly": "연간 플랜으로 계속",
+      "Unlock your DMs and Stories in Konvo.": "Konvo에서 DM과 스토리 잠금 해제.",
+      "In 12 months": "12개월 후",
+      "Renews at {price}, <b>cancel anytime</b> before.": "{price}로 갱신, 그 전에 <b>언제든 해지</b>.",
+      "Your plan ended.": "플랜이 종료됐어요.",
+      "How your free trial works": "무료 체험은 이렇게 진행돼요",
+      "How your plan works": "플랜은 이렇게 진행돼요",
+      "Instagram is unblocked until you pick a plan. ": "플랜을 고르기 전까지 인스타그램 차단이 풀려 있어요. ",
+      "SAVE {n}%": "{n}% 절약",
+      "POPULAR": "인기",
+      "Yearly Plan": "연간",
+      "Monthly Plan": "월간",
+      "{price}/month": "월 {price}",
+      "{price}/year": "연 {price}",
+      "Terms of Use": "이용약관",
+      "Privacy Policy": "개인정보 처리방침",
+      "Restore": "복원",
+      "Free during beta": "베타 기간 무료",
+      "Connect Konvo to Screen Time, securely.": "Konvo를 스크린 타임에 안전하게 연결해요.",
+      "To block Instagram on this iPhone, Konvo will need your permission.": "이 iPhone에서 인스타그램을 차단하려면 권한이 필요해요.",
+      "&ldquo;Konvo&rdquo; Would Like to Access Screen Time": "‘Konvo’이(가) 스크린 타임에 접근하려고 합니다",
+      "Providing &ldquo;Konvo&rdquo; access to Screen Time may allow it to see your activity data, restrict content, and limit the usage of apps and websites.": "‘Konvo’에 스크린 타임 접근을 허용하면 활동 데이터를 보고, 콘텐츠를 제한하고, 앱 및 웹 사이트 사용을 제한할 수 있습니다.",
+      "Don&rsquo;t Allow": "허용 안 함",
+      "Your information is protected by Apple and stays 100% on your phone.": "정보는 Apple이 보호하며 100% 이 폰에만 남아요.",
+      "Give permission": "권한 허용하기",
+      "Instagram connected": "인스타그램 연결됨",
+      "Your DMs are still here.": "DM은 그대로 여기 있어요.",
+      "Feed, Reels and Explore are now hidden. Stories, profiles and notifications still work.": "피드, 릴스, 탐색은 이제 숨겨졌어요. 스토리, 프로필, 알림은 그대로 써요.",
+      "Keep Instagram like this": "인스타그램 이대로 유지",
+      "Choose a plan next": "다음은 플랜 선택",
+      "Start your Free Week": "무료 일주일 시작하고",
+      "Start using Konvo": "Konvo 시작하고",
+      "reclaim 1 hour back": "1시간 되찾기",
+      "reclaim {n} hours back": "{n}시간 되찾기",
+      "get your evenings back": "저녁 시간 되찾기",
+      "{head} and<br>{sub}": "{head}<br>{sub}",
+      "Stay connected": "연락은 그대로",
+      "Messages, requests and friends' Stories all still work.": "메시지, 요청, 친구 스토리 모두 그대로예요.",
+      "Reclaim your focus": "집중력 되찾기",
+      "No feed, no Reels, no Explore. Nothing to fall into.": "피드도 릴스도 탐색도 없어요. 빠져들 게 없어요.",
+      "Lock it when you're ready": "준비되면 잠그세요",
+      "One tap locks the Instagram app. Two passes a day, no snooze.": "한 번 탭으로 인스타그램 앱을 잠가요. 하루 패스 2번, '나중에'는 없어요.",
+      "App Store review": "App Store 리뷰",
+      "Your messages are waiting.": "메시지가 기다리고 있어요.",
+      "You're protected.": "보호 중이에요.",
+      "Instagram is blocked. Your DMs remain available through Konvo.": "인스타그램은 차단됐어요. DM은 Konvo에서 계속 볼 수 있어요.",
+      "Lifetime access active.": "평생 이용 활성화.",
+      "Free until {date}.": "{date}까지 무료.",
+      "You're in.": "준비 끝.",
+      "Open my messages": "내 메시지 열기",
+      "Ready to lock the Instagram app?": "인스타그램 앱을 잠글까요?",
+      "Konvo keeps your DMs. Two 5 minute passes a day.": "DM은 Konvo에 남아요. 하루 5분 패스 2번.",
+      "Block Instagram": "인스타그램 차단",
+      "Not now": "나중에"
+    }
+  };
+  function T(s, v) {
+    var r = (I18N[LANG] || {})[s] || s;
+    if (v) for (var k in v) r = r.split("{" + k + "}").join(v[k]);
+    return r;
   }
 
   // The onboarding quiz's motive + weekly hours arrive in the URL fragment
@@ -431,16 +745,30 @@
   // signed in, come back twice, and knows what the app is. Never while
   // the wall is up (rating a paywall is not a moment), and iOS still
   // decides whether a sheet actually appears.
-  function maybeAskReview() {
+  // The moment within that day (Sep 1): not the inbox loading, but the
+  // return to it after reading a chat - a finished task, the app having
+  // just done its job. The day gate is Apple's; the moment is ours.
+  var threadsThisSession = 0;
+  // Distinct days the inbox settled, counted once per day. Shared by the
+  // rating ask (day 3) and the block nudge (day 2).
+  function useDays() {
     try {
-      if (localStorage.konvoReviewAsked) return;
       var today = new Date().toDateString();
       if (localStorage.konvoLastDay !== today) {
         localStorage.konvoLastDay = today;
         localStorage.konvoUseDays =
           (parseInt(localStorage.konvoUseDays, 10) || 0) + 1;
       }
-      if ((parseInt(localStorage.konvoUseDays, 10) || 0) < 3) return;
+      return parseInt(localStorage.konvoUseDays, 10) || 0;
+    } catch (e) { return 0; }
+  }
+  // Assigned by the pass-button block below; false until then.
+  var nudgeBlock = function (days) { return false; };
+  function maybeAskReview(days) {
+    try {
+      if (localStorage.konvoReviewAsked) return;
+      if (days < 3) return;
+      if (!threadsThisSession) return;
       if (document.getElementById("im-pay")) return;
       localStorage.konvoReviewAsked = "1";
       track("review_asked", {});
@@ -525,6 +853,7 @@
       // the app always loads the inbox, so the first crossing is never a
       // thread, and if it ever were, that would be a thread open too.
       if (r === "thread") {
+        threadsThisSession++;
         track("thread_opened");
         // How slow switching into a chat FEELS ("way slower to text and
         // switch between ppl", Aug 17). Ready means real message rows:
@@ -584,7 +913,8 @@
               }
             } catch (e) {}
             track("inbox_ready", rp);
-            maybeAskReview();
+            var days = useDays();
+            if (!nudgeBlock(days)) maybeAskReview(days);
             // A settled inbox is proof these cookies are the good
             // ones: snapshot them natively so a force-quit cannot
             // lose the session (see the login rescue above).
@@ -631,7 +961,8 @@
         node = node.parentElement;
         if (!node || node === document.body) break;
         var arrows = node.querySelectorAll(
-          "a:has(svg[aria-label='Back']),[role='button']:has(svg[aria-label='Back'])");
+          "a:has(svg[aria-label='Back']),[role='button']:has(svg[aria-label='Back'])," +
+          "a:has(" + BACK + "),[role='button']:has(" + BACK + ")");
         if (arrows.length) {
           for (var j = 0; j < arrows.length; j++) arrows[j].classList.add("im-keep-back");
           break;
@@ -850,6 +1181,11 @@
   // Hide every navigation doorway. Desktop: the left rail. Mobile web: the
   // bottom tab bar (same aria-labels, different containers) plus the
   // "open the app" upsells and the inbox back arrow.
+  // Instagram localizes every aria-label (French phone, live DOM, Aug 31:
+  // "Précédent", "Options", "Parcourir"), so a door keyed on English text
+  // stays open abroad. Hrefs and SVG geometry do not translate: the back
+  // chevron is this polyline in every locale, verified on that DOM.
+  var BACK = 'polyline[points="9.276 4.726 2.001 12.004 9.276 19.274"]';
   var css = [
     'a:has(svg[aria-label="Home"])',
     'a[href="/"]',
@@ -869,6 +1205,8 @@
     'svg[aria-label="Settings"]',
     'a:has(svg[aria-label="Settings"])',
     'div[role="button"]:has(svg[aria-label="Settings"])',
+    // The gear is "Options" in French; its href does not translate.
+    'a[href^="/accounts/settings"]',
     'div[role="button"]:has(svg[aria-label="More"])',
     'a:has(svg[aria-label="More"])',
     // Threads + the "Also from Meta" app-switcher grid
@@ -877,6 +1215,9 @@
     'div[role="button"]:has(svg[aria-label="Threads"])',
     '[aria-label="Also from Meta"]',
     'div[role="button"]:has(svg[aria-label="Also from Meta"])',
+    // The Threads link carries no label at all on a French phone; this
+    // is the href the live DOM showed (threads.com), nothing guessed.
+    'a[href*="threads.com"]',
     // Mobile web: "use the app" upsells and store badges
     'a[href*="itunes.apple.com"]',
     'a[href*="apps.apple.com"]',
@@ -892,6 +1233,9 @@
     'html.im-inbox a:has(svg[aria-label="Back"]):not(.im-keep-back)',
     'html.im-inbox div[role="button"]:has(svg[aria-label="Back"]):not(.im-keep-back)',
     'html.im-inbox [role="button"]:has(svg[aria-label="Back"]):not(.im-keep-back)',
+    'html.im-inbox a:has(' + BACK + '):not(.im-keep-back)',
+    'html.im-inbox div[role="button"]:has(' + BACK + '):not(.im-keep-back)',
+    'html.im-inbox [role="button"]:has(' + BACK + '):not(.im-keep-back)',
     // Message Requests tab in the inbox header
     'a[href="/direct/requests/"]',
     'a[href^="/direct/requests"]',
@@ -1041,33 +1385,9 @@
   // home caged it is the only doorway into a friend's story on either
   // platform. The hideTray() that removed it died with the /stories/ bounce.
   //
-  // "Requests" tab: often a link/button with no stable href attribute, so
-  // anchor on the text and hide its clickable ancestor. Matched as a prefix,
-  // not an equality: the live tab renders a pending count ("Requests (2)"),
-  // which an exact match missed entirely.
-  function hideRequests() {
-    // Inbox-only: the Requests tab exists nowhere else, and this scan reads
-    // textContent off every leaf - the most expensive thing the cage does.
-    if (!atInbox()) return;
-    var leaves = document.querySelectorAll("span,div,a");
-    for (var i = 0; i < leaves.length; i++) {
-      var el = leaves[i];
-      if (el.childElementCount === 0 && /^Requests\b/.test(el.textContent.trim())) {
-        var node = el, hops = 0;
-        while (node && hops < 5) {
-          if (node.tagName === "A" || node.getAttribute("role") === "button" ||
-              node.getAttribute("role") === "link") {
-            node.style.setProperty("display", "none", "important");
-            return;
-          }
-          node = node.parentElement;
-          hops++;
-        }
-        el.style.setProperty("display", "none", "important");
-        return;
-      }
-    }
-  }
+  // The Requests tab is hidden by its href in the css list above; the old
+  // English text scan ("Requests (2)") died on the French walk of Aug 31,
+  // where the tab reads "Demandes" and the href rule matched anyway.
   // The iPhone tap-swallower that used to live here is gone. Its entire job was
   // to stop shared media being watched - it killed the tap on a media bubble
   // because the fullscreen viewer it opens never changes the URL, so the path
@@ -1401,6 +1721,11 @@
       'letter-spacing:-0.012em;box-shadow:0 8px 18px rgba(10,92,240,.24)}' +
       '#im-pay .imp-btn[disabled]{opacity:.5}' +
       '#im-pay .imp-ghost{text-align:center;font-size:15px;color:var(--mut);padding:16px 0 2px}' +
+      // The close on the Screen Time page (Sep 1): the page is opened by
+      // the user from the inbox now, so it needs a way back.
+      '#im-pay .imp-close{position:absolute;top:14px;right:16px;width:34px;height:34px;' +
+      'border-radius:50%;background:var(--chip);color:var(--mut);display:flex;' +
+      'align-items:center;justify-content:center;z-index:3}' +
       '#im-pay .imp-links{display:flex;justify-content:center;gap:18px;margin-top:10px;' +
       'font-size:13.5px;color:var(--mut)}' +
       '#im-pay .imp-links span{text-decoration:underline}' +
@@ -1473,9 +1798,9 @@
         "<svg width='26' height='26' viewBox='0 0 24 24' fill='none'" +
         " stroke='currentColor' stroke-width='2.4' stroke-linecap='round'" +
         " stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg></span>" +
-        "<h2 style='font-size:28px'>Instagram connected.</h2>" +
+        "<h2 style='font-size:28px'>" + T("Instagram connected.") + "</h2>" +
         "<p style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:12px'>" +
-        "Your DMs and Stories are ready.</p></div>"
+        T("Your DMs and Stories are ready.") + "</p></div>"
     };
 
     // Being at /direct/inbox/ is not proof of a session: Instagram renders
@@ -1498,12 +1823,12 @@
     function loaderPage() {
       return "<div class='imp-mid' style='padding:0 24px'>" +
         "<span class='imp-spin'></span>" +
-        "<h2 style='font-size:26px;margin:24px 0 26px'>Setting up your Konvo" +
+        "<h2 style='font-size:26px;margin:24px 0 26px'>" + T("Setting up your Konvo") +
         (igUser ? ", " + igUser : "") + "</h2>" +
         "<div style='display:flex;flex-direction:column;gap:14px'>" +
-        loaderRow("Feed hidden") + loaderRow("Reels hidden") +
-        loaderRow("Explore hidden") + loaderRow("Messages kept") +
-        loaderRow("Friends' stories kept") + "</div></div>";
+        loaderRow(T("Feed hidden")) + loaderRow(T("Reels hidden")) +
+        loaderRow(T("Explore hidden")) + loaderRow(T("Messages kept")) +
+        loaderRow(T("Friends' stories kept")) + "</div></div>";
     }
 
     // The perks comparison, between the loader and the paywall: five rows,
@@ -1537,13 +1862,13 @@
     }
     function perksPage() {
       return "<div class='imp-mid' style='padding:24px 20px'>" +
-        "<h2 style='font-size:26px'>Why Konvo works</h2>" +
+        "<h2 style='font-size:26px'>" + T("Why Konvo works") + "</h2>" +
         "<div style='display:flex;align-items:flex-end;margin-top:28px'>" +
         "<span style='flex:1;font-size:13px;font-weight:600;color:var(--mut)'>" +
-        "What you get</span>" +
+        T("What you get") + "</span>" +
         "<span style='width:74px;flex:none;text-align:center;font-size:10.5px;" +
         "font-weight:700;letter-spacing:0.03em;white-space:nowrap;" +
-        "color:var(--mut);padding-bottom:10px'>LIMIT APPS</span>" +
+        "color:var(--mut);padding-bottom:10px'>" + T("LIMIT APPS") + "</span>" +
         "<span style='width:74px;flex:none;display:flex;justify-content:center;" +
         "padding:9px 0;background:var(--icbg);border-radius:12px 12px 0 0'>" +
         "<span style='background:var(--accent);color:#fff;font-size:10px;" +
@@ -1552,11 +1877,11 @@
         // Every row a true claim, in plain words (rewritten Aug 21: the
         // old rows described the deleted delete-Instagram flow and
         // promised notifications Konvo does not send).
-        perkRow("No feed, no Reels, no Explore", false, false) +
-        perkRow("The Instagram app stays locked", false, false) +
-        perkRow("Two 5 minute passes a day, then it locks itself", false, false) +
-        perkRow("No snooze button to cave to", false, false) +
-        perkRow("Every DM and Story, nothing missing", false, true) +
+        perkRow(T("No feed, no Reels, no Explore"), false, false) +
+        perkRow(T("Lock the Instagram app when you're ready"), false, false) +
+        perkRow(T("Two 5 minute passes a day once it's locked"), false, false) +
+        perkRow(T("No snooze button to cave to"), false, false) +
+        perkRow(T("Every DM and Story, nothing missing"), false, true) +
         "</div>" +
         "<div class='imp-foot' style='padding:14px 24px 30px'>" +
         "<div style='display:flex;align-items:center;justify-content:center;gap:8px;" +
@@ -1564,11 +1889,11 @@
         "<span style='width:18px;height:18px;border-radius:50%;background:var(--accent);" +
         "display:inline-flex;align-items:center;justify-content:center'>" + CHECK +
         "</span>" + (window.__konvoFree
-          ? "Free. Nothing to cancel."
-          : "No commitment. Cancel anytime.") + "</div>" +
+          ? T("Free. Nothing to cancel.")
+          : T("No commitment. Cancel anytime.")) + "</div>" +
         "<button class='imp-btn' data-act='" +
         (window.__konvoFree ? "welcomed" : "impact") +
-        "'>Continue</button></div>";
+        "'>" + T("Continue") + "</button></div>";
     }
 
     // TODO: RELEASE BLOCKER - PROOF must stay empty until real TestFlight
@@ -1597,11 +1922,16 @@
     var P = null;
     // Assigned at wall mount; "Try again" on the pending page re-kicks it.
     var fetchProducts = function () {};
+    // Ready means the two products the wall sells. Lifetime is not on the
+    // wall (Aug 21) and konvo.pro.lifetime sits in App Store Connect as
+    // MISSING_METADATA, so the store never returns it to a real user:
+    // requiring it kept every store user of 1.3.0 on "Loading your
+    // plans" and painted 1.2.0's stand-in prices (Sep 1, 46 of 46).
     function prod() {
-      return P && P.yearly && P.monthly && P.lifetime ? P : FALLBACK;
+      return P && P.yearly && P.monthly ? P : FALLBACK;
     }
     function pricesReady() {
-      return !!(P && P.yearly && P.monthly && P.lifetime);
+      return !!(P && P.yearly && P.monthly);
     }
     // No stand-in money on a purchasable screen, ever (Aug 31): a
     // fallback price painted while Apple's sheet charges the user's real
@@ -1613,11 +1943,11 @@
     function pricePendingPage() {
       return "<div class='imp-mid' id='im-pricewait' style='align-items:center;" +
         "text-align:center;padding:0 34px'>" +
-        "<h2 style='font-size:24px'>Loading your plans&hellip;</h2>" +
+        "<h2 style='font-size:24px'>" + T("Loading your plans&hellip;") + "</h2>" +
         "<p style='font-size:14.5px;line-height:1.5;color:var(--mut);margin-top:10px'>" +
-        "Prices show in your local currency.</p>" +
+        T("Prices show in your local currency.") + "</p>" +
         "</div><div class='imp-foot'>" +
-        "<div class='imp-ghost' data-act='pay'>Try again</div></div>";
+        "<div class='imp-ghost' data-act='pay'>" + T("Try again") + "</div></div>";
     }
 
     // The S2 motive + computed weekly hours, carried across origins in the
@@ -1672,8 +2002,11 @@
     }
     function dateIn(days) {
       var d = new Date(Date.now() + days * 86400000);
+      // French abbreviates months with their own period ("7 sept.") and
+      // the sentence adds another; the long month reads cleanly.
       try {
-        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        return d.toLocaleDateString(undefined,
+          { month: LANG === "fr" ? "long" : "short", day: "numeric" });
       } catch (e) { return ""; }
     }
     function pkCard(act, on, badge, name, price, sub, save) {
@@ -1697,51 +2030,52 @@
       var head, cta, act, tl, reassure;
       var mtd = plan === "m" ? (m.trialDays || 0) : 0;
       if (plan === "m" && mtd) {
-        head = "First " + mtd + " days free, then " + m.price + " a month.";
-        cta = "Start your free " + mtd + " days";
+        head = T("First {n} days free, then {price} a month.", { n: mtd, price: m.price });
+        cta = T("Start your free {n} days", { n: mtd });
         act = "buy-m";
-        reassure = "No commitment, cancel anytime";
-        tl = node(LOCK, "Today", "Unlock your DMs and Stories in Konvo. Pay $0.", true) +
-             node(STAR, "In " + mtd + " days", "You'll be charged " + m.price +
-               " on <b>" + dateIn(mtd) + "</b>, <b>cancel anytime</b> before.", false);
+        reassure = T("No commitment, cancel anytime");
+        tl = node(LOCK, T("Today"), T("Unlock your DMs and Stories in Konvo. Pay $0."), true) +
+             node(STAR, T("In {n} days", { n: mtd }),
+               T("You'll be charged {price} on <b>{date}</b>, <b>cancel anytime</b> before.",
+                 { price: m.price, date: dateIn(mtd) }), false);
       } else if (plan === "m") {
-        head = m.price + " a month, cancel anytime.";
-        cta = "Continue with Monthly";
+        head = T("{price} a month, cancel anytime.", { price: m.price });
+        cta = T("Continue with Monthly");
         act = "buy-m";
-        reassure = "No commitment, cancel anytime";
-        tl = node(LOCK, "Today", "Unlock your DMs and Stories in Konvo. Pay " +
-               m.price + ".", true) +
-             node(STAR, "Every month", "Renews at " + m.price +
-               ", <b>cancel anytime</b>.", false);
+        reassure = T("No commitment, cancel anytime");
+        tl = node(LOCK, T("Today"), T("Unlock your DMs and Stories in Konvo. Pay {price}.",
+               { price: m.price }), true) +
+             node(STAR, T("Every month"), T("Renews at {price}, <b>cancel anytime</b>.",
+               { price: m.price }), false);
       } else if (plan === "l") {
-        head = l.price + " once. Lifetime access.";
-        cta = "Get Lifetime access";
+        head = T("{price} once. Lifetime access.", { price: l.price });
+        cta = T("Get Lifetime access");
         act = "buy-l";
-        reassure = "Pay once. No subscription.";
-        tl = node(LOCK, "Today", "Pay " + l.price + " once. That's it.", false);
+        reassure = T("Pay once. No subscription.");
+        tl = node(LOCK, T("Today"), T("Pay {price} once. That's it.", { price: l.price }), false);
       } else if (td) {
-        head = "First " + td + " days free, then " + y.price + " a year.";
-        cta = "Start your free " + td + " days";
+        head = T("First {n} days free, then {price} a year.", { n: td, price: y.price });
+        cta = T("Start your free {n} days", { n: td });
         act = "buy-y";
-        reassure = "No commitment, cancel anytime";
+        reassure = T("No commitment, cancel anytime");
         // Three nodes, not four: the page must fit one screen. The reminder
         // promise rides the halfway node, which stays honest - it says we
         // will remind you, not that the reminder lands that day (it fires
         // two days before the charge; see the notify command).
-        tl = node(LOCK, "Today", "Unlock your DMs and Stories in Konvo. Pay $0.", true) +
-             node(BELL, "In " + Math.round(td / 2) + " days",
-               "Halfway through. We'll remind you before anything is " +
-               "charged.", true) +
-             node(STAR, "In " + td + " days", "You'll be charged on <b>" +
-               dateIn(td) + "</b>, <b>cancel anytime</b> before.", false);
+        tl = node(LOCK, T("Today"), T("Unlock your DMs and Stories in Konvo. Pay $0."), true) +
+             node(BELL, T("In {n} days", { n: Math.round(td / 2) }),
+               T("Halfway through. We'll remind you before anything is charged."), true) +
+             node(STAR, T("In {n} days", { n: td }),
+               T("You'll be charged on <b>{date}</b>, <b>cancel anytime</b> before.",
+                 { date: dateIn(td) }), false);
       } else {
-        head = y.price + " a year (" + (y.perMonth || y.perWeek) + "/month).";
-        cta = "Continue with Yearly";
+        head = T("{price} a year ({m}/month).", { price: y.price, m: y.perMonth || y.perWeek });
+        cta = T("Continue with Yearly");
         act = "buy-y";
-        reassure = "No commitment, cancel anytime";
-        tl = node(LOCK, "Today", "Unlock your DMs and Stories in Konvo.", true) +
-             node(STAR, "In 12 months", "Renews at " + y.price +
-               ", <b>cancel anytime</b> before.", false);
+        reassure = T("No commitment, cancel anytime");
+        tl = node(LOCK, T("Today"), T("Unlock your DMs and Stories in Konvo."), true) +
+             node(STAR, T("In 12 months"), T("Renews at {price}, <b>cancel anytime</b> before.",
+               { price: y.price }), false);
       }
       var mot = motiveLine();
       return "<div class='imp-head'>" +
@@ -1765,10 +2099,10 @@
         "<div class='imp-mid' style='justify-content:flex-start;padding:24px 24px 0'>" +
         "<div style='text-align:center'>" +
         "<h2 style='font-size:24px'>" +
-        (lapsedWall ? "Your plan ended."
-          : td || mtd ? "How your free trial works" : "How your plan works") + "</h2>" +
+        (lapsedWall ? T("Your plan ended.")
+          : td || mtd ? T("How your free trial works") : T("How your plan works")) + "</h2>" +
         "<p style='font-size:15px;color:var(--ink);margin-top:10px'>" +
-        (lapsedWall ? "Instagram is unblocked until you pick a plan. " : "") + head + "</p>" +
+        (lapsedWall ? T("Instagram is unblocked until you pick a plan. ") : "") + head + "</p>" +
         (mot ? "<p style='font-size:14px;font-weight:600;color:var(--accent);" +
           "margin-top:8px'>" + mot + "</p>" : "") + "</div>" +
         proofStrip() +
@@ -1783,10 +2117,10 @@
         // Yearly leads with its monthly equivalent (the number shoppers
         // compare), the yearly charge underneath, and the live saving as
         // its badge (Aug 21).
-        pkCard("pk-y", plan === "y", sp ? "SAVE " + sp + "%" : "POPULAR", "Yearly Plan",
-          (y.perMonth || y.price) + "/month",
-          y.perMonth ? y.price + "/year" : "", "") +
-        pkCard("pk-m", plan === "m", "", "Monthly Plan", m.price + "/month", "", "") +
+        pkCard("pk-y", plan === "y", sp ? T("SAVE {n}%", { n: sp }) : T("POPULAR"), T("Yearly Plan"),
+          T("{price}/month", { price: y.perMonth || y.price }),
+          y.perMonth ? T("{price}/year", { price: y.price }) : "", "") +
+        pkCard("pk-m", plan === "m", "", T("Monthly Plan"), T("{price}/month", { price: m.price }), "", "") +
         "</div>" +
         tl + "</div>" +
         "<div class='imp-foot' style='padding:10px 24px 24px'>" +
@@ -1800,9 +2134,9 @@
         // pushed a centered one below the fold, and App Review needs it
         // findable without scrolling.
         betaFreeRow() +
-        "<div class='imp-links'><span data-act='terms'>Terms of Use</span>" +
-        "<span data-act='privacy'>Privacy Policy</span>" +
-        "<span data-act='restore'>Restore</span></div></div>";
+        "<div class='imp-links'><span data-act='terms'>" + T("Terms of Use") + "</span>" +
+        "<span data-act='privacy'>" + T("Privacy Policy") + "</span>" +
+        "<span data-act='restore'>" + T("Restore") + "</span></div></div>";
     }
 
     // Beta testers see the real price and the real screen, then take this
@@ -1813,7 +2147,7 @@
       if (!window.__konvoBeta || window.__konvoNoFree) return "";
       return "<div class='imp-ghost' data-act='betafree' " +
         "style='padding-top:14px;font-weight:600;color:var(--accent)'>" +
-        "Free during beta</div>";
+        T("Free during beta") + "</div>";
     }
 
     // S12c: delete Instagram. Konvo does not sit alongside Instagram, it
@@ -1838,42 +2172,45 @@
       // at its Continue, so when the real one lands over this page it
       // reads as expected rather than alarming. The footer claim is
       // structural fact: the selection never leaves the device.
-      return "<div class='imp-mid' style='padding:24px'>" +
-        "<h2 style='font-size:26px;text-align:center'>One last step: Connect " +
-        "Konvo to Screen Time, securely.</h2>" +
+      return "<div class='imp-close' data-act='cage-close' aria-label='Close'>" +
+        "<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
+        " stroke-width='2.4' stroke-linecap='round'><path d='M18 6 6 18M6 6l12 12'/></svg></div>" +
+        "<div class='imp-mid' style='padding:24px'>" +
+        "<h2 style='font-size:26px;text-align:center'>" +
+        T("Connect Konvo to Screen Time, securely.") + "</h2>" +
         "<p style='font-size:15px;line-height:1.5;color:var(--mut);margin-top:8px;" +
-        "text-align:center'>To block Instagram on this iPhone, Konvo will " +
-        "need your permission.</p>" +
+        "text-align:center'>" +
+        T("To block Instagram on this iPhone, Konvo will need your permission.") + "</p>" +
         "<div style='border:2px solid var(--accent);border-radius:20px;padding:7px;" +
         "margin:22px auto 0;max-width:300px;width:100%'>" +
         "<div style='background:var(--icbg);border-radius:14px;padding:14px 12px 0;" +
         "text-align:center'>" +
-        "<b style='font-size:14px;display:block'>&ldquo;Konvo&rdquo; Would Like to " +
-        "Access Screen Time</b>" +
+        "<b style='font-size:14px;display:block'>" +
+        T("&ldquo;Konvo&rdquo; Would Like to Access Screen Time") + "</b>" +
         "<p style='font-size:11.5px;line-height:1.4;color:var(--mut);margin-top:5px'>" +
-        "Providing &ldquo;Konvo&rdquo; access to Screen Time may allow it to see " +
-        "your activity data, restrict content, and limit the usage of apps " +
-        "and websites.</p>" +
+        T("Providing &ldquo;Konvo&rdquo; access to Screen Time may allow it to see " +
+          "your activity data, restrict content, and limit the usage of apps " +
+          "and websites.") + "</p>" +
         "<div style='display:flex;border-top:1px solid rgba(120,120,128,.25);" +
         "margin-top:12px'>" +
         "<span style='flex:1;padding:11px 0;color:var(--accent);font-weight:700;" +
-        "font-size:15.5px;border-right:1px solid rgba(120,120,128,.25)'>Continue</span>" +
+        "font-size:15.5px;border-right:1px solid rgba(120,120,128,.25)'>" + T("Continue") + "</span>" +
         "<span style='flex:1;padding:11px 0;color:var(--accent);font-size:15.5px'>" +
-        "Don&rsquo;t Allow</span></div></div></div>" +
+        T("Don&rsquo;t Allow") + "</span></div></div></div>" +
         "<svg width='34' height='40' viewBox='0 0 34 40' fill='none' " +
         "stroke='var(--accent)' stroke-width='3' stroke-linecap='round' " +
         "stroke-linejoin='round' style='margin:10px 0 0 22%'>" +
         "<path d='M10 36 C 8 22, 12 12, 20 5'/>" +
         "<path d='M12 7 L20 5 L21 13'/></svg>" +
         "<p style='text-align:center;font-size:13.5px;line-height:1.5;" +
-        "color:var(--mut);margin-top:14px'>Your information is protected by " +
-        "Apple and stays 100% on your phone.</p>" +
+        "color:var(--mut);margin-top:14px'>" +
+        T("Your information is protected by Apple and stays 100% on your phone.") + "</p>" +
         "</div><div class='imp-foot'>" +
         // No "Not now" since Aug 25: everyone who reaches this page has
         // paid (or holds a grant), and the shield is what they paid for.
         // The only way past is the system dialog itself - denying it still
         // proceeds, because an app cannot trap someone on an OS permission.
-        "<button class='imp-btn' data-act='cage-setup-go'>Give permission</button></div>";
+        "<button class='imp-btn' data-act='cage-setup-go'>" + T("Give permission") + "</button></div>";
     }
     // S12d (Aug 22): between "Ready to block" and the perks, the wall
     // clears and the user's own inbox shows through - the thing they came
@@ -1882,13 +2219,13 @@
     function revealPage() {
       return "<div class='imp-pill'><svg width='14' height='14' viewBox='0 0 24 24'" +
         " fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round'" +
-        " stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg>Instagram connected</div>" +
+        " stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg>" + T("Instagram connected") + "</div>" +
         "<div class='imp-sheet'><div class='imp-grab'></div>" +
-        "<h2>Your DMs are still here.</h2>" +
-        "<p>Feed, Reels and Explore are now hidden. Stories, profiles and " +
-        "notifications still work.</p>" +
-        "<button class='imp-btn' data-act='keep'>Keep Instagram like this</button>" +
-        (window.__konvoFree ? "" : "<p class='imp-next'>Choose a plan next</p>") +
+        "<h2>" + T("Your DMs are still here.") + "</h2>" +
+        "<p>" + T("Feed, Reels and Explore are now hidden. Stories, profiles and " +
+          "notifications still work.") + "</p>" +
+        "<button class='imp-btn' data-act='keep'>" + T("Keep Instagram like this") + "</button>" +
+        (window.__konvoFree ? "" : "<p class='imp-next'>" + T("Choose a plan next") + "</p>") +
         "</div>";
     }
     // S12e: what the trial is FOR, immediately before the price. Three
@@ -1915,10 +2252,10 @@
     function impactPage() {
       var h = reclaimHours(), td = prod().yearly.trialDays || 0;
       // Someone who is trial-ineligible must not be promised a free week.
-      var head = td ? "Start your Free Week" : "Start using Konvo";
+      var head = td ? T("Start your Free Week") : T("Start using Konvo");
       var sub = h
-        ? "reclaim " + h + " hour" + (h === 1 ? "" : "s") + " back"
-        : "get your evenings back";
+        ? (h === 1 ? T("reclaim 1 hour back") : T("reclaim {n} hours back", { n: h }))
+        : T("get your evenings back");
       return "<div class='imp-head' style='height:112px'>" +
         "<div style='position:absolute;inset:0;background:radial-gradient(circle at 50% 30%," +
         "rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 60%)'></div>" +
@@ -1930,18 +2267,18 @@
         "0 2.1 1.1 4 2.9 5.2v3.2l3.6-1.7c.5.1 1 .1 1.5.1 4.4 0 8-3 8-6.8S16.4 4 12 4Z'/>" +
         "</svg></div></div>" +
         "<div class='imp-mid' style='justify-content:flex-start;padding:18px 26px 0'>" +
-        "<h2 style='font-size:26px;text-align:center;line-height:1.2'>" + head +
-        " and<br>" + sub + "</h2>" +
+        "<h2 style='font-size:26px;text-align:center;line-height:1.2'>" +
+        T("{head} and<br>{sub}", { head: head, sub: sub }) + "</h2>" +
         "<div style='margin-top:14px'>" +
-        impactRow(CHAT, "Stay connected",
-          "Messages, requests and friends' Stories all still work.") +
-        impactRow(MOON, "Reclaim your focus",
-          "No feed, no Reels, no Explore. Nothing to fall into.") +
-        impactRow(SHIELD, "Never get distracted",
-          "There is no setting to switch off at 11pm.") +
+        impactRow(CHAT, T("Stay connected"),
+          T("Messages, requests and friends' Stories all still work.")) +
+        impactRow(MOON, T("Reclaim your focus"),
+          T("No feed, no Reels, no Explore. Nothing to fall into.")) +
+        impactRow(SHIELD, T("Lock it when you're ready"),
+          T("One tap locks the Instagram app. Two passes a day, no snooze.")) +
         "</div>" + reviewCard() + "</div>" +
         "<div class='imp-foot'>" +
-        "<button class='imp-btn' data-act='pay'>Continue</button></div>";
+        "<button class='imp-btn' data-act='pay'>" + T("Continue") + "</button></div>";
     }
     // The one review Konvo has (Aug 23): App Store, Canada, Aug 20 2026,
     // five stars, quoted word for word. The rule stands: nothing invented,
@@ -1958,7 +2295,7 @@
         "\u201CI\u2019ve tried so many other screentime apps in the past but they never " +
         "actually worked. But using Konvo to only access my instagram messages is a " +
         "game changer trust me\u201D</p>" +
-        "<p style='font-size:12px;color:var(--mut);margin-top:8px'>App Store review</p></div>";
+        "<p style='font-size:12px;color:var(--mut);margin-top:8px'>" + T("App Store review") + "</p></div>";
     }
 
     // S14: post-purchase activation. Trial buyers get the recap and the
@@ -1978,15 +2315,15 @@
         "<div style='font-size:44px;font-weight:700;letter-spacing:-0.05em;line-height:1;" +
         "text-align:center'>" + head + "</div>" +
         "<p style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:16px;" +
-        "text-align:center'>" + (sub || "Your messages are waiting.") + "</p>";
+        "text-align:center'>" + (sub || T("Your messages are waiting.")) + "</p>";
     }
 
     // The last page (Aug 22): shown only once the shield is up. The check
     // draws, a beat, then the wall fades into the inbox on its own.
     function protectedPage() {
       return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
-        drawnCheck("You're protected.",
-          "Instagram is blocked. Your DMs remain available through Konvo.") +
+        drawnCheck(T("You're protected."),
+          T("Instagram is blocked. Your DMs remain available through Konvo.")) +
         "</div>";
     }
 
@@ -1995,15 +2332,15 @@
       var td = pid === "konvo.pro.yearly" ? (pr.yearly.trialDays || 0)
              : pid === "konvo.pro.monthly" ? (pr.monthly.trialDays || 0) : 0;
       var recap = "";
-      if (pid === "konvo.pro.lifetime") recap = "Lifetime access active.";
-      else if (td) recap = "Free until " + dateIn(td) + ".";
+      if (pid === "konvo.pro.lifetime") recap = T("Lifetime access active.");
+      else if (td) recap = T("Free until {date}.", { date: dateIn(td) });
       return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
-        drawnCheck("You're in.") +
+        drawnCheck(T("You're in.")) +
         (recap ? "<p style='font-size:15px;font-weight:600;margin-top:14px;" +
           "text-align:center'>" + recap + "</p>" : "") +
         "</div>" +
         "<div class='imp-foot' style='padding:0 28px 40px'>" +
-        "<button class='imp-btn' data-act='done'>Open my messages</button></div>";
+        "<button class='imp-btn' data-act='done'>" + T("Open my messages") + "</button></div>";
     }
 
     // The shield is armed only at a successful end of the sequence: a
@@ -2015,7 +2352,7 @@
     // Setup-only mode (Aug 21): a paying user with no shield - a reinstall
     // or a new phone - gets the Screen Time step alone, then "You're all
     // set", then the inbox. Before this the inbox opened unblocked.
-    var setupOnly = false;
+    var setupOnly = false, setupVia;
     // How the Screen Time step ends, wherever it ran: done arms the shield
     // and shows "You're protected"; skipped, denied or nothing picked goes
     // to the inbox as it is.
@@ -2053,11 +2390,14 @@
       storekit("cageStatus", null, function (s) {
         if (moved) return;
         clearTimeout(fallback);
-        if (!s || !s.supported) { swap(successPage(lastBuy)); return; }
-        if (s.authorized && s.picked) { cagePending = true; cageExit(true); return; }
-        try { localStorage.konvoCageAsked = "1"; } catch (e) {}
-        track("cage_pitch_viewed", { screen_id: "s12f_cage" });
-        swap(cageIntroPage());
+        // A shield this install already picked (a lapsed subscriber back)
+        // is simply re-armed. Nobody is asked here any more (Sep 1): of 17
+        // trials whose block went live at purchase, 13 cancelled within
+        // the hour and none paid, while every payer so far never had it.
+        // The block is offered from the inbox instead: the lock button,
+        // and one nudge on a later day (nudgeBlock).
+        if (s && s.supported && s.authorized && s.picked) { cagePending = true; cageExit(true); return; }
+        swap(successPage(lastBuy));
       });
     }
     function armCage(then) {
@@ -2224,11 +2564,12 @@
       // not replayed at someone who has heard it.
       var lapsed = false;
       try { lapsed = !!localStorage.konvoDone; } catch (e) {}
-      lapsedWall = lapsed && !setupOnly;
-      if (setupOnly) {
-        try { localStorage.konvoCageAsked = "1"; } catch (e) {}
-        track("cage_pitch_viewed", { screen_id: "s12f_cage", via: "reinstall" });
-      }
+      // A payer opening the Screen Time step from the inbox has konvoDone
+      // set and is not lapsed: without this the price fetch below painted
+      // the paywall over the setup page (Sep 1, caught by the suite).
+      if (setupOnly) lapsed = false;
+      lapsedWall = lapsed;
+      if (setupOnly) track("cage_pitch_viewed", { screen_id: "s12f_cage", via: setupVia });
       setPage(setupOnly ? cageIntroPage() : lapsed ? "" : PAGES.connected);
       wall.addEventListener("click", function (e) {
         var t = e.target.closest("[data-act]");
@@ -2246,6 +2587,10 @@
         } else if (act === "keep") {
           wall.classList.remove("im-reveal");
           swap(perksPage());
+        } else if (act === "cage-close") {
+          // Back to the inbox exactly as it was; the lock button stays.
+          track("cage_setup_closed", { via: setupVia });
+          cageExit(false);
         } else if (act === "cage-setup-go") {
           // One flight at a time: Apple's consent dialog sits over the
           // page and a user who keeps tapping the button underneath
@@ -2343,8 +2688,9 @@
           if (priceTries++ < 40 && wall) setTimeout(fetchProducts, 2500);
         });
       };
-      fetchProducts();
+      // The setup-only wall sells nothing: no price fetch, no retries.
       if (setupOnly) return;
+      fetchProducts();
       // Live prices first when they arrive in time; the stand-ins after.
       if (lapsed) { setTimeout(showPay, 1500); return; }
       setTimeout(function () {
@@ -2394,6 +2740,10 @@
         'z-index:2147483000;align-items:center;justify-content:center;border:0;' +
         'box-shadow:0 2px 10px rgba(0,0,0,.18)}' +
         'html.im-inbox.im-caged #im-pass{display:flex}' +
+        // No shield yet: the same button offers the block (Sep 1), never
+        // while any wall is up.
+        'html.im-inbox.im-lockable #im-pass{display:flex}' +
+        'body:has(#im-pay) #im-pass{display:none !important}' +
         '#im-pass-sheet{position:fixed;inset:0;z-index:2147483200;display:flex;' +
         'align-items:flex-end;background:rgba(0,0,0,.45)}' +
         '#im-pass-card{width:100%;background:rgba(242,242,247,.98);color:#1c1c1e;' +
@@ -2409,6 +2759,7 @@
         'border:0;border-radius:999px;background:rgba(10,132,255,1);color:#fff;' +
         'font-size:16.5px;font-weight:700;font-family:inherit}' +
         '#im-pass-card .im-go[disabled]{opacity:.4}' +
+        '#im-pass-card .im-fb{display:block;width:100%;margin:6px 0 0;background:none;border:0;padding:8px;font:500 14px -apple-system,system-ui,sans-serif;color:#0a84ff}' +
         '#im-pass-card .im-x{display:block;width:100%;margin-top:10px;padding:10px 0;' +
         'border:0;background:none;color:rgba(142,142,147,1);font-size:15px;' +
         'font-family:inherit}' +
@@ -2430,8 +2781,23 @@
         " stroke-linejoin='round'>" +
         "<circle cx='12' cy='12' r='9'/><path d='M12 7v5l3 3'/></svg>";
       (document.body || document.documentElement).appendChild(passBtn);
+      var CLOCK = passBtn.innerHTML;
+      var LOCKICON = "<svg width='22' height='22' viewBox='0 0 24 24' fill='none'" +
+        " stroke='currentColor' stroke-width='2' stroke-linecap='round'" +
+        " stroke-linejoin='round'><rect x='4' y='10.5' width='16' height='10.5' rx='3'/>" +
+        "<path d='M8.5 10.5V8a3.5 3.5 0 0 1 7 0'/></svg>";
+      // Lockable = Screen Time is available and no shield exists: the
+      // button is the way into the block, the user's own decision (Sep 1).
+      var lockable = false;
+      function setLockable(on) {
+        lockable = on;
+        document.documentElement.classList.toggle("im-lockable", on);
+        passBtn.setAttribute("aria-label", on ? "Block Instagram" : "Five minute pass");
+        passBtn.innerHTML = on ? LOCKICON : CLOCK;
+      }
       markCaged = function () {
         document.documentElement.classList.add("im-caged");
+        setLockable(false);
         passAvail = true;
         passLeft = 2;
       };
@@ -2441,9 +2807,44 @@
           passAvail = !!s.passAvailable;
           passMins = s.passMins || 5;
           passLeft = s.passesLeft != null ? s.passesLeft : (passAvail ? 2 : 0);
+        } else if (s && s.supported) {
+          setLockable(true);
         }
       });
+      // One nudge, once, on a later day, on the first return from a chat:
+      // the app has just done its job. Never the first day, never under a
+      // wall, never once a shield exists.
+      nudgeBlock = function (days) {
+        try {
+          if (!lockable || document.getElementById("im-pay")) return false;
+          if (localStorage.konvoBlockNudged) return false;
+          if (days < 2) return false;
+          if (!threadsThisSession) return false;
+          localStorage.konvoBlockNudged = "1";
+        } catch (e) { return false; }
+        track("block_nudge_shown", {});
+        var sheet = document.createElement("div");
+        sheet.id = "im-pass-sheet";
+        sheet.innerHTML = "<div id='im-pass-card'><h3>" + T("Ready to lock the Instagram app?") +
+          "</h3><p>" + T("Konvo keeps your DMs. Two 5 minute passes a day.") + "</p>" +
+          "<button class='im-go im-block'>" + T("Block Instagram") + "</button>" +
+          "<button class='im-x'>" + T("Not now") + "</button></div>";
+        sheet.addEventListener("click", function (e) {
+          var go = e.target.closest(".im-block");
+          if (!go && !e.target.closest(".im-x") && e.target !== sheet) return;
+          if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+          track("block_nudge", { choice: go ? "block" : "later" });
+          if (go) { setupVia = "nudge"; setupOnly = true; ensure(); }
+        });
+        (document.body || document.documentElement).appendChild(sheet);
+        return true;
+      };
       passBtn.addEventListener("click", function () {
+        if (lockable) {
+          track("block_button_tapped", {});
+          setupVia = "button"; setupOnly = true; ensure();
+          return;
+        }
         // "Reply to someone" was a reason in the first cut and made no
         // sense - replies live in Konvo. Calls do not (documented trade),
         // so calling is exactly what the pass is for.
@@ -2464,9 +2865,19 @@
             (passLeft > 1 ? " mins each)" : " mins)") + "</p>"
           : "<h3>No pass left today</h3>" +
             "<p>They come back tomorrow.</p>") +
+          // The one Konvo-owned surface in daily use, so feedback lives
+          // here (Sep 1). ponytail: English like the rest of the card;
+          // translate the card as a whole when the pass sheet is localized.
+          "<button class='im-fb'>Send feedback</button>" +
           "<button class='im-x'>Close</button></div>";
         var reason = "";
         sheet.addEventListener("click", function (e) {
+          if (e.target.closest(".im-fb")) {
+            track("feedback_opened", {});
+            storekit("feedback", null, function () {});
+            if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+            return;
+          }
           var r = e.target.closest(".im-pr");
           if (r) {
             reason = r.dataset.r;
@@ -2511,15 +2922,8 @@
       setCache(!!res.entitled);
       if (res.entitled) {
         dismiss();
-        // Once per install: the flag lives in this origin's storage,
-        // which a delete wipes along with the shield's authorization.
-        var asked = false;
-        try { asked = !!localStorage.konvoCageAsked; } catch (e) {}
-        if (!asked) {
-          storekit("cageStatus", null, function (s) {
-            if (s && s.supported && !s.active) { setupOnly = true; ensure(); }
-          });
-        }
+        // No Screen Time step on launch (Sep 1): a payer without a shield
+        // has the lock button in the inbox and decides for themselves.
       } else {
         // A lapsed subscription must not hold Instagram hostage: lift the
         // cage unless beta access still covers it. cageOff is a no-op when
@@ -2556,7 +2960,7 @@
   // 400ms. The CSS rules hide the same doorways instantly anyway; these
   // scans are the fallback for markup the selectors miss.
   var sweepPending = false, sweptAt = 0;
-  function sweep() { hideRequests(); hideProfileLink(); }
+  function sweep() { hideProfileLink(); }
   function scheduleSweep() {
     if (sweepPending) return;
     sweepPending = true;

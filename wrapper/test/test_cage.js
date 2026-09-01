@@ -24,6 +24,13 @@ function boot(path, html, opts = {}) {
   // jsdom ignores the userAgent option here, and the cage branches on it.
   Object.defineProperty(dom.window.navigator, 'userAgent',
     { value: opts.ua || IPHONE, configurable: true });
+  // The phone's language, as WebKit reports it (fr-FR, ko-KR).
+  if (opts.lang) {
+    Object.defineProperty(dom.window.navigator, 'language',
+      { value: opts.lang, configurable: true });
+    Object.defineProperty(dom.window.navigator, 'languages',
+      { value: [opts.lang], configurable: true });
+  }
   // The paywall's auth gate is the ds_user_id cookie: present for a
   // signed-in user unless the case is explicitly loggedOut. The fetch
   // (the badge poll) never resolves, as before.
@@ -98,6 +105,16 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'Messages must stay: it is the only way back to the inbox from a profile');
   assert(/aria-label="New post"/.test(sheets),
     'the + stays hidden: builds 28-29 proved web posting routes through "/" (settled 2026-07-31)');
+  //     Doors keyed on English labels stay open on a French phone (live
+  //     DOM, Aug 31: "Options", an unlabelled Threads link, "Précédent").
+  //     These are their language-proof twins, verified on that DOM.
+  assert(/a\[href\^="\/accounts\/settings"\]/.test(sheets), 'the Settings gear by href');
+  assert(/a\[href\*="threads\.com"\]/.test(sheets), 'the Threads link by href');
+  assert(/html\.im-inbox a:has\(polyline\[points="9\.276 4\.726 2\.001 12\.004 9\.276 19\.274"\]\):not\(\.im-keep-back\)/.test(sheets),
+    'the inbox back chevron by its geometry, the same in every locale');
+  assert(/a\[href="\/direct\/requests\/"\]/.test(sheets),
+    'the Requests tab by href - the English text scan is gone');
+  assert(!/hideRequests/.test(CAGE), 'no English text scan for the Requests tab');
 
   // 3. The nav's Profile entry is an avatar link with no nav ancestor and no
   //     aria-label - only its position outside <main> tells it apart from the
@@ -426,6 +443,10 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'keep must land on the comparison');
   assert(/No snooze button to cave to/.test(payText()),
     'every row is a true structural claim');
+  assert(/Lock the Instagram app when you're ready/.test(payText()) &&
+    /Two 5 minute passes a day once it's locked/.test(payText()) &&
+    !/stays locked|then it locks itself/.test(payText()),
+    'the block is optional now (Sep 1): the rows say so, the old promises are gone');
   // The delete-Instagram ask is gone (Aug 16): the block replaced it, and
   // perks lead straight to the impact screen.
   //     What the trial is FOR, before the price. The hours are the
@@ -437,7 +458,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/reclaim 15 hours back/.test(payText()),
     "the impact page must use the visitor's own number from the quiz");
   assert(/Stay connected/.test(payText()) && /Reclaim your focus/.test(payText())
-    && /Never get distracted/.test(payText()),
+    && /Lock it when you're ready/.test(payText()),
     'all three impact claims must render');
   assert(!/reviews|ratings|users|\d+K\+/i.test(payText()),
     'the impact page must invent no social proof - there is none to show');
@@ -715,13 +736,33 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(450);   // crossfade to the Screen Time step
   assert(posted.includes('purchase:konvo.pro.yearly'),
     'the Annual CTA must purchase the yearly product');
-  //     The Screen Time step comes AFTER the money (Aug 22): one last step.
+  //     The money ends on the confirmation, never on the Screen Time step
+  //     (Sep 1): the block is offered from the inbox, not at purchase.
   const stext = bdoc.getElementById('im-pay').textContent;
-  assert(/One last step: Connect Konvo to Screen Time, securely\./.test(stext),
-    'a purchase leads to the Screen Time step, not a confirmation');
+  assert(/You're in\./.test(stext) && !/Connect Konvo to Screen Time/.test(stext),
+    'a purchase leads to the confirmation, not the Screen Time step');
   assert(posted.includes('notify:7'),
     'the reminder is scheduled with the trial length the moment the purchase lands');
-  assert(!posted.includes('cageOn:'), 'still no shield before the user connects');
+  assert(!posted.includes('cageOn:') && !posted.includes('cageAuthorize:'),
+    'nothing touches the shield at purchase');
+  assert.strictEqual(buyer.window.localStorage.getItem('konvoDone'), '1',
+    'finishing marks the install done, so a lapse later opens on the price');
+  btap('done');
+  await settle(950);
+  assert(!bdoc.getElementById('im-pay'), 'Open my messages drops the wall');
+  assert.strictEqual(buyer.window.localStorage.getItem('konvoPaid'), '1',
+    'a purchase must fill the offline cache');
+  //     The block, from the inbox: the pass button is the lock button
+  //     while no shield exists, and opens the Screen Time step.
+  assert(bdoc.documentElement.classList.contains('im-lockable') &&
+    bdoc.getElementById('im-pass').getAttribute('aria-label') === 'Block Instagram',
+    'a payer without a shield gets the lock button in the inbox');
+  bdoc.getElementById('im-pass').dispatchEvent(
+    new buyer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(300);
+  const lockText = bdoc.getElementById('im-pay').textContent;
+  assert(/Connect Konvo to Screen Time, securely\./.test(lockText) && !/One last step/.test(lockText),
+    'the lock button opens the Screen Time step, worded for the inbox');
   btap('cage-setup-go');
   await settle(600);
   assert(posted.indexOf('cageOn:') > posted.indexOf('purchase:konvo.pro.yearly'),
@@ -734,12 +775,11 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(scheck && /im-draw/.test(scheck.getAttribute('style') || ''),
     'the checkmark must draw itself in');
   assert(!bdoc.querySelector('#im-pay [data-act]'), 'the last page has nothing to tap');
-  assert.strictEqual(buyer.window.localStorage.getItem('konvoDone'), '1',
-    'finishing marks the install done, so a lapse later opens on the price');
+  assert(!bdoc.documentElement.classList.contains('im-lockable') &&
+    bdoc.documentElement.classList.contains('im-caged'),
+    'the lock button becomes the pass button once the shield is up');
   await settle(3600);   // 2.4s hold + the .8s fade, with slack
   assert(!bdoc.getElementById('im-pay'), 'the last page fades into the inbox on its own');
-  assert.strictEqual(buyer.window.localStorage.getItem('konvoPaid'), '1',
-    'a purchase must fill the offline cache');
   assert(posted.includes('track:onboarding_completed'),
     'completing the funnel must be tracked');
 
@@ -874,6 +914,18 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the arrow beside the search input must be tagged to survive the hiding');
   assert(!sdoc2.querySelector("header a").classList.contains('im-keep-back'),
     'the header escape arrow must stay hidden');
+  //     The same two arrows on a French phone: no "Back" label anywhere,
+  //     only the chevron geometry. Tagging must still find the search one.
+  const PL = '<polyline points="9.276 4.726 2.001 12.004 9.276 19.274"></polyline>';
+  const searchFr = `<header><div role="button"><svg aria-label="Précédent">${PL}</svg></div></header>
+    <div><div><a href="#back"><svg aria-label="Précédent">${PL}</svg></a><input type="text" placeholder="Rechercher"></div></div>`;
+  const searchPageFr = boot('/direct/inbox/', searchFr, { bridge: () => {} });
+  await settle(1000);
+  const sdocFr = searchPageFr.window.document;
+  assert(sdocFr.querySelector("a[href='#back']").classList.contains('im-keep-back'),
+    'the French search arrow must be tagged by geometry, not by an English label');
+  assert(!sdocFr.querySelector("header div").classList.contains('im-keep-back'),
+    'the French header escape arrow must stay hidden');
 
   //     Login drop-off detail (Aug 23): taps by label, submits, the error
   //     Instagram shows (as an enum, never its text), and going to the
@@ -1048,11 +1100,33 @@ process.on('exit', () => open.forEach(d => d.window.close()));
       if (m.cmd === 'track' && m.event === 'review_asked') revLog.asked = true;
     } });
   await settle(2600);
+  assert.strictEqual(dayThree.window.localStorage.konvoUseDays, '3',
+    'the third distinct day is counted at the first settle');
+  assert.strictEqual(revLog.length, 0,
+    'but the inbox merely loading is not the moment (Sep 1): no chat read yet');
+  //     The moment: a chat opened, then back to the inbox - the app just
+  //     did its job. Same day three, so the gate is already open.
+  dayThree.window.__loc.pathname = '/direct/t/31/';
+  await settle(900);
+  assert.strictEqual(revLog.length, 0, 'never inside a chat');
+  dayThree.window.__loc.pathname = '/direct/inbox/';
+  await settle(2600);
   assert.strictEqual(revLog.length, 1,
-    'the third distinct day of settled use asks for the rating, once');
+    'back at the inbox after a chat on day three asks for the rating, once');
   assert(revLog.asked, 'the ask reports itself');
   assert.strictEqual(dayThree.window.localStorage.konvoReviewAsked, '1',
     'and the flag stops any repeat');
+  //     Day one, same walk: the day gate (Apple) still holds.
+  const dayOneLog = [];
+  const dayOne = boot('/direct/inbox/', '', { paid: true,
+    bridge: m => { if (m.cmd === 'review') dayOneLog.push(1); } });
+  await settle(2600);
+  dayOne.window.__loc.pathname = '/direct/t/32/';
+  await settle(900);
+  dayOne.window.__loc.pathname = '/direct/inbox/';
+  await settle(2600);
+  assert.strictEqual(dayOneLog.length, 0,
+    'a chat-and-back on day one must not ask (5.6.3 gate unchanged)');
 
   //     Page errors report with their message, capped at three a session.
   //     (The stall detector that lived here was removed Aug 31: its
@@ -1168,7 +1242,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     entitled user whose shield is up sees nothing.
   const reLog = [];
   const reinstall = boot('/direct/inbox/', '', { bridge: (m, d) => {
-    reLog.push(m.cmd === 'track' ? 'track:' + m.event : m.cmd);
+    reLog.push(m.cmd === 'track' ? 'track:' + m.event +
+      (m.props && m.props.via ? ':' + m.props.via : '') : m.cmd);
     const r = {
       entitlements: { entitled: true },
       cageStatus: { supported: true, authorized: false, picked: false, active: false },
@@ -1179,15 +1254,36 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   } });
   await settle(1200);
   const rdoc = reinstall.window.document;
+  assert(!rdoc.getElementById('im-pay'),
+    'an entitled user with no shield gets no wall on launch (Sep 1): the block is opt-in');
+  assert(rdoc.documentElement.classList.contains('im-lockable') &&
+    !rdoc.documentElement.classList.contains('im-caged'),
+    'but the lock button is there');
+  assert(!reLog.includes('track:cage_pitch_viewed'), 'and nothing is pitched unasked');
+  rdoc.getElementById('im-pass').dispatchEvent(
+    new reinstall.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(300);
   assert(rdoc.getElementById('im-pay') &&
-    /Connect Konvo to Screen Time/.test(rdoc.getElementById('im-pay').textContent),
-    'an entitled user with no shield must get the Screen Time step, and only that');
+    /Connect Konvo to Screen Time/.test(rdoc.getElementById('im-pay').textContent) &&
+    reLog.includes('track:cage_pitch_viewed:button') && reLog.includes('track:block_button_tapped'),
+    'the lock button opens the Screen Time step, and only that');
   assert(!/Instagram connected/.test(rdoc.getElementById('im-pay').textContent),
     'no connected/loader beat for a payer');
-  assert.strictEqual(reinstall.window.localStorage.getItem('konvoCageAsked'), '1',
-    'the ask is recorded so it happens once per install');
   const rtap = act => rdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new reinstall.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  //     The close (Sep 1): back to the inbox unblocked, lock button still
+  //     there, nothing native touched; the page can be reopened.
+  rtap('cage-close');
+  await settle(950);
+  assert(!rdoc.getElementById('im-pay') && reLog.includes('track:cage_setup_closed:button') &&
+    !reLog.includes('cageAuthorize') && !reLog.includes('cageOn') &&
+    rdoc.documentElement.classList.contains('im-lockable'),
+    'close leaves the inbox as it was and keeps the lock button');
+  rdoc.getElementById('im-pass').dispatchEvent(
+    new reinstall.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(300);
+  assert(/Connect Konvo to Screen Time/.test(rdoc.getElementById('im-pay').textContent),
+    'and the lock button opens it again');
   rtap('cage-setup-go');
   await settle(600);
   assert(reLog.includes('cageOn') && reLog.includes('track:cage_enabled'),
@@ -1206,17 +1302,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(1200);
   assert(!shielded.window.document.getElementById('im-pay'),
     'an entitled user whose shield is up sees no wall at all');
-  const askedAlready = boot('/direct/inbox/', '', { bridge: (m, d) => {
-    // The flag is set before the verdict lands, as on a second launch.
-    d.window.localStorage.setItem('konvoCageAsked', '1');
-    const r = { entitlements: { entitled: true },
-      cageStatus: { supported: true, authorized: false, picked: false, active: false } }[m.cmd];
-    if (r) d.window.__konvoStoreReply(m.id, r);
-  } });
-  await settle(1200);
-  assert(!askedAlready.window.document.getElementById('im-pay'),
-    'a payer who already saw the ask this install is not asked again');
-
   const cageReplies = {
     entitlements: { entitled: false },
     products: LIVE_PRODUCTS,
@@ -1260,13 +1345,24 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'reaching the paywall still must not arm the shield');
   cactap('betafree');
   await settle(450);
+  assert(!cageLog.includes('track:cage_pitch_viewed') &&
+    /You're in\./.test(cdoc.getElementById('im-pay').textContent),
+    'the sequence ending well (here the beta grant) ends on the confirmation, not the Screen Time step');
+  assert(!cageLog.includes('cageOn'), 'the grant alone does not arm');
+  cactap('done');
+  await settle(950);
+  assert(!cdoc.getElementById('im-pay'), 'the beta unlock drops the wall');
+  assert(cdoc.documentElement.classList.contains('im-lockable'),
+    'and leaves the lock button in the inbox');
+  cdoc.getElementById('im-pass').dispatchEvent(
+    new caged.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(300);
   assert(cageLog.includes('track:cage_pitch_viewed') &&
-    /One last step: Connect Konvo to Screen Time, securely\./.test(cdoc.getElementById('im-pay').textContent),
-    'the sequence ending well (here the beta grant) leads to the Screen Time step');
-  assert(!cdoc.querySelector("[data-act='cage-skip']") &&
+    /Connect Konvo to Screen Time, securely\./.test(cdoc.getElementById('im-pay').textContent),
+    'the lock button opens the Screen Time step');
+  assert(cdoc.querySelector("[data-act='cage-close']") &&
     !/Not now/.test(cdoc.getElementById('im-pay').textContent),
-    'the Screen Time step has no opt-out: whoever reaches it connects or answers the system dialog');
-  assert(!cageLog.includes('cageOn'), 'the grant alone does not arm: the user connects first');
+    'the page carries a close (Sep 1): the user opened it, the user can leave it');
   cactap('cage-setup-go');
   await settle(600);
   const ci = s => cageLog.indexOf(s);
@@ -1280,7 +1376,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the pass button arms in the same session the shield goes up');
   await settle(3600);   // the protected page holds 2.4s, then the .8s fade
   assert(!cdoc.getElementById('im-pay'),
-    'the beta unlock still drops the wall');
+    'the protected page drops the wall');
 
   //     A paid purchase arms it too, and a connect-then-decline never does.
   const armLog = [];
@@ -1304,10 +1400,17 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'a paid build must not touch the shield before purchase either');
   atap('buy-y');
   await settle(450);
+  assert(!armLog.includes('cageOn') && /You're in\./.test(adoc.getElementById('im-pay').textContent),
+    'a purchase ends on the confirmation; nothing arms');
+  atap('done');
+  await settle(950);
+  adoc.getElementById('im-pass').dispatchEvent(
+    new armed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(300);
   atap('cage-setup-go');
   await settle(600);
   assert(armLog.indexOf('cageOn') > armLog.indexOf('purchase'),
-    'a successful purchase, then the pick, arms the shield');
+    'a successful purchase, then the pick from the inbox, arms the shield');
   assert(/You're protected\./.test(adoc.getElementById('im-pay').textContent),
     'the protected page follows the arming');
 
@@ -1377,8 +1480,14 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const mact = act => mdoc.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new mashed.window.MouseEvent('click',
       { bubbles: true, cancelable: true }));
-  // The connect page now sits after the grant (Aug 22).
+  // The connect page is opened from the inbox's lock button (Sep 1).
   for (const a of ['keep', 'impact', 'pay', 'betafree']) { mact(a); await settle(450); }
+  mact('done');
+  await settle(950);
+  mdoc.getElementById('im-pass').dispatchEvent(
+    new mashed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(300);
+  assert(mdoc.querySelector("[data-act='cage-setup-go']"), 'the lock button opened the connect page');
   const mgo = () => mact('cage-setup-go');
   mgo(); mgo(); mgo();
   await settle(200);
@@ -1428,6 +1537,17 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the pass sheet must open with the reason question');
   assert(pdoc.querySelector("#im-pass-card .im-pr[data-r='post']"),
     'posting a picture or Reel must be an offered reason');
+  //     Feedback lives on the pass card (Sep 1): one tap opens the native
+  //     UserJot sheet through the bridge and closes the card.
+  assert(pdoc.querySelector('#im-pass-card .im-fb'),
+    'the pass card must carry the feedback entry');
+  ptap(pdoc.querySelector('#im-pass-card .im-fb'));
+  await settle(200);
+  assert(passLog.includes('feedback') && passLog.includes('track:feedback_opened'),
+    'the feedback tap must reach native and report itself');
+  assert(!pdoc.getElementById('im-pass-card'), 'and the card closes behind it');
+  ptap(pdoc.getElementById('im-pass'));
+  await settle(200);
   const unlock = pdoc.querySelector('#im-pass-card .im-go');
   assert(unlock.disabled, 'Unlock must wait for a reason');
   assert(/Unlock for 5 mins/.test(unlock.textContent),
@@ -1462,6 +1582,154 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/No pass left today/.test(
     pdoc.getElementById('im-pass-card').textContent),
     'after the spare minute the day is spent');
+
+  //     The sequence speaks the phone's language (Aug 31): same keys in
+  //     every table, every T() key present, no em dashes, and a French
+  //     phone walks French from the connected beat to the paywall CTA with
+  //     the real price. Every event it sends carries the language tag.
+  const I18N = eval('(' + CAGE.match(/var I18N = (\{[\s\S]*?\n  \});/)[1] + ')');
+  const LANGS = ['fr', 'zh', 'ko'];
+  const keysOf = l => Object.keys(I18N[l]).sort().join('\n');
+  assert(LANGS.every(l => keysOf(l) === keysOf('fr')),
+    'every language must carry exactly the same keys');
+  let tkeys = 0;
+  for (const m of CAGE.matchAll(/\bT\(((?:"[^"]*"\s*\+\s*)*"[^"]*")/g)) {
+    const key = m[1].match(/"([^"]*)"/g).map(q => q.slice(1, -1)).join('');
+    assert(I18N.fr[key] !== undefined, `T() key without a translation: ${key}`);
+    tkeys++;
+  }
+  assert(tkeys > 80, 'the whole sequence must go through T(), saw ' + tkeys);
+  for (const l of LANGS) for (const [k, v] of Object.entries(I18N[l]))
+    assert(!/—/.test(v) && v.length, `bad ${l} entry for: ${k}`);
+  const wallFr = boot('/direct/inbox/', '', { hash: '#konvo=15', lang: 'fr-FR',
+    bridge: (m, d) => {
+      if (m.cmd === 'track') d.langs = (d.langs || []).concat(m.props.lang);
+      if (m.cmd === 'products') d.window.__konvoStoreReply(m.id, { ok: true,
+        yearly: { price: '$19.99', perWeek: '$0.38', perMonth: '$1.67', savePct: 76, trialDays: 7 },
+        monthly: { price: '$6.99' }, lifetime: { price: '$19.99' } });
+    } });
+  const frdoc = wallFr.window.document;
+  const frText = () => (frdoc.getElementById('im-pay') || {}).textContent || '';
+  for (let i = 0; i < 40 && !/Instagram connecté\./.test(frText()); i++)
+    await settle(100);
+  assert(/Instagram connecté\./.test(frText()) && /Tes DM et tes stories sont prêts\./.test(frText()),
+    'the connected beat must open in French');
+  await settle(2600);
+  assert(/Préparation de ton Konvo/.test(frText()) && /Stories de tes amis conservées/.test(frText()),
+    'the loader must be French');
+  await settle(5200);
+  assert(/Tes DM sont toujours là\./.test(frText()) && /Garder Instagram comme ça/.test(frText()),
+    'the reveal sheet must be French');
+  const frtap = act => frdoc.querySelector(`[data-act='${act}']`)
+    .dispatchEvent(new wallFr.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  frtap('keep');
+  await settle(450);
+  assert(/Pourquoi Konvo marche/.test(frText()) && /Sans engagement\. Annule quand tu veux\./.test(frText()),
+    'the comparison must be French');
+  frtap('impact');
+  await settle(450);
+  assert(/Commence ta semaine gratuite et/.test(frText()) && /récupère 15 heures/.test(frText()),
+    'the impact headline must compose in French with the visitor\'s own number');
+  assert(/game changer trust me/.test(frText()) && /Avis App Store/.test(frText()),
+    'the review stays a verbatim English quotation under a French label');
+  frtap('pay');
+  await settle(450);
+  const ft = frText();
+  assert(/Comment marche ton essai gratuit/.test(ft),
+    'the paywall headline must be French');
+  assert(/7 premiers jours gratuits, puis \$19\.99 par an\./.test(ft),
+    'the trial line must carry the real price in French');
+  assert(/Commencer mes 7 jours gratuits/.test(ft), 'the CTA must be French');
+  assert(/-76\u00a0%/.test(ft) && /\$1\.67\/mois/.test(ft) && /\$19\.99\/an/.test(ft),
+    'the cards must carry French units around the live numbers');
+  assert(/Dans 4 jours/.test(ft) && /Dans 7 jours/.test(ft) && /Annule quand tu veux/.test(ft),
+    'the timeline must be French');
+  assert(/Restaurer/.test(ft) && !/\bRestore\b|\bToday\b|Yearly Plan|cancel anytime/.test(ft),
+    'no English may survive on the French paywall');
+  assert(!/\.\./.test(ft) && !/sept\./.test(ft),
+    'French dates use the long month: "7 sept." plus our period read "7 sept.." on device');
+  assert(wallFr.langs && wallFr.langs.length && wallFr.langs.every(l => l === 'fr-FR'),
+    'every event carries the phone language tag');
+
+  //     The store answers with the two products on sale and no lifetime
+  //     (konvo.pro.lifetime is MISSING_METADATA in App Store Connect, so
+  //     no real user ever receives it). That reply must paint the real
+  //     prices, not the pending page: requiring lifetime held 46 of 46
+  //     store users of 1.3.0 on "Loading your plans" (Sep 1).
+  const twoLog = [];
+  const twoOnly = boot('/direct/inbox/', '', { hash: '#konvo=9', bridge: (m, d) => {
+    twoLog.push(m.cmd);
+    if (m.cmd === 'products') d.window.__konvoStoreReply(m.id, { ok: true,
+      yearly: { price: '$24.99', perWeek: '$0.48', perMonth: '$2.08', savePct: 79, trialDays: 7 },
+      monthly: { price: '$9.99' } });
+  } });
+  const twoDoc = twoOnly.window.document;
+  const twoText = () => (twoDoc.getElementById('im-pay') || {}).textContent || '';
+  for (let i = 0; i < 40 && !/Instagram connected\./.test(twoText()); i++) await settle(100);
+  await settle(7800);
+  const twoTap = act => twoDoc.querySelector(`[data-act='${act}']`)
+    .dispatchEvent(new twoOnly.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  twoTap('keep'); await settle(450);
+  twoTap('impact'); await settle(450);
+  twoTap('pay'); await settle(450);
+  assert(!/Loading your plans/.test(twoText()),
+    'two real prices must never leave the wall on the pending page');
+  assert(/First 7 days free, then \$24\.99 a year\./.test(twoText()) && /\$9\.99\/month/.test(twoText()),
+    'the wall paints the live yearly and monthly prices without a lifetime product');
+  assert(twoLog.filter(c => c === 'products').length === 1,
+    'and does not keep re-fetching what it already has');
+
+  //     The block nudge (Sep 1): once, on a later day, on the first return
+  //     from a chat; never the first day, never with a shield up.
+  const nudgeLog = [];
+  const nudgeReplies = { entitlements: { entitled: true },
+    cageStatus: { supported: true, authorized: false, picked: false, active: false },
+    cageAuthorize: { authorized: true }, cagePick: { count: 1 },
+    cageOn: { active: true }, notify: { granted: true } };
+  const nudgeBoot = (opts, log) => boot('/direct/inbox/', '', Object.assign({ bridge: (m, d) => {
+    if (log) log.push(m.cmd === 'track' ? 'track:' + m.event +
+      (m.props && m.props.choice ? ':' + m.props.choice : '') : m.cmd);
+    if (m.cmd in nudgeReplies) d.window.__konvoStoreReply(m.id, nudgeReplies[m.cmd]);
+  } }, opts));
+  const nudged = nudgeBoot({ seed: { konvoUseDays: '1', konvoLastDay: 'not-today' } }, nudgeLog);
+  await settle(2600);
+  const ndoc = nudged.window.document;
+  assert(!ndoc.getElementById('im-pass-sheet'), 'the inbox loading is not the moment');
+  nudged.window.__loc.pathname = '/direct/t/41/';
+  await settle(900);
+  nudged.window.__loc.pathname = '/direct/inbox/';
+  await settle(2600);
+  assert(ndoc.getElementById('im-pass-sheet') &&
+    /Ready to lock the Instagram app\?/.test(ndoc.getElementById('im-pass-card').textContent),
+    'day two, back from a chat: the nudge');
+  assert(nudgeLog.includes('track:block_nudge_shown'), 'the nudge reports itself');
+  ndoc.querySelector('#im-pass-card .im-x').dispatchEvent(
+    new nudged.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(100);
+  assert(!ndoc.getElementById('im-pass-sheet') && !ndoc.getElementById('im-pay') &&
+    nudged.window.localStorage.konvoBlockNudged === '1' && nudgeLog.includes('track:block_nudge:later'),
+    'Not now closes it for good and opens nothing');
+  const dayOneN = nudgeBoot({});
+  await settle(2600);
+  dayOneN.window.__loc.pathname = '/direct/t/42/';
+  await settle(900);
+  dayOneN.window.__loc.pathname = '/direct/inbox/';
+  await settle(2600);
+  assert(!dayOneN.window.document.getElementById('im-pass-sheet'), 'no nudge on the first day');
+  const blockLog = [];
+  const blockN = nudgeBoot({ seed: { konvoUseDays: '1', konvoLastDay: 'not-today' } }, blockLog);
+  await settle(2600);
+  blockN.window.__loc.pathname = '/direct/t/43/';
+  await settle(900);
+  blockN.window.__loc.pathname = '/direct/inbox/';
+  await settle(2600);
+  blockN.window.document.querySelector('#im-pass-card .im-block').dispatchEvent(
+    new blockN.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await settle(300);
+  assert(/Connect Konvo to Screen Time/.test(
+    (blockN.window.document.getElementById('im-pay') || {}).textContent || ''),
+    'Block Instagram from the nudge opens the Screen Time step');
+  assert(blockLog.includes('track:block_nudge:block'), 'and the choice is reported');
 
   //     Every animation the wall declares must have its keyframes: the
   //     loader ring shipped without im-spin for ten days and never turned.
