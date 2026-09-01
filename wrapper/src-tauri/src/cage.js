@@ -46,6 +46,28 @@
     }
   } catch (e) {}
 
+  // View Transitions passthrough (Sep 1). Instagram's newer web build wraps
+  // its inbox->thread route change in document.startViewTransition(cb) and
+  // awaits the transition before firing the thread's message load. In
+  // WKWebView that transition's promises never settle, so the load never
+  // runs: the URL flips to /direct/t/<id>, a bare skeleton paints, ZERO
+  // network, forever (measured on a live 16e; a full document load of the
+  // same url renders fine). Replace it with a passthrough that runs the
+  // update callback now and hands back already-settled promises, so the
+  // route commit finishes and the fetch fires. The only thing lost is the
+  // cross-fade animation, which a caged webview never needed. Set at
+  // document-start, before Instagram captures the reference.
+  try {
+    document.startViewTransition = function (cb) {
+      var done = Promise.resolve();
+      try { if (typeof cb === "function") cb(); } catch (e) {}
+      return {
+        ready: done, finished: done, updateCallbackDone: done,
+        skipTransition: function () {},
+      };
+    };
+  } catch (e) {}
+
   // Analytics go native: Instagram's CSP blocks a page-side call to
   // PostHog. Defined here rather than inside the paywall block because the
   // route watcher needs it too. Event names and screen ids only, never
@@ -913,6 +935,11 @@
     if (threadHealTimer) clearTimeout(threadHealTimer);
     var id = m[1];
     if (threadHealed[id]) return;                 // one attempt per thread, no loop
+    // 2s floor: the View Transitions passthrough above should make the
+    // native transition fire its load (near-instant, no reload). This is
+    // the safety net for any thread that still shows only a skeleton -
+    // reload it once into the document-load path that always renders.
+    // Composer presence is the signal (verified on-device), not a fixture.
     threadHealTimer = setTimeout(function () {
       threadHealTimer = null;
       if (location.pathname !== p) return;        // moved away
@@ -921,7 +948,7 @@
       threadHealed[id] = 1;
       track("thread_reload", {});
       location.reload();
-    }, 5000);
+    }, 2000);
   }
 
   function enforce() {
