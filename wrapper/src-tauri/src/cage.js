@@ -129,6 +129,11 @@
       "Ready to lock the Instagram app?": "On verrouille l'app Instagram ?",
       "Konvo keeps your DMs. Two 5 minute passes a day.": "Konvo garde tes DM. Deux passes de 5 minutes par jour.",
       "Block Instagram": "Bloquer Instagram",
+      "We'll remind you 2 days before it ends.": "On te préviendra 2 jours avant la fin.",
+      "Your trial ends in {n} days.": "Ton essai se termine dans {n} jours.",
+      "Your trial ends tomorrow.": "Ton essai se termine demain.",
+      "Keep your hours, or cancel anytime in Settings.": "Garde tes heures, ou annule quand tu veux dans Réglages.",
+      "OK": "OK",
       "Not now": "Pas maintenant"
     },
     zh: {
@@ -217,6 +222,11 @@
       "Ready to lock the Instagram app?": "要鎖住 Instagram App 了嗎？",
       "Konvo keeps your DMs. Two 5 minute passes a day.": "Konvo 保留你的私訊。每天兩張 5 分鐘通行證。",
       "Block Instagram": "封鎖 Instagram",
+      "We'll remind you 2 days before it ends.": "結束前 2 天我們會提醒你。",
+      "Your trial ends in {n} days.": "你的試用還有 {n} 天結束。",
+      "Your trial ends tomorrow.": "你的試用明天結束。",
+      "Keep your hours, or cancel anytime in Settings.": "留住你的時間，或隨時在「設定」取消。",
+      "OK": "好",
       "Not now": "先不要"
     },
     ko: {
@@ -305,6 +315,11 @@
       "Ready to lock the Instagram app?": "인스타그램 앱을 잠글까요?",
       "Konvo keeps your DMs. Two 5 minute passes a day.": "DM은 Konvo에 남아요. 하루 5분 패스 2번.",
       "Block Instagram": "인스타그램 차단",
+      "We'll remind you 2 days before it ends.": "종료 2일 전에 미리 알려드릴게요.",
+      "Your trial ends in {n} days.": "체험이 {n}일 후에 끝나요.",
+      "Your trial ends tomorrow.": "체험이 내일 끝나요.",
+      "Keep your hours, or cancel anytime in Settings.": "시간을 지키거나, 설정에서 언제든 취소할 수 있어요.",
+      "OK": "확인",
       "Not now": "나중에"
     }
   };
@@ -734,6 +749,35 @@
   }
   // Assigned by the pass-button block below; false until then.
   var nudgeBlock = function (days) { return false; };
+  // The reminder promise, kept without a notification permission (Sep 1):
+  // from two days before the trial ends, once a day, a sheet in the inbox.
+  // The push (KonvoStore "notify") is the other half; this one needs
+  // nothing granted. Never under a wall.
+  function trialBar() {
+    var end, today;
+    try {
+      end = parseInt(localStorage.konvoTrialEnd, 10);
+      today = new Date().toDateString();
+      if (!end || document.getElementById("im-pay")) return false;
+      if (localStorage.konvoTrialBarDay === today) return false;
+    } catch (e) { return false; }
+    var left = Math.ceil((end - Date.now()) / 86400000);
+    if (left < 1 || left > 2) return false;
+    try { localStorage.konvoTrialBarDay = today; } catch (e) {}
+    track("trial_bar_shown", { days_left: left });
+    var sheet = document.createElement("div");
+    sheet.id = "im-pass-sheet";
+    sheet.innerHTML = "<div id='im-pass-card'><h3>" +
+      (left === 1 ? T("Your trial ends tomorrow.") : T("Your trial ends in {n} days.", { n: left })) +
+      "</h3><p>" + T("Keep your hours, or cancel anytime in Settings.") + "</p>" +
+      "<button class='im-x'>" + T("OK") + "</button></div>";
+    sheet.addEventListener("click", function (e) {
+      if (!e.target.closest(".im-x") && e.target !== sheet) return;
+      if (sheet.parentNode) sheet.parentNode.removeChild(sheet);
+    });
+    (document.body || document.documentElement).appendChild(sheet);
+    return true;
+  }
   function maybeAskReview(days) {
     try {
       if (localStorage.konvoReviewAsked) return;
@@ -884,7 +928,7 @@
             } catch (e) {}
             track("inbox_ready", rp);
             var days = useDays();
-            if (!nudgeBlock(days)) maybeAskReview(days);
+            if (!trialBar() && !nudgeBlock(days)) maybeAskReview(days);
             // A settled inbox is proof these cookies are the good
             // ones: snapshot them natively so a force-quit cannot
             // lose the session (see the login rescue above).
@@ -2213,9 +2257,10 @@
     // above the Continue button.
 
     // S14: post-purchase activation. Trial buyers get the recap and the
-    // notification ask (permission requested only on the button tap, and
-    // the day-12 reminder is scheduled only on grant). Lifetime gets its
-    // own line and no ask - there is nothing to remind about.
+    // reminder promise (Matthew's words, Sep 1); every buyer gets the
+    // notification ask on the button tap (unread alerts for all, the
+    // "ends in 2 days" reminder scheduled only on grant and only with a
+    // trial). Lifetime gets its own recap line.
     // The drawn check: scales in (im-pop) while the stroke runs tip to
     // tail (im-draw). Shared by the paid confirmation and the free
     // build's reveal.
@@ -2252,6 +2297,8 @@
         drawnCheck(T("You're in.")) +
         (recap ? "<p style='font-size:15px;font-weight:600;margin-top:14px;" +
           "text-align:center'>" + recap + "</p>" : "") +
+        (td ? "<p style='font-size:15px;color:var(--mut);margin-top:6px;" +
+          "text-align:center'>" + T("We'll remind you 2 days before it ends.") + "</p>" : "") +
         "</div>" +
         "<div class='imp-foot' style='padding:0 28px 40px'>" +
         "<button class='imp-btn' data-act='done'>" + T("Open my messages") + "</button></div>";
@@ -2293,9 +2340,15 @@
       try { localStorage.konvoDone = "1"; } catch (e) {}
       var td = lastBuy === "konvo.pro.yearly" ? (prod().yearly.trialDays || 0)
              : lastBuy === "konvo.pro.monthly" ? (prod().monthly.trialDays || 0) : 0;
-      // The timeline promised a reminder before the charge: scheduled now
-      // that the trial length is known. iOS prompts only if never asked.
-      if (td) storekit("notify", String(td), function () {});
+      // Every buyer is asked (Sep 1): the permission now also carries the
+      // unread-message alerts (KonvoStore.checkUnread). With a trial length
+      // the native side schedules the "ends in 2 days" reminder; the
+      // in-inbox bar (trialBar) keeps the promise when the prompt is
+      // declined. iOS prompts only if never asked.
+      if (td) { try { localStorage.konvoTrialEnd = String(Date.now() + td * 86400000); } catch (e) {} }
+      storekit("notify", String(td), function (r) {
+        track("notify_answered", { granted: !!(r && r.granted), trial: !!td });
+      });
       var moved = false;
       var fallback = setTimeout(function () {
         moved = true;

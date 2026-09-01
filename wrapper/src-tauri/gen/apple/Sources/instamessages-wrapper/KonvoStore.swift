@@ -15,6 +15,7 @@
 // (URLSession) because Instagram's CSP would block the page from doing it.
 // Lean payloads by decision (Aug 3): event + screen ids, no quiz values.
 
+import BackgroundTasks
 import DeviceActivity
 import FamilyControls
 import Foundation
@@ -1084,6 +1085,107 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = body
         URLSession.shared.dataTask(with: request).resume()
+    }
+
+    // ── Unread alerts while closed (Sep 1, option A) ─────────────────
+    // iOS wakes the app now and then (Background App Refresh); the check
+    // reads the cookie snapshot the settled inbox saved, asks Instagram
+    // for the same badge its own web client polls, and posts a local
+    // notification when the count rose. Count only, never content, and
+    // no server: the only request is the one Instagram's page makes.
+    // Cadence is iOS's call (a few times a day, more for daily users);
+    // the bg_check events measure it. Option B (a silent-push heartbeat)
+    // reuses everything here and only adds the wake-up.
+    private static let refreshId = "com.matthewchan.konvo.refresh"
+    private static let badgeKey = "konvoUnreadBadge"
+    private static var refreshInstalled = false
+
+    // Called from main.mm before UIApplicationMain: BGTaskScheduler wants
+    // handlers registered before the launch completes, and Tauri owns
+    // the app delegate.
+    @objc public static func registerBackgroundRefresh() {
+        guard !refreshInstalled else { return }
+        refreshInstalled = true
+        BGTaskScheduler.shared.register(
+            forTaskWithIdentifier: refreshId, using: nil
+        ) { task in
+            let work = Task {
+                await checkUnread(via: "refresh")
+                scheduleRefresh()
+                task.setTaskCompleted(success: true)
+            }
+            task.expirationHandler = { work.cancel() }
+        }
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil, queue: .main
+        ) { _ in
+            scheduleRefresh()
+            // Leaving the app is when the baseline is right (the inbox was
+            // just read) and the one path every build exercises in the
+            // field, so these events also prove the fetch works.
+            let bg = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+            Task {
+                await checkUnread(via: "background")
+                UIApplication.shared.endBackgroundTask(bg)
+            }
+        }
+    }
+
+    private static func scheduleRefresh() {
+        let req = BGAppRefreshTaskRequest(identifier: refreshId)
+        req.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
+        try? BGTaskScheduler.shared.submit(req)
+    }
+
+    static func checkUnread(via: String) async {
+        _ = configureOnce
+        guard let cookies = readCookieSnapshot(),
+              cookies.contains(where: { $0.name == "sessionid" })
+        else { track("bg_check", ["via": via, "status": "no_session"]); return }
+        var req = URLRequest(url: URL(
+            string: "https://www.instagram.com/api/v1/direct_v2/get_badge_count/")!)
+        req.timeoutInterval = 20
+        req.httpShouldHandleCookies = false
+        req.setValue(cookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; "),
+                     forHTTPHeaderField: "Cookie")
+        req.setValue("936619743392459", forHTTPHeaderField: "X-IG-App-ID")
+        if let csrf = cookies.first(where: { $0.name == "csrftoken" })?.value {
+            req.setValue(csrf, forHTTPHeaderField: "X-CSRFToken")
+        }
+        req.setValue("XMLHttpRequest", forHTTPHeaderField: "X-Requested-With")
+        req.setValue("https://www.instagram.com/direct/inbox/", forHTTPHeaderField: "Referer")
+        req.setValue("*/*", forHTTPHeaderField: "Accept")
+        req.setValue("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) " +
+                     "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1",
+                     forHTTPHeaderField: "User-Agent")
+        guard let result = try? await URLSession.shared.data(for: req) else {
+            track("bg_check", ["via": via, "status": "network"]); return
+        }
+        let (data, resp) = result
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        guard code == 200, let n = json?["badge_count"] as? Int else {
+            track("bg_check", ["via": via, "status": "http_\(code)"]); return
+        }
+        let defaults = UserDefaults.standard
+        let last = defaults.object(forKey: badgeKey) as? Int
+        defaults.set(n, forKey: badgeKey)
+        var posted = false
+        if via == "refresh", let last, n > last {
+            let center = UNUserNotificationCenter.current()
+            let status = await center.notificationSettings().authorizationStatus
+            if status == .authorized || status == .provisional {
+                let content = UNMutableNotificationContent()
+                content.title = "Konvo"
+                content.body = n == 1 ? "1 unread conversation" : "\(n) unread conversations"
+                content.sound = .default
+                try? await center.add(UNNotificationRequest(
+                    identifier: "konvo.unread", content: content, trigger: nil))
+                posted = true
+            }
+        }
+        track("bg_check", ["via": via, "status": "ok", "badge": n, "posted": posted])
     }
 
     // ── The Screen Time cage ──────────────────────────────────────────

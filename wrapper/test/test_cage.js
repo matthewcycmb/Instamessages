@@ -730,6 +730,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'a purchase leads to the confirmation, not the Screen Time step');
   assert(posted.includes('notify:7'),
     'the reminder is scheduled with the trial length the moment the purchase lands');
+  assert(/We'll remind you 2 days before it ends\./.test(stext),
+    'the confirmation promises the reminder in Matthew\'s words (Sep 1)');
+  assert(Math.abs(parseInt(buyer.window.localStorage.getItem('konvoTrialEnd'), 10) - (Date.now() + 7 * 86400000)) < 60000,
+    'the trial end is remembered for the in-inbox bar');
+  assert(posted.includes('track:notify_answered'),
+    'the permission answer is tracked, so the grant rate is finally known');
   assert(!posted.includes('cageOn:') && !posted.includes('cageAuthorize:'),
     'nothing touches the shield at purchase');
   assert.strictEqual(buyer.window.localStorage.getItem('konvoDone'), '1',
@@ -792,6 +798,10 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/You're in\./.test(
     monthlyBuy.window.document.getElementById('im-pay').textContent),
     'a bridge that never answers cageStatus still confirms - true for monthly too');
+  assert(posted.includes('notify:3'),
+    'the monthly buyer is asked too, with its own trial length (Sep 1)');
+  assert(/We'll remind you 2 days before it ends\./.test(monthlyBuy.window.document.getElementById('im-pay').textContent),
+    'a monthly trial gets the same promise');
 
   //     The verdict beats the cache in both directions.
   const lapsed = boot('/direct/inbox/', '', { paid: true, bridge: answer({
@@ -1058,6 +1068,30 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the time to settle must ride along');
   assert(!JSON.stringify(ready).includes('111'),
     'inbox_ready must never carry a thread id');
+  //     The reminder promise, kept without a notification permission
+  //     (Sep 1): two days before the trial ends the settled inbox shows a
+  //     sheet once a day; never when the end is further away.
+  const INBOX_FIX = '<a href="/direct/t/111/">a</a><span id="me">matthew_c</span><div role="group">a message</div>';
+  const barEvents = [];
+  const nearEnd = boot('/direct/inbox/', INBOX_FIX, { paid: true,
+    seed: { konvoTrialEnd: String(Date.now() + 1.5 * 86400000) },
+    bridge: m => { if (m.cmd === 'track') barEvents.push(m.event + ':' + JSON.stringify(m.props)); } });
+  const farEnd = boot('/direct/inbox/', INBOX_FIX, { paid: true,
+    seed: { konvoTrialEnd: String(Date.now() + 5 * 86400000) } });
+  const seenToday = boot('/direct/inbox/', INBOX_FIX, { paid: true,
+    seed: { konvoTrialEnd: String(Date.now() + 1.5 * 86400000), konvoTrialBarDay: new Date().toDateString() } });
+  await settle(2600);
+  const bar = nearEnd.window.document.getElementById('im-pass-sheet');
+  assert(bar && /Your trial ends in 2 days\./.test(bar.textContent) && /cancel anytime in Settings/.test(bar.textContent),
+    'two days out, the inbox shows the trial reminder sheet');
+  assert(barEvents.some(e => e.startsWith('trial_bar_shown:') && e.includes('"days_left":2')),
+    'the sheet is tracked with the days left');
+  assert.strictEqual(nearEnd.window.localStorage.getItem('konvoTrialBarDay'), new Date().toDateString(),
+    'shown once a day');
+  bar.querySelector('.im-x').dispatchEvent(new nearEnd.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert(!nearEnd.window.document.getElementById('im-pass-sheet'), 'OK dismisses it');
+  assert(!farEnd.window.document.getElementById('im-pass-sheet'), 'five days out, no sheet');
+  assert(!seenToday.window.document.getElementById('im-pass-sheet'), 'already shown today, no sheet');
   //     Identity rides the first settle: the cookie id plus the handle the
   //     title finder located. Captured once per install, never again.
   assert(ready.saves >= 1,
@@ -1346,8 +1380,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(600);
   const ci = s => cageLog.indexOf(s);
   assert(ci('cageAuthorize') > -1 && ci('cagePick') > ci('cageAuthorize') &&
-    ci('notify') > ci('cagePick') && ci('cageOn') > ci('notify'),
-    'cage setup must run authorize, pick, notify, then arm, in order');
+    cageLog.lastIndexOf('notify') > ci('cagePick') && ci('cageOn') > cageLog.lastIndexOf('notify'),
+    'cage setup must run authorize, pick, notify, then arm, in order (the purchase-time ask is an earlier notify)');
   assert(cageLog.includes('track:cage_enabled'), 'the arming is reported');
   assert(/You're protected\./.test(cdoc.getElementById('im-pay').textContent),
     'and end on the protected page');
