@@ -757,8 +757,13 @@
   function pollLoginErrors(st) {
     // Errors on the phone page arrive as a dialog ("Incorrect password",
     // Try again / Forgot password?), not an alert: the taps on "try again"
-    // were the only witness until Sep 1. Stage and enum only, never text.
-    var els = document.querySelectorAll("[role=alert],[role=dialog],[aria-live],[id$=ErrorAlert],[data-testid*=error]");
+    // were the only witness until Sep 1. Dialogs also greet the page
+    // (cookie consent fired login_error {other, submits: 0} within 4s on
+    // the very first device, same day), so a dialog or live region only
+    // counts once something has been submitted; the alert shapes are
+    // error-only markup and always count. Stage and enum only, never text.
+    var els = document.querySelectorAll("[role=alert],[id$=ErrorAlert],[data-testid*=error]" +
+      (loginSubmits > 0 ? ",[role=dialog],[aria-live]" : ""));
     for (var i = 0; i < els.length; i++) {
       var t = (els[i].textContent || "").trim();
       if (t.length < 8 || loginErrorsSeen[t]) continue;

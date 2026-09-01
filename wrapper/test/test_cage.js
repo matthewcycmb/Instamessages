@@ -1046,6 +1046,18 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const blob = JSON.stringify(detail);
   assert(!/alex\.chen|hunter2|double-check/.test(blob),
     'nothing typed and no error text may ever reach the bridge');
+  //     A dialog that greets the page (cookie consent) with nothing
+  //     submitted is not an error: it fired login_error {other, submits: 0}
+  //     within 4s on the very first build 90 device (Sep 1).
+  const cookieEvents = [];
+  const cookiePage = boot('/accounts/login/', '<div id="cb"></div><input name="username"><input name="password" type="password">',
+    { loggedOut: true, bridge: m => { if (m.cmd === 'track') cookieEvents.push(m.event); } });
+  await settle(1500);
+  cookiePage.window.document.getElementById('cb').innerHTML =
+    '<div role="dialog"><p>Allow the use of cookies in this browser?</p><button>Allow all cookies</button></div>';
+  await settle(1200);
+  assert(!cookieEvents.includes('login_error'),
+    'a dialog on an untouched login page (cookie consent) must not report as a login error');
   //     Keychain AutoFill (Aug 23): the sweep names the fields for iOS.
   //     Instagram ships them as autocomplete="on", which the keyboard
   //     ignores; username / current-password is what surfaces the saved
