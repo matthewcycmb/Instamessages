@@ -891,6 +891,39 @@
     } catch (e) {}
   }
 
+  // Thread self-heal (Sep 1). Instagram A/B-ships a web build whose
+  // client-side inbox->thread transition never fires the message load in
+  // WKWebView: the URL becomes /direct/t/<id>, a bare skeleton paints, and
+  // NOTHING is requested - no error, no network, forever (measured on a
+  // live 16e: composer absent, zero resource entries in 12s). A full
+  // document load of the SAME url always renders it (composer, messages,
+  // 49 requests). So when a thread route sits on a skeleton with no
+  // composer past a generous window, reload it once. Both premises are
+  // device-verified this session; the signal is the composer the cage
+  // already knows (div[role=textbox]), not a guessed selector - the
+  // lesson of the dead stall probe. Once per thread id per session so a
+  // genuinely composer-less thread cannot loop; never under the wall.
+  var threadHealed = {}, threadHealArmed = "", threadHealTimer = null;
+  function healThread() {
+    var p = location.pathname;
+    var m = p.match(/^\/direct\/t\/(\d+)/);
+    if (!m) { threadHealArmed = ""; if (threadHealTimer) { clearTimeout(threadHealTimer); threadHealTimer = null; } return; }
+    if (p === threadHealArmed) return;            // already watching this thread
+    threadHealArmed = p;
+    if (threadHealTimer) clearTimeout(threadHealTimer);
+    var id = m[1];
+    if (threadHealed[id]) return;                 // one attempt per thread, no loop
+    threadHealTimer = setTimeout(function () {
+      threadHealTimer = null;
+      if (location.pathname !== p) return;        // moved away
+      if (document.querySelector('div[role="textbox"]')) return;  // loaded fine
+      if (document.getElementById("im-pay")) return;              // never under the wall
+      threadHealed[id] = 1;
+      track("thread_reload", {});
+      location.reload();
+    }, 5000);
+  }
+
   function enforce() {
     if (!location.hostname.endsWith("instagram.com")) return;
     if (/iPhone|iPad|iPod/.test(navigator.userAgent)) sizeViewport();
@@ -945,6 +978,7 @@
     // mid-render is the glitch every naive swipe shows.
     var r = ib ? "inbox"
       : location.pathname.indexOf("/direct/t/") === 0 ? "thread" : "other";
+    healThread();
     // Instagram ships the DM composer (a role=textbox contenteditable)
     // without autocorrect, so typing gets no correction bar. In a
     // messaging app that is a bug, not a preference. Re-asserted on the

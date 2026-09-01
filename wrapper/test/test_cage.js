@@ -1855,6 +1855,34 @@ process.on('exit', () => open.forEach(d => d.window.close()));
       `animation "${name}" must have matching @keyframes`);
   }
 
+  //     Thread self-heal (Sep 1): Instagram's client-side inbox->thread
+  //     transition wedges in WKWebView - the URL becomes /direct/t/<id>, a
+  //     skeleton paints, and no message load ever fires (measured live on
+  //     the 16e: composer absent, zero network, forever). A document load
+  //     of the same url always renders it. So a thread route with no
+  //     composer past the window reloads ONCE. The signal is the composer
+  //     the cage already knows (div[role=textbox]), verified on-device,
+  //     not a guessed selector (the dead stall probe's lesson). 5s timer;
+  //     the tests wait it out.
+  const stuck = boot('/direct/t/70001/', '');
+  await settle(6000);
+  assert(stuck.went.includes('reload'),
+    'a thread stuck on a bare skeleton (no composer) reloads once');
+  assert(stuck.went.filter(w => w === 'reload').length === 1,
+    'and only once - a still-broken thread must not loop');
+
+  const loaded = boot('/direct/t/70002/', '<div role="textbox"></div>');
+  await settle(6000);
+  assert(!loaded.went.includes('reload'),
+    'a thread that has its composer never reloads');
+
+  //     Never reload out from under the paywall wall: the reveal shows the
+  //     inbox, not a thread, but a thread route with the wall up must wait.
+  const underWall = boot('/direct/t/70003/', '<div id="im-pay"></div>');
+  await settle(6000);
+  assert(!underWall.went.includes('reload'),
+    'the self-heal never reloads while the wall is up');
+
   console.log('ALL CAGE TESTS PASS');
   process.exit(0);
 })();
