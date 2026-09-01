@@ -439,20 +439,17 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the loader must auto-advance into the reveal');
   wtap('keep');
   await settle(450);
-  assert(/Why Konvo works/.test(payText()),
-    'keep must land on the comparison');
-  assert(/No snooze button to cave to/.test(payText()),
-    'every row is a true structural claim');
-  assert(/Lock the Instagram app when you're ready/.test(payText()) &&
-    /Two 5 minute passes a day once it's locked/.test(payText()) &&
-    !/stays locked|then it locks itself/.test(payText()),
-    'the block is optional now (Sep 1): the rows say so, the old promises are gone');
+  assert(/Start your Free Week/.test(payText()),
+    'keep lands on the impact page: the comparison page is gone (Sep 1)');
+  assert(/users love Konvo/.test(payText()) &&
+    (wdoc.querySelector('#im-pay .imp-proof img') || {}).getAttribute('src').indexOf('data:image/png;base64,') === 0,
+    'the proof block (the laurel image, caption live) sits at the foot of the free-week page');
+  assert(wdoc.querySelector('#im-pay .imp-proof').compareDocumentPosition(wdoc.querySelector('#im-pay h2')) & 2,
+    'the headline comes before the proof block: the block is the last thing above Continue');
   // The delete-Instagram ask is gone (Aug 16): the block replaced it, and
   // perks lead straight to the impact screen.
   //     What the trial is FOR, before the price. The hours are the
   //     user's own quiz answer, carried across the origin boundary.
-  wtap('impact');
-  await settle(450);
   assert(/Start your Free Week/.test(payText()),
     'the impact page opens on the free week');
   assert(/reclaim 15 hours back/.test(payText()),
@@ -460,8 +457,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/Stay connected/.test(payText()) && /Reclaim your focus/.test(payText())
     && /Lock it when you're ready/.test(payText()),
     'all three impact claims must render');
-  assert(!/reviews|ratings|users|\d+K\+/i.test(payText()),
-    'the impact page must invent no social proof - there is none to show');
+  assert(!/\d+K\+|game changer/.test(payText()),
+    'the impact page carries the proof block and nothing else: no invented counts, no review card');
   wtap('pay');
   await settle(450);   // crossfade
   assert(/How your free trial works/.test(payText()),
@@ -530,8 +527,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new live.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   // Same route as a real user: perks -> impact -> price.
   ltap('keep');
-  await settle(450);
-  ltap('impact');
   await settle(450);
   ltap('pay');
   await settle(450);
@@ -642,8 +637,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const btext = () => betaWalk.window.document.getElementById('im-pay').textContent;
   btw('keep');
   await settle(450);
-  btw('impact');
-  await settle(450);
   assert(/Start your Free Week/.test(btext()) && /reclaim 12 hours back/.test(btext()),
     'beta must show the impact screen, with this visitor\'s own hours');
   btw('pay');
@@ -676,8 +669,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new noTrial.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   nttap('keep');
   await settle(450);
-  nttap('impact');
-  await settle(450);
   //     A user with no trial must not be sold one on the way in either.
   const itext = noTrial.window.document.getElementById('im-pay').textContent;
   assert(!/Free Week|days free/.test(itext),
@@ -705,8 +696,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new quiz.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   qtap('keep');
   await settle(450);
-  qtap('impact');
-  await settle(450);
   assert(/reclaim 9 hours back/.test(
     quiz.window.document.getElementById('im-pay').textContent),
     'the impact screen must speak the hours this visitor actually answered');
@@ -726,8 +715,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const btap = act => bdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new buyer.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   btap('keep');
-  await settle(450);
-  btap('impact');
   await settle(450);
   btap('pay');
   await settle(450);
@@ -795,8 +782,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new monthlyBuy.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   mtap('keep');
   await settle(450);
-  mtap('impact');
-  await settle(450);
   mtap('pay');
   await settle(450);
   mtap('pk-m');
@@ -821,9 +806,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(ldoc.getElementById('im-pay'),
     'a lapsed subscription must bring the wall back despite the cache');
   ldoc.querySelector("[data-act='keep']").dispatchEvent(
-    new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  await settle(450);
-  ldoc.querySelector("[data-act='impact']").dispatchEvent(
     new lapsed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await settle(450);
   ldoc.querySelector("[data-act='pay']").dispatchEvent(
@@ -1169,7 +1151,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     lptap(act); await settle(450);
   };
   await lpwalk('keep');
-  await lpwalk('impact');
   await lpwalk('pay');
   assert(/Loading your plans/.test(lpText()) && !/\$/.test(lpText()),
     'a wall without live prices shows the loading page and not one dollar sign');
@@ -1335,10 +1316,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(450);
   assert(!cdoc.getElementById('im-pay').classList.contains('im-reveal'),
     'keep must make the wall opaque again');
-  assert(/No commitment\. Cancel anytime\./.test(cdoc.getElementById('im-pay').textContent),
-    'keep hands over to perks: setup first, sell second');
-  cactap('impact');
-  await settle(450);
+  assert(/Start your Free Week/.test(cdoc.getElementById('im-pay').textContent),
+    'keep hands over to the impact page: setup first, sell second');
   cactap('pay');
   await settle(450);
   assert(!cageLog.includes('cageOn'),
@@ -1392,8 +1371,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new armed.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   atap('keep');
   await settle(450);
-  atap('impact');
-  await settle(450);
   atap('pay');
   await settle(450);
   assert(!armLog.includes('cageOn') && !armLog.includes('cageAuthorize'),
@@ -1425,14 +1402,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(!/Choose a plan next/.test(edoc.getElementById('im-pay').textContent),
     'the free build\'s reveal promises no plan');
   etap('keep');
-  await settle(450);
-  assert(/Free\. Nothing to cancel\./.test(edoc.getElementById('im-pay').textContent),
-    'the free build must not promise a cancellation it has nothing to cancel');
-  assert(/No feed, no Reels, no Explore/.test(edoc.getElementById('im-pay').textContent)
-    && !/comes off your phone/.test(edoc.getElementById('im-pay').textContent),
-    'the rows must describe the product that exists');
-  etap('welcomed');
-  await settle(500);
+  await settle(1300);   // the free build ends at the reveal (Sep 1): finish's 900ms fallback
   assert(/You're in\./.test(edoc.getElementById('im-pay').textContent)
     && edoc.querySelector("#im-pay path[stroke-dasharray='24']"),
     'the free ending must show the drawn check before the inbox');
@@ -1457,10 +1427,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new oldios.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   otap2('keep');
   await settle(450);
-  assert(/No commitment\. Cancel anytime\./.test(odoc.getElementById('im-pay').textContent),
-    'an unsupported bridge still reaches perks through the reveal');
-  otap2('impact');
-  await settle(450);
+  assert(/Start your Free Week/.test(odoc.getElementById('im-pay').textContent),
+    'an unsupported bridge still reaches the impact page through the reveal');
   assert(/Start your Free Week/.test(odoc.getElementById('im-pay').textContent),
     'and continue into the impact page');
   assert(!oldLog.includes('track:cage_pitch_viewed'),
@@ -1481,7 +1449,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new mashed.window.MouseEvent('click',
       { bubbles: true, cancelable: true }));
   // The connect page is opened from the inbox's lock button (Sep 1).
-  for (const a of ['keep', 'impact', 'pay', 'betafree']) { mact(a); await settle(450); }
+  for (const a of ['keep', 'pay', 'betafree']) { mact(a); await settle(450); }
   mact('done');
   await settle(950);
   mdoc.getElementById('im-pass').dispatchEvent(
@@ -1624,14 +1592,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     .dispatchEvent(new wallFr.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   frtap('keep');
   await settle(450);
-  assert(/Pourquoi Konvo marche/.test(frText()) && /Sans engagement\. Annule quand tu veux\./.test(frText()),
-    'the comparison must be French');
-  frtap('impact');
-  await settle(450);
+  assert(/utilisateurs adorent Konvo/.test(frText()), 'the proof caption is French');
   assert(/Commence ta semaine gratuite et/.test(frText()) && /récupère 15 heures/.test(frText()),
     'the impact headline must compose in French with the visitor\'s own number');
-  assert(/game changer trust me/.test(frText()) && /Avis App Store/.test(frText()),
-    'the review stays a verbatim English quotation under a French label');
   frtap('pay');
   await settle(450);
   const ft = frText();
@@ -1670,7 +1633,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const twoTap = act => twoDoc.querySelector(`[data-act='${act}']`)
     .dispatchEvent(new twoOnly.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   twoTap('keep'); await settle(450);
-  twoTap('impact'); await settle(450);
   twoTap('pay'); await settle(450);
   assert(!/Loading your plans/.test(twoText()),
     'two real prices must never leave the wall on the pending page');

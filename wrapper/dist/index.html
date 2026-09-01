@@ -240,9 +240,6 @@
          font-size: 17px; font-weight: 500; letter-spacing: -0.015em;
          line-height: 1.35; transition: transform .15s ease }
   .opt:active { transform: scale(0.98) }
-  .srcic { width: 34px; height: 34px; flex: none; border-radius: 10px;
-           display: inline-flex; align-items: center; justify-content: center;
-           margin-right: 12px }
   .field { width: 100%; box-sizing: border-box; min-height: 62px;
            padding: 14px 26px; border-radius: 999px; background: var(--card);
            color: var(--ink); border: 0; font-family: inherit;
@@ -305,6 +302,71 @@
           pointer-events: none }
   .dots { display: flex; gap: 7px; justify-content: center;
           margin-bottom: 18px }
+  /* social proof (S9t, Sep 1): the classic rating-screen composition,
+     measured from the reference at 390x844 and placed by percentage of the
+     WHOLE screen so the stagger survives 375x812 and 430x932 (the box used
+     to stop 88px short, which stacked everything higher and the top two
+     bubbles overlapped). Konvo's palette, the laurels in the classic gold. */
+  #s9t { background: #f6f7fb }
+  @media (prefers-color-scheme: dark) { #s9t { background: var(--bg) } }
+  .proof { position: absolute; inset: 0 }
+  .bubble { position: absolute; box-sizing: border-box; margin: 0; padding: 11px 13px 9px; border-radius: 15px;
+            background: var(--card); color: var(--ink); font-size: 13.5px; line-height: 1.3;
+            letter-spacing: -0.005em; box-shadow: 0 8px 22px rgba(20,29,51,0.07) }
+  .bubble p { margin: 0 }
+  .bubble b { font-weight: 700 }
+  .bubble figcaption { display: flex; align-items: center; gap: 7px; margin-top: 6px;
+                       font-size: 12px; color: var(--mut) }
+  .bubble .av { width: 22px; height: 22px; border-radius: 50%; flex: none;
+                display: inline-flex; align-items: center; justify-content: center;
+                font-size: 11px; font-weight: 700; color: #fff;
+                background: linear-gradient(135deg, #6db0ff, var(--accent)) }
+  .bubble.b1 { left: 5%; top: 14%; width: 63% }
+  .bubble.b2 { right: 4%; top: 28%; width: 48% }
+  .bubble.b3 { left: 5%; top: 62%; width: 42% }
+  .bubble.b4 { right: 4%; top: 67.5%; width: 38% }
+  @media (prefers-color-scheme: dark) {
+    .bubble { background: #17191f; box-shadow: 0 8px 22px rgba(0,0,0,0.5) }
+  }
+  /* The laurel block is Matthew's own image (proof.png: laurels, count,
+     stars); its baked-in caption is covered by a live one so the words
+     follow the theme and the language. Cover bounds = the caption band
+     inside the image (measured). */
+  .laurel { position: absolute; left: 50%; top: 44.3%; transform: translateX(-50%);
+            width: 240px }
+  .laurel img { display: block; width: 100%; height: auto }
+  .laurel .cover { position: absolute; left: 25%; right: 23%; top: 71%; bottom: 13%;
+                   background: #f6f7fb; display: flex; align-items: center;
+                   justify-content: center }
+  @media (prefers-color-scheme: dark) { .laurel .cover { background: var(--bg) } }
+  .laurel .cap { font-size: 19px; font-weight: 700; letter-spacing: -0.02em;
+                 color: var(--ink); white-space: nowrap }
+  /* The reveal (Sep 1): the laurels bloom first, the four bubbles drop in
+     one by one from their own side, the button rises last. Everything
+     starts hidden (fill-mode both) so nothing flashes before its cue, and
+     none of it runs for people who asked for less motion. */
+  @keyframes proof-bloom { 0% { transform: translateX(-50%) scale(.4) rotate(-8deg); opacity: 0 }
+                           60% { transform: translateX(-50%) scale(1.06) rotate(1deg); opacity: 1 }
+                           100% { transform: translateX(-50%) scale(1) rotate(0) } }
+  @keyframes proof-drop-l { from { transform: translate(-28px, 14px) scale(.9); opacity: 0 } }
+  @keyframes proof-drop-r { from { transform: translate(28px, 14px) scale(.9); opacity: 0 } }
+  @keyframes proof-rise { from { transform: translateY(18px); opacity: 0 } }
+  @keyframes proof-glow { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.6) }
+                          45% { opacity: 1 } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6) } }
+  #s9t .halo { position: absolute; left: 50%; top: 51.3%; width: 320px; height: 320px; border-radius: 50%;
+               transform: translate(-50%, -50%); opacity: 0; pointer-events: none;
+               background: radial-gradient(circle, rgba(214,162,79,0.28) 0%, rgba(10,92,240,0.10) 45%, transparent 70%) }
+  @media (prefers-reduced-motion: no-preference) {
+    #s9t.on .laurel { animation: proof-bloom .9s cubic-bezier(.34,1.56,.64,1) .15s both }
+    #s9t.on .halo { animation: proof-glow 1.3s ease-out .2s both }
+    #s9t.on .bubble { animation-duration: .6s; animation-timing-function: cubic-bezier(.34,1.56,.64,1);
+                      animation-fill-mode: both }
+    #s9t.on .b1 { animation-name: proof-drop-l; animation-delay: .75s }
+    #s9t.on .b2 { animation-name: proof-drop-r; animation-delay: .9s }
+    #s9t.on .b3 { animation-name: proof-drop-l; animation-delay: 1.05s }
+    #s9t.on .b4 { animation-name: proof-drop-r; animation-delay: 1.2s }
+    #s9t.on .foot { animation: proof-rise .5s ease-out 1.45s both }
+  }
   /* the pact (S9) */
   .pactline { display: flex; align-items: flex-start; gap: 13px;
               font-size: 16px; line-height: 1.45 }
@@ -402,49 +464,6 @@
         <button class="opt" data-why="attention">My attention span is cooked</button>
         <button class="opt" data-why="focus">I can't focus for that long</button>
         <button class="opt" data-why="present">I'm less present with friends &amp; family</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="screen" id="s2a">
-    <div class="chrome">
-      <button class="back" data-back="s8c" aria-label="Back"><svg width="10"
-        height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
-    </div>
-    <div class="body">
-      <h2>Where did you hear about Konvo?</h2>
-      <!-- No .sub on this screen, so the gap it would occupy is made
-           explicit to keep the headline rhythm of the quiz pages. -->
-      <div class="opts" style="margin-top: 34px">
-        <button class="opt" data-src="tiktok"><span class="srcic"
-          style="background: #0f0f0f; box-shadow: inset 0 0 0 1px var(--line)"><svg
-          width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path
-          d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18"
-          cy="16" r="3"/></svg></span>TikTok</button>
-        <button class="opt" data-src="instagram"><span class="srcic"
-          style="background: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)"><svg
-          width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff"
-          stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5.5"/><circle
-          cx="12" cy="12" r="4"/></svg></span>Instagram</button>
-        <button class="opt" data-src="friend"><span class="srcic"
-          style="background: var(--accent)"><svg width="17" height="17"
-          viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round"><path
-          d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7"
-          r="4"/></svg></span>A friend</button>
-        <button class="opt" data-src="appstore"><span class="srcic"
-          style="background: #1d9bf6"><svg width="17" height="17"
-          viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round"><path
-          d="M12 4 5.5 18M12 4l6.5 14M7.5 13.5h9"/></svg></span>App Store</button>
-        <button class="opt" data-src="other"><span class="srcic"
-          style="background: #6b7280"><svg width="17" height="17"
-          viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
-          stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path
-          d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>
-          </span>Somewhere else</button>
       </div>
     </div>
   </div>
@@ -605,16 +624,29 @@
     <div class="hero"><img src="pass-hero.png" alt=""></div>
     <div class="herofoot">
       <div class="dots"><i></i><i></i><i class="on"></i></div>
-      <button class="btn" data-next="s2a">Continue</button>
+      <button class="btn" data-next="s9t">Continue</button>
     </div>
   </div>
 
   <div class="screen t-fade" id="s9t">
-    <div class="body mid">
-      <h2 style="margin-bottom: 24px">What early users say</h2>
-      <div class="opts" id="quotes"></div>
+    <!-- Social proof (Sep 1): the composition of the classic rating screen,
+         measured from a reference at 390x844. Three quotes are verbatim
+         excerpts of public LinkedIn comments on the launch post, the third
+         (sam.yshi) of a five-star App Store review, Sep 2026 (bold =
+         emphasis, not rewording; its three emoji became a comma so it fits
+         the box), first name or handle and initial shown. No stars drawn. The count is Matthew's launch-week
+         projection (PROOF_COUNT); the caption completes it per language. -->
+    <div class="halo" aria-hidden="true"></div>
+    <div class="proof" id="quotes">
+      <figure class="bubble b1"><p>&ldquo;<b>I&rsquo;ve been searching for something like this for so long</b> - that&rsquo;s insane!&rdquo;</p><figcaption><span class="av">K</span>Kateryna</figcaption></figure>
+      <figure class="bubble b2"><p>&ldquo;don&rsquo;t wanna delete social media because of dms, <b>so this sounds useful!</b>&rdquo;</p><figcaption><span class="av">H</span>Harima</figcaption></figure>
+      <div class="laurel"><img src="proof.png" alt=""><div class="cover"><span class="cap" id="proof-cap">users love Konvo</span></div></div>
+      <figure class="bubble b3"><p>&ldquo;<b>my scrolling addiction stopped</b>, i haven&rsquo;t opened reels since last week!!&rdquo;</p><figcaption><span class="av">S</span>sam.yshi</figcaption></figure>
+      <figure class="bubble b4"><p>&ldquo;<b>Really smart approach</b> to solving that problem&rdquo;</p><figcaption><span class="av">M</span>Muhammad</figcaption></figure>
     </div>
-    <div class="foot"><button class="btn" data-next="s10">Continue</button></div>
+    <!-- The bubbles sit out of flow; this spacer keeps the foot at the foot. -->
+    <div style="flex: 1"></div>
+    <div class="foot"><button class="btn" data-next="s10">Next</button></div>
   </div>
 
   <div class="screen" id="s10">
@@ -697,9 +729,6 @@
       "My attention span is cooked": "Mon attention est complètement cramée",
       "I can't focus for that long": "Je n'arrive pas à me concentrer longtemps",
       "I'm less present with friends & family": "Je suis moins là pour mes proches",
-      "Where did you hear about Konvo?": "Où as-tu entendu parler de Konvo ?",
-      "A friend": "Un proche",
-      "Somewhere else": "Ailleurs",
       "What’s your average screen time on Instagram per day?": "Combien de temps passes-tu sur Instagram par jour, en moyenne ?",
       "Best guess is fine.": "Une estimation suffit.",
       "< 1 hour": "< 1 heure",
@@ -737,7 +766,7 @@
       "Lock the app when you’re ready.": "Verrouille l'app quand tu veux.",
       "You keep two 5 minute passes a day to post a story or call someone.": "Tu gardes deux passes de 5 minutes par jour pour poster une story ou appeler quelqu'un.",
       "Continue": "Continuer",
-      "What early users say": "Ce qu'en disent les premiers utilisateurs",
+      "users love Konvo": "utilisateurs adorent Konvo",
       "Konvo does not collect your Instagram information.": "Konvo ne collecte aucune information de ton compte Instagram.",
       "Your password goes to Instagram, never to us": "Ton mot de passe va à Instagram, jamais à nous",
       "Your messages are never stored by us": "Tes messages ne sont jamais stockés chez nous",
@@ -765,9 +794,6 @@
       "My attention span is cooked": "我的專注力已經廢了",
       "I can't focus for that long": "我沒辦法專心那麼久",
       "I'm less present with friends & family": "跟朋友家人在一起時心不在焉",
-      "Where did you hear about Konvo?": "你從哪裡知道 Konvo？",
-      "A friend": "朋友",
-      "Somewhere else": "其他地方",
       "What’s your average screen time on Instagram per day?": "你每天平均花多少時間在 Instagram？",
       "Best guess is fine.": "大概就好。",
       "< 1 hour": "少於 1 小時",
@@ -805,7 +831,7 @@
       "Lock the app when you’re ready.": "準備好了再鎖住 App。",
       "You keep two 5 minute passes a day to post a story or call someone.": "你每天保留兩張 5 分鐘通行證，用來發限時動態或打電話。",
       "Continue": "繼續",
-      "What early users say": "早期用戶怎麼說",
+      "users love Konvo": "位用戶喜愛 Konvo",
       "Konvo does not collect your Instagram information.": "Konvo 不會收集你的 Instagram 資料。",
       "Your password goes to Instagram, never to us": "密碼只會送到 Instagram，不會經過我們",
       "Your messages are never stored by us": "我們不會儲存你的訊息",
@@ -833,9 +859,6 @@
       "My attention span is cooked": "집중력이 완전히 망가졌어요",
       "I can't focus for that long": "오래 집중을 못 하겠어요",
       "I'm less present with friends & family": "친구, 가족과 있어도 딴 데 정신이 팔려요",
-      "Where did you hear about Konvo?": "Konvo를 어디서 알게 되셨어요?",
-      "A friend": "친구",
-      "Somewhere else": "다른 곳",
       "What’s your average screen time on Instagram per day?": "하루 평균 인스타그램 사용 시간은 얼마나 되나요?",
       "Best guess is fine.": "대략이면 돼요.",
       "< 1 hour": "1시간 미만",
@@ -873,7 +896,7 @@
       "Lock the app when you’re ready.": "준비되면 앱을 잠그세요.",
       "You keep two 5 minute passes a day to post a story or call someone.": "스토리를 올리거나 전화할 때 쓸 5분 패스가 하루 2번 남아요.",
       "Continue": "계속",
-      "What early users say": "먼저 써본 사람들의 이야기",
+      "users love Konvo": "명이 Konvo를 사랑해요",
       "Konvo does not collect your Instagram information.": "Konvo는 인스타그램 정보를 수집하지 않아요.",
       "Your password goes to Instagram, never to us": "비밀번호는 인스타그램으로만 가고, 저희에겐 오지 않아요",
       "Your messages are never stored by us": "메시지는 저희 서버에 저장되지 않아요",
@@ -915,22 +938,10 @@
   // Quiz state. M is the messaging range's upper bound; "I don't know" is a
   // transparent 20-minute estimate.
 
-  // TODO: RELEASE BLOCKER - QUOTES stays empty until real TestFlight quotes
-  // exist (locked rule: no invented social proof). Entries like
-  // { q: "[TESTIMONIAL_1 - replace with real TestFlight quote]",
-  //   name: "[FIRST NAME]" }. Quotes only, no stars: no rating exists to
-  // depict. While empty, the testimonial screen (s9t) is skipped entirely.
-  var QUOTES = [];
-  if (QUOTES.length) {
-    var qbox = document.getElementById("quotes");
-    for (var qi = 0; qi < QUOTES.length; qi++) {
-      var qd = document.createElement("div");
-      qd.className = "opt";
-      qd.style.pointerEvents = "none";
-      qd.textContent = "“" + QUOTES[qi].q + "” - " + QUOTES[qi].name;
-      qbox.appendChild(qd);
-    }
-  }
+  // Social proof (Sep 1): the count and stars are baked into proof.png
+  // (Matthew's image, his launch-week projection: 482 opens on Sep 1);
+  // swap the image to change them. The caption is live, per language.
+  document.getElementById("proof-cap").textContent = T("users love Konvo");
 
   // Funnel events, fire-and-forget through the bridge. Lean payloads:
   // enums only, never free text. Quiz answers and attribution source ride
@@ -1011,7 +1022,7 @@
   var busy = 0;
   // Trimmed by a third Aug 16: the reveals still land, but 9s of forced
   // waiting across the walk was the only length a user could feel.
-  var DWELL = { s4b: 2300, s5: 1600, s6: 900, s7: 1200 };
+  var DWELL = { s4b: 2300, s5: 1600, s6: 900, s7: 1200, s9t: 1500 };
   function show(id, back) {
     var next = document.getElementById(id);
     var glide = !/t-fade/.test(next.className);
@@ -1030,6 +1041,10 @@
     if (id === "s5") reveal();
     if (id === "s6") columns();
     if (id === "s7") outcome();
+    // The laurels land at ~0.6s into the proof reveal: one light tap.
+    if (id === "s9t") setTimeout(function () {
+      try { window.webkit.messageHandlers.konvoStore.postMessage({ cmd: "haptic", id: 0, productId: "light" }); } catch (e) {}
+    }, 600);
   }
 
   // The rating ask left onboarding on Aug 27 (App Review 5.6.3: no rating
@@ -1113,16 +1128,6 @@
     if (b) { show(b.dataset.next); return; }
     var opt = e.target.closest(".opt");
     if (!opt) return;
-    // Attribution first: which channel produced this install. The source
-    // value IS the point - a deliberate exception to the lean-payload
-    // rule, one enum, no free text.
-    if (opt.closest(".screen").id === "s2a") {
-      busy = Date.now() + 850;
-      opt.classList.add("sel");
-      track("attribution", { source: opt.dataset.src, screen_id: "s2a" });
-      setTimeout(function () { show("s10"); }, 250);
-      return;
-    }
     var peers = opt.parentNode.querySelectorAll(".opt");
     for (var i = 0; i < peers.length; i++) peers[i].classList.remove("sel");
     opt.classList.add("sel");

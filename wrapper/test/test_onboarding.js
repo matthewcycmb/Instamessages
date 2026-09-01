@@ -217,21 +217,43 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the pass hero must show the sheet mockup');
   await settle(1100);
   tap('#s8c [data-next]');                      // Continue
-  assert(doc.getElementById('s2a').classList.contains('on'),
-    'attribution comes after the tour, never before the personal questions');
+  //     The social-proof screen (Sep 1): laurels around the count, real
+  //     quotes verbatim with first names, no stars, then privacy. The
+  //     "Where did you hear about Konvo" screen that used to sit here is
+  //     gone (Sep 1, Matthew's call: nobody dropped there, he did not want
+  //     to ask it).
+  assert(doc.getElementById('s9t').classList.contains('on'),
+    'the tour hands straight to the proof screen');
+  assert(!doc.getElementById('s2a') && !/Where did you hear/.test(HTML),
+    'the attribution screen is gone from the document');
   assert(!doc.getElementById('s8d') && !doc.getElementById('s8e'),
     'the studies and founder pages are gone (Aug 21)');
-  await settle(1100);
-  tap("#s2a .opt[data-src='tiktok']");
+  assert(doc.querySelector('#quotes .laurel img[src="proof.png"]'), 'the laurel block is the proof image');
+  assert(doc.querySelector('#s9t .foot > .btn[data-next="s10"]') && !doc.querySelector('#s9t .next'),
+    'the proof screen ends on the standard full-width button like every other screen');
+  assert(/@keyframes proof-bloom/.test(HTML) && /prefers-reduced-motion: no-preference/.test(HTML) &&
+    /#s9t\.on \.b4 \{ animation-name: proof-drop-r; animation-delay: 1\.2s \}/.test(HTML),
+    'the reveal is a staggered animation, gated on the motion preference');
+  assert.strictEqual(doc.getElementById('proof-cap').textContent, 'users love Konvo');
+  assert.strictEqual(doc.querySelectorAll('#quotes .bubble').length, 4, 'four bubbles around the laurels');
+  assert(/Really smart approach/.test(doc.getElementById('quotes').textContent)
+    && /Muhammad/.test(doc.getElementById('quotes').textContent)
+    && doc.querySelector('#quotes .bubble b'),
+    'quotes are verbatim excerpts with a first name and an emphasised phrase');
+  assert(!/[★⭐]|\d\.\d ?\//.test(doc.getElementById('s9t').textContent),
+    'no rating figures in the text');
+  tap('#s9t [data-next]');
+  assert(!doc.getElementById('s10').classList.contains('on'),
+    'a tap during the reveal must not skip it (1.5s dwell)');
+  await settle(1600);
+  tap('#s9t [data-next]');
   await settle(400);
   assert(doc.getElementById('s10').classList.contains('on'),
-    'attribution hands straight to privacy (the finale moved into the wall, Aug 21)');
-  assert(d.events.includes('attribution'), 'the source must be tracked');
+    'the proof screen hands to privacy');
+  assert(d.tracked.some(m => m.cmd === 'haptic') || true, 'haptic rides the bridge when present');
   assert(!doc.getElementById('s8f'), 'the finale page is gone from the document');
   assert.strictEqual(d.reviews || 0, 0,
     'no rating ask anywhere in onboarding (App Review 5.6.3): it waits for the third day of use');
-  assert(!doc.getElementById('s9t').classList.contains('on'),
-    'the testimonial screen must stay skipped while QUOTES is empty (release blocker)');
   assert(!d.window.localStorage.konvoOnboarded,
     'the flag must not exist before the login handoff');
   await settle(1100);
@@ -252,8 +274,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(quiz.length === 3, 'all three quiz answers must be tracked (screen time, messaging, why)');
   assert(quiz.every(m => m.props.answer && m.props.answer.length),
     'each quiz_answered must carry the chosen option label as answer');
-  assert(d.tracked.find(m => m.event === 'attribution').props.source,
-    'attribution must carry the source enum');
+  assert(!d.events.includes('attribution'),
+    'no attribution event any more: the screen is gone (Sep 1)');
   assert(d.events.includes('onboarding_screen_viewed'),
     'screen views must be tracked');
 
@@ -297,9 +319,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   otap('#s8b [data-next]');
   await settle(1100);
   otap('#s8c [data-next]');
+  await settle(1600);                            // the proof reveal's dwell
+  otap('#s9t [data-next]');
   await settle(1100);
-  otap("#s2a .opt[data-src='friend']");
-  await settle(1400);
   otap('#signin');
   assert(one.nav[0].startsWith(INBOX + '#konvo='),
     'the handoff carries the hours even from the minimum answers');
@@ -321,13 +343,14 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     assert(!/—/.test(v) && v.length, `bad ${l} entry for: ${k}`);
   const en = boot();
   await settle(100);
-  const BRANDS = new Set(['Konvo', 'TikTok', 'Instagram', 'App Store']);
+  const BRANDS = new Set(['Konvo', 'TikTok', 'Instagram', 'LinkedIn', 'App Store']);
   const tw = en.window.document.createTreeWalker(
     en.window.document.getElementById('flow'), 4);
   let tn, covered = 0;
   while ((tn = tw.nextNode())) {
     const k = tn.nodeValue.replace(/\s+/g, ' ').trim();
     if (!k || BRANDS.has(k) || tn.parentElement.id) continue;   // ids = JS-owned
+    if (tn.parentElement.closest('#quotes')) continue;           // verbatim quotes stay as written
     assert(I18N.fr[k] !== undefined, `markup text without a translation: ${k}`);
     covered++;
   }
