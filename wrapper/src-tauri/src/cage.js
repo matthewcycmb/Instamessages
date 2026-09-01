@@ -46,28 +46,6 @@
     }
   } catch (e) {}
 
-  // View Transitions passthrough (Sep 1). Instagram's newer web build wraps
-  // its inbox->thread route change in document.startViewTransition(cb) and
-  // awaits the transition before firing the thread's message load. In
-  // WKWebView that transition's promises never settle, so the load never
-  // runs: the URL flips to /direct/t/<id>, a bare skeleton paints, ZERO
-  // network, forever (measured on a live 16e; a full document load of the
-  // same url renders fine). Replace it with a passthrough that runs the
-  // update callback now and hands back already-settled promises, so the
-  // route commit finishes and the fetch fires. The only thing lost is the
-  // cross-fade animation, which a caged webview never needed. Set at
-  // document-start, before Instagram captures the reference.
-  try {
-    document.startViewTransition = function (cb) {
-      var done = Promise.resolve();
-      try { if (typeof cb === "function") cb(); } catch (e) {}
-      return {
-        ready: done, finished: done, updateCallbackDone: done,
-        skipTransition: function () {},
-      };
-    };
-  } catch (e) {}
-
   // Analytics go native: Instagram's CSP blocks a page-side call to
   // PostHog. Defined here rather than inside the paywall block because the
   // route watcher needs it too. Event names and screen ids only, never
@@ -935,20 +913,35 @@
     if (threadHealTimer) clearTimeout(threadHealTimer);
     var id = m[1];
     if (threadHealed[id]) return;                 // one attempt per thread, no loop
-    // 2s floor: the View Transitions passthrough above should make the
-    // native transition fire its load (near-instant, no reload). This is
-    // the safety net for any thread that still shows only a skeleton -
-    // reload it once into the document-load path that always renders.
-    // Composer presence is the signal (verified on-device), not a fixture.
+    if (document.getElementById("im-pay")) return;   // never under the wall
+    // Once a thread has been seen to hang this session, the SPA transition
+    // is broken for this Instagram cohort and every chat will hang the same
+    // way. Skip the wait: reload straight into the document-load path (the
+    // only path that renders for this cohort, verified on-device). Healthy
+    // cohorts never set the flag and never pay this.
+    var known = false;
+    try { known = sessionStorage.konvoSPABroken === "1"; } catch (e) {}
+    if (known) {
+      threadHealed[id] = 1;
+      track("thread_reload", { fast: true });
+      location.reload();
+      return;
+    }
+    // First hang of the session: detect it. The broken transition fires
+    // ZERO network and never paints a composer, so 1.2s cleanly separates
+    // it from a healthy (or merely slow) load, which always has the
+    // composer by then. Composer is the on-device-verified signal, not a
+    // fixture selector (the dead stall probe's lesson).
     threadHealTimer = setTimeout(function () {
       threadHealTimer = null;
-      if (location.pathname !== p) return;        // moved away
+      if (location.pathname !== p) return;                        // moved away
       if (document.querySelector('div[role="textbox"]')) return;  // loaded fine
-      if (document.getElementById("im-pay")) return;              // never under the wall
+      if (document.getElementById("im-pay")) return;
       threadHealed[id] = 1;
-      track("thread_reload", {});
+      try { sessionStorage.konvoSPABroken = "1"; } catch (e) {}
+      track("thread_reload", { fast: false });
       location.reload();
-    }, 2000);
+    }, 1200);
   }
 
   function enforce() {

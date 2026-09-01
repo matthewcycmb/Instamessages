@@ -1855,19 +1855,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
       `animation "${name}" must have matching @keyframes`);
   }
 
-  //     View Transitions passthrough: Instagram wraps the thread route
-  //     change in document.startViewTransition, whose promises never settle
-  //     in WKWebView, so the message load never fires. The shim runs the
-  //     callback now and returns settled promises.
-  const svt = boot('/direct/inbox/', '');
-  await settle(300);
-  let svtRan = false;
-  const svtRes = svt.window.document.startViewTransition(() => { svtRan = true; });
-  assert(svtRan, 'the passthrough runs the update callback synchronously');
-  assert(svtRes && svtRes.finished && typeof svtRes.finished.then === 'function',
-    'and returns a transition-like object with a settled finished promise');
-  await svtRes.finished;  // must resolve, not hang
-
   //     Thread self-heal (Sep 1): Instagram's client-side inbox->thread
   //     transition wedges in WKWebView - the URL becomes /direct/t/<id>, a
   //     skeleton paints, and no message load ever fires (measured live on
@@ -1878,23 +1865,32 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     not a guessed selector (the dead stall probe's lesson). 5s timer;
   //     the tests wait it out.
   const stuck = boot('/direct/t/70001/', '');
-  await settle(2600);
+  await settle(1600);
   assert(stuck.went.includes('reload'),
     'a thread stuck on a bare skeleton (no composer) reloads once');
   assert(stuck.went.filter(w => w === 'reload').length === 1,
     'and only once - a still-broken thread must not loop');
 
   const loaded = boot('/direct/t/70002/', '<div role="textbox"></div>');
-  await settle(2600);
+  await settle(1600);
   assert(!loaded.went.includes('reload'),
     'a thread that has its composer never reloads');
 
   //     Never reload out from under the paywall wall: the reveal shows the
   //     inbox, not a thread, but a thread route with the wall up must wait.
   const underWall = boot('/direct/t/70003/', '<div id="im-pay"></div>');
-  await settle(2600);
+  await settle(1600);
   assert(!underWall.went.includes('reload'),
     'the self-heal never reloads while the wall is up');
+
+  //     Once a hang is seen, sessionStorage.konvoSPABroken is set and every
+  //     later chat reloads IMMEDIATELY into the document-load path - no 1.2s
+  //     wait on the second and subsequent opens.
+  const known = boot('/direct/t/70004/', '');
+  known.window.sessionStorage.setItem('konvoSPABroken', '1');  // per-session flag, not localStorage
+  await settle(1000);   // the 800ms enforce tick calls healThread -> immediate reload
+  assert(known.went.includes('reload'),
+    'a known-broken session reloads a fresh thread at once, without the detection wait');
 
   console.log('ALL CAGE TESTS PASS');
   process.exit(0);
