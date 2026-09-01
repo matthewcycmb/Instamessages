@@ -76,7 +76,9 @@ targets:
         # Background App Refresh (Sep 1): iOS wakes Konvo now and then to
         # check Instagram's unread badge with the saved session and post a
         # local "N unread conversations" notification. No server involved.
-        UIBackgroundModes: [fetch]
+        # remote-notification (Sep 1, option B): konvoinstall.com's silent
+        # push wakes the same check every 15 minutes.
+        UIBackgroundModes: [fetch, remote-notification]
         BGTaskSchedulerPermittedIdentifiers: [com.matthewchan.konvo.refresh]
         UILaunchStoryboardName: LaunchScreen
         UIRequiredDeviceCapabilities: [arm64, metal]
@@ -87,11 +89,14 @@ targets:
         # The build patches both from tauri.conf.json; these only matter if
         # xcodegen regenerates between builds, so keep them current-ish.
         CFBundleShortVersionString: 1.6.0
-        CFBundleVersion: "87"
+        CFBundleVersion: "88"
     entitlements:
       path: instamessages-wrapper_iOS/instamessages-wrapper_iOS.entitlements
       properties:
         com.apple.developer.family-controls: true
+        # Push (Sep 1): development here; Xcode's store export rewrites it
+        # to production from the distribution profile.
+        aps-environment: development
         # Shared with KonvoActivityMonitor: the relock extension reads the
         # cage selection from here with the app dead.
         com.apple.security.application-groups:
@@ -171,7 +176,7 @@ targets:
       properties:
         CFBundleDisplayName: Konvo Shield
         CFBundleShortVersionString: 1.6.0
-        CFBundleVersion: "87"
+        CFBundleVersion: "88"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
@@ -201,7 +206,7 @@ targets:
       properties:
         CFBundleDisplayName: Konvo Relock
         CFBundleShortVersionString: 1.6.0
-        CFBundleVersion: "87"
+        CFBundleVersion: "88"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).KonvoActivityMonitor
@@ -228,7 +233,7 @@ targets:
       properties:
         CFBundleDisplayName: Konvo Shield Action
         CFBundleShortVersionString: 1.6.0
-        CFBundleVersion: "87"
+        CFBundleVersion: "88"
         NSExtension:
           NSExtensionPointIdentifier: com.apple.ManagedSettings.shield-action-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldActionExtension

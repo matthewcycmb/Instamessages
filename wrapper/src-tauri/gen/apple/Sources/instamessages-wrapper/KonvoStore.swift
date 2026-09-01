@@ -1023,6 +1023,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             let center = UNUserNotificationCenter.current()
             let granted = (try? await center.requestAuthorization(
                 options: [.alert, .sound, .badge])) ?? false
+            if granted { await registerForPush() }
             if granted, let days = Int(productId), days > 2 {
                 let content = UNMutableNotificationContent()
                 content.title = "Konvo"
@@ -1116,6 +1117,20 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             }
             task.expirationHandler = { work.cancel() }
         }
+        // Option B (Sep 1): once the app has launched, the push selectors
+        // are added to Tauri's delegate and, if notifications were granted
+        // before, the device token is refreshed (tokens rotate).
+        NotificationCenter.default.addObserver(
+            forName: UIApplication.didFinishLaunchingNotification,
+            object: nil, queue: .main
+        ) { _ in
+            installPushHooks()
+            Task {
+                let status = await UNUserNotificationCenter.current()
+                    .notificationSettings().authorizationStatus
+                if status == .authorized || status == .provisional { await registerForPush() }
+            }
+        }
         NotificationCenter.default.addObserver(
             forName: UIApplication.didEnterBackgroundNotification,
             object: nil, queue: .main
@@ -1172,7 +1187,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         let last = defaults.object(forKey: badgeKey) as? Int
         defaults.set(n, forKey: badgeKey)
         var posted = false
-        if via == "refresh", let last, n > last {
+        if via == "refresh" || via == "push", let last, n > last {
             let center = UNUserNotificationCenter.current()
             let status = await center.notificationSettings().authorizationStatus
             if status == .authorized || status == .provisional {
@@ -1186,6 +1201,80 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             }
         }
         track("bg_check", ["via": via, "status": "ok", "badge": n, "posted": posted])
+    }
+
+    // ── Option B: the silent-push heartbeat (Sep 1) ──────────────────
+    // konvoinstall.com pings every device with an empty push every 15
+    // minutes; the phone then runs checkUnread with its own session. The
+    // server holds device tokens and nothing else. Tauri (tao) owns the
+    // app delegate and implements none of the remote-notification
+    // selectors, so they are added to its class at runtime after launch;
+    // class_addMethod refuses if a future tao adds them itself, and the
+    // push_hooks event says so.
+    private static let pushRegisterURL = "https://konvoinstall.com/api/push/register"
+    private static var pushHooksInstalled = false
+
+    static func installPushHooks() {
+        guard !pushHooksInstalled, let delegate = UIApplication.shared.delegate else { return }
+        pushHooksInstalled = true
+        let cls: AnyClass = type(of: delegate)
+        let onToken: @convention(block) (AnyObject, UIApplication, Data) -> Void = { _, _, data in
+            registerPushToken(data.map { String(format: "%02x", $0) }.joined())
+        }
+        let onFail: @convention(block) (AnyObject, UIApplication, NSError) -> Void = { _, _, err in
+            track("push_registered", ["status": "apns_refused", "code": err.code])
+        }
+        let onPush: @convention(block)
+            (AnyObject, UIApplication, NSDictionary, @escaping (UIBackgroundFetchResult) -> Void) -> Void = { _, _, _, done in
+            Task { await checkUnread(via: "push"); done(.newData) }
+        }
+        let added = [
+            class_addMethod(cls, NSSelectorFromString("application:didRegisterForRemoteNotificationsWithDeviceToken:"),
+                            imp_implementationWithBlock(onToken), "v@:@@"),
+            class_addMethod(cls, NSSelectorFromString("application:didFailToRegisterForRemoteNotificationsWithError:"),
+                            imp_implementationWithBlock(onFail), "v@:@@"),
+            class_addMethod(cls, NSSelectorFromString("application:didReceiveRemoteNotification:fetchCompletionHandler:"),
+                            imp_implementationWithBlock(onPush), "v@:@@@?"),
+        ]
+        track("push_hooks", ["status": added.allSatisfy { $0 } ? "installed" : "refused"])
+    }
+
+    @MainActor static func registerForPush() {
+        UIApplication.shared.registerForRemoteNotifications()
+    }
+
+    // Development-signed builds (the cable) talk to APNs' sandbox; store
+    // and TestFlight builds to production. The embedded profile says which.
+    private static var apnsEnvironment: String {
+        guard let path = Bundle.main.path(forResource: "embedded", ofType: "mobileprovision"),
+              let text = try? String(contentsOfFile: path, encoding: .isoLatin1),
+              let range = text.range(of: "aps-environment</key>")
+        else { return "production" }
+        return text[range.upperBound...].prefix(80).contains("development") ? "sandbox" : "production"
+    }
+
+    // Sent when the token changes and at most once a day otherwise: the
+    // server only needs to know the token is alive.
+    static func registerPushToken(_ hex: String) {
+        let d = UserDefaults.standard
+        let same = d.string(forKey: "konvoPushToken") == hex
+        let sentAt = d.object(forKey: "konvoPushSent") as? Date ?? .distantPast
+        if same && Date().timeIntervalSince(sentAt) < 86400 { return }
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
+        let payload: [String: Any] = ["token": hex, "build": build, "env": apnsEnvironment, "platform": "ios"]
+        guard let url = URL(string: pushRegisterURL),
+              let body = try? JSONSerialization.data(withJSONObject: payload) else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = body
+        URLSession.shared.dataTask(with: req) { _, resp, err in
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            if code == 200 {
+                d.set(hex, forKey: "konvoPushToken"); d.set(Date(), forKey: "konvoPushSent")
+            }
+            track("push_registered", ["status": err == nil ? "http_\(code)" : "network", "env": apnsEnvironment])
+        }.resume()
     }
 
     // ── The Screen Time cage ──────────────────────────────────────────

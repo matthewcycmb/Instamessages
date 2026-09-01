@@ -1,0 +1,16 @@
+# The 15-minute clock for Konvo's silent-push heartbeat (Sep 1). Vercel's
+# own cron is daily-only on Hobby, so the schedule lives here. The secret
+# must equal PUSH_TICK_SECRET (or CRON_SECRET) on the Vercel project.
+name: push-tick
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - run: |
+          curl -fsS -X POST https://konvoinstall.com/api/push/tick \
+            -H "Authorization: Bearer ${{ secrets.PUSH_TICK_SECRET }}"
