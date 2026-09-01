@@ -29,6 +29,7 @@
 		E20053E9D6850F9F9F1A1593 /* UserJot in Frameworks */ = {isa = PBXBuildFile; productRef = F490C84A41CFE85500C7BB60 /* UserJot */; };
 		E6CCD902F98D3B0923648D73 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1CBEDA7ABE5C91AD11BB61F1 /* libapp.a */; };
 		EAE5D812590C4B65838E552A /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = C98BFF9272B89EC4D56B72C1 /* RevenueCat */; };
+		5E2C9A7B1D4F6E8A0C3B7D19 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 7A1D5C0E3B9F4C2A8E6D1B05 /* RevenueCatUI */; };
 		EB1A2BAF9406122B3321E49A /* KonvoShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE3C0FC389654FDECF063C63 /* KonvoShared.swift */; };
 		EDF52AAF4B39F02B1B97138F /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 974A7F7F350DA4C43394A266 /* QuartzCore.framework */; };
 		F02D75A876ED4ADCC32147FE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8DD52691ABEE23DEC0327E87 /* Assets.xcassets */; };
@@ -126,6 +127,7 @@
 			files = (
 				E6CCD902F98D3B0923648D73 /* libapp.a in Frameworks */,
 				EAE5D812590C4B65838E552A /* RevenueCat in Frameworks */,
+				5E2C9A7B1D4F6E8A0C3B7D19 /* RevenueCatUI in Frameworks */,
 				B8F3642B8292A97F359997B7 /* SuperwallKit in Frameworks */,
 				E20053E9D6850F9F9F1A1593 /* UserJot in Frameworks */,
 				F23657B56E778145A4750D6C /* CoreGraphics.framework in Frameworks */,
@@ -355,6 +357,7 @@
 			name = "instamessages-wrapper_iOS";
 			packageProductDependencies = (
 				C98BFF9272B89EC4D56B72C1 /* RevenueCat */,
+				7A1D5C0E3B9F4C2A8E6D1B05 /* RevenueCatUI */,
 				3C6AA4416EF1ACCB09581A48 /* SuperwallKit */,
 				F490C84A41CFE85500C7BB60 /* UserJot */,
 			);
@@ -963,6 +966,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9EE3C4CDBE57CB30935A259F /* XCRemoteSwiftPackageReference "purchases-ios" */;
 			productName = RevenueCat;
+		};
+		7A1D5C0E3B9F4C2A8E6D1B05 /* RevenueCatUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9EE3C4CDBE57CB30935A259F /* XCRemoteSwiftPackageReference "purchases-ios" */;
+			productName = RevenueCatUI;
 		};
 		F490C84A41CFE85500C7BB60 /* UserJot */ = {
 			isa = XCSwiftPackageProductDependency;

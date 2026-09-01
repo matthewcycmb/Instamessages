@@ -22,6 +22,7 @@ import Foundation
 import ManagedSettings
 import Network
 import RevenueCat
+import RevenueCatUI
 import SafariServices
 import StoreKit
 import SuperwallKit
@@ -1013,6 +1014,21 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                 }
             }
             return ["ok": true, "entitled": await entitled()]
+        case "rcPaywall":
+            // RevenueCat's remotely designed paywall for the price step
+            // (Sep 1), raised from CAGE_SCRIPT when the cage-patch says
+            // {"rcPaywall": true}. No close button: the wall is as hard
+            // here as the injected screen. The JS reads `entitled`;
+            // anything short of a purchase or restore falls back to the
+            // injected price screen, the enforcement floor.
+            _ = configureOnce
+            guard let offering = try? await Purchases.shared.offerings().current,
+                  offering.paywall != nil || offering.paywallComponents != nil
+            else { return ["ok": false, "result": "no_paywall", "entitled": await entitled()] }
+            let outcome = await presentRCPaywall(offering)
+            var reply: [String: Any] = ["ok": true, "result": outcome.result, "entitled": await entitled()]
+            if let pid = outcome.productId { reply["productId"] = pid }
+            return reply
         case "notify":
             // Asks for notification permission; with a trial length in the
             // argument slot (sent from S14 once the plan is known) it also
@@ -1063,6 +1079,12 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         return m
     }()
     static func track(_ event: String, _ props: [String: Any]) {
+        // distinct_id is RevenueCat's anonymous id, and Purchases.shared is
+        // a fatalError until configure() has run. Build 88 tracked from
+        // didFinishLaunching (the push hooks) before anything had
+        // configured it and died on every open. Configure here, once, so
+        // no caller has to remember.
+        _ = configureOnce
         _ = netMonitor
         var properties = props
         properties["net"] = netType
@@ -1275,6 +1297,47 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             }
             track("push_registered", ["status": err == nil ? "http_\(code)" : "network", "env": apnsEnvironment])
         }.resume()
+    }
+
+    // ── RevenueCat Paywalls on the price step (Sep 1) ─────────────────
+    @MainActor
+    private static func presentRCPaywall(_ offering: RevenueCat.Offering) async -> (result: String, productId: String?) {
+        guard let front = frontViewController() else { return ("no_presenter", nil) }
+        let bridge = RCPaywallBridge()
+        let controller = RevenueCatUI.PaywallViewController(
+            offering: offering, displayCloseButton: false,
+            dismissRequestedHandler: { controller in
+                controller.dismiss(animated: true) { bridge.finish() }
+            })
+        controller.delegate = bridge
+        controller.modalPresentationStyle = .fullScreen
+        controller.isModalInPresentation = true
+        front.present(controller, animated: true)
+        return await withCheckedContinuation { cont in bridge.continuation = cont }
+    }
+
+    // Kept alive by the continuation; the controller's delegate is weak.
+    private final class RCPaywallBridge: NSObject, RevenueCatUI.PaywallViewControllerDelegate {
+        var continuation: CheckedContinuation<(result: String, productId: String?), Never>?
+        var result = "dismissed"
+        var productId: String?
+        func finish() {
+            continuation?.resume(returning: (result, productId))
+            continuation = nil
+        }
+        func paywallViewController(_ controller: RevenueCatUI.PaywallViewController,
+                                   didFinishPurchasingWith customerInfo: RevenueCat.CustomerInfo) {
+            result = "purchased"
+            productId = customerInfo.entitlements.active["Pro"]?.productIdentifier
+        }
+        func paywallViewController(_ controller: RevenueCatUI.PaywallViewController,
+                                   didFinishRestoringWith customerInfo: RevenueCat.CustomerInfo) {
+            if customerInfo.entitlements.active["Pro"] != nil { result = "restored" }
+        }
+        func paywallViewController(_ controller: RevenueCatUI.PaywallViewController,
+                                   didFailPurchasingWith error: NSError) {
+            KonvoStore.track("rc_paywall_error", ["code": error.code])
+        }
     }
 
     // ── The Screen Time cage ──────────────────────────────────────────

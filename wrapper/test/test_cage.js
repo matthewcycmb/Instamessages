@@ -803,6 +803,36 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/We'll remind you 2 days before it ends\./.test(monthlyBuy.window.document.getElementById('im-pay').textContent),
     'a monthly trial gets the same promise');
 
+  //     RevenueCat's paywall on the price step (Sep 1): with the patch on
+  //     and a bridge that reports a purchase, Continue never paints the
+  //     injected price screen; without a paywall in the offering, it does.
+  const rcBuy = boot('/direct/inbox/', '', { patch: { rcPaywall: true }, bridge: answer({
+    entitlements: { entitled: false }, products: LIVE_PRODUCTS,
+    rcPaywall: { ok: true, result: 'purchased', entitled: true, productId: 'konvo.pro.yearly' },
+    notify: { ok: true, granted: true },
+  }) });
+  const rcNone = boot('/direct/inbox/', '', { patch: { rcPaywall: true }, bridge: answer({
+    entitlements: { entitled: false }, products: LIVE_PRODUCTS,
+    rcPaywall: { ok: false, result: 'no_paywall', entitled: false },
+  }) });
+  await settle(8400);
+  const rcTap = (d, act) => d.window.document.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new d.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  rcTap(rcBuy, 'keep'); rcTap(rcNone, 'keep');
+  await settle(450);
+  rcTap(rcBuy, 'pay'); rcTap(rcNone, 'pay');
+  await settle(1400);
+  assert(posted.includes('rcPaywall:'),
+    'the price step asks the bridge for RevenueCat\'s paywall when the patch says so');
+  const rbText = rcBuy.window.document.getElementById('im-pay').textContent;
+  assert(/You're in\./.test(rbText) && !/How your free trial works/.test(rbText),
+    'a purchase on RevenueCat\'s paywall lands on the confirmation without painting the injected price screen');
+  assert(/Free until/.test(rbText) && posted.includes('notify:7'),
+    'the purchased product rides back so the recap and the reminder still happen');
+  assert(posted.includes('track:rc_paywall'), 'the RevenueCat result is tracked');
+  assert(/How your free trial works/.test(rcNone.window.document.getElementById('im-pay').textContent),
+    'no paywall in the offering: the injected price screen is the floor');
+
   //     The verdict beats the cache in both directions.
   const lapsed = boot('/direct/inbox/', '', { paid: true, bridge: answer({
     entitlements: { entitled: false },

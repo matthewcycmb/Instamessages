@@ -1123,6 +1123,11 @@
       // exist in the Superwall dashboard; flipping it back off is the
       // kill switch if a remote paywall misbehaves.
       if (p.superwall) window.__konvoSW = true;
+      // {"rcPaywall": true} (Sep 1) puts RevenueCat's remotely designed
+      // paywall on the price step; the injected price screen stays the
+      // floor. Off until the paywall exists in RevenueCat's dashboard;
+      // flipping it off is the kill switch.
+      if (p.rcPaywall) window.__konvoRC = true;
       // {"betaFree": false} withdraws the free-during-beta button
       // from tester builds without shipping anything.
       if (p.betaFree === false) window.__konvoNoFree = true;
@@ -2464,7 +2469,7 @@
         if (then) then();
       }, 300);
     }
-    var swPending = false, swTried = false, entitlementKnown = false;
+    var swPending = false, swTried = false, rcTried = false, entitlementKnown = false;
     var skipTracked = false;
     function ensure() {
       if (wall || !atInbox()) return;
@@ -2586,6 +2591,28 @@
             });
           });
         } else if (act === "pay") {
+          // {"rcPaywall": true} (Sep 1): the price step is RevenueCat's
+          // remotely designed paywall, presented natively over the wall,
+          // so copy and layout change without a build and RevenueCat can
+          // run experiments on it. The injected price screen stays the
+          // floor: it paints when the offering has no paywall, when the
+          // bridge fails, or when the sheet ends without an entitlement.
+          // One attempt per session.
+          if (window.__konvoRC && !rcTried) {
+            rcTried = true;
+            track("paywall_viewed", { variant: "rc", screen_id: "s13_rc" });
+            storekit("rcPaywall", null, function (res) {
+              track("rc_paywall", { result: res && res.result ? res.result : "bridge_failed" });
+              if (res && res.entitled) {
+                if (res.productId) lastBuy = res.productId;
+                setCache(true); finish("s13_paywall"); return;
+              }
+              track("paywall_viewed", { variant: "default", screen_id: "s13_paywall" });
+              if (!pricesReady()) fetchProducts();
+              swap(pay("y"));
+            });
+            return;
+          }
           track("paywall_viewed", { variant: "default", screen_id: "s13_paywall" });
           if (!pricesReady()) fetchProducts();
           swap(pay("y"));

@@ -39,6 +39,8 @@ const TABLE = {
                                                         'cancelled', 'pending'] },
   restore:       { arg: 'unused', replies: ['ok', 'entitled'] },
   paywall:       { arg: 'placement name', replies: ['ok', 'entitled'] },
+  rcPaywall:     { arg: 'unused (RevenueCat paywall on the current offering, Sep 1)',
+                   replies: ['ok', 'result', 'entitled', 'productId'] },
   notify:        { arg: 'trial length in days (schedules the reminder); empty = permission only',
                    replies: ['ok', 'granted'] },
 };
@@ -69,6 +71,12 @@ const handled = new Set([...SWIFT.matchAll(
   .map(m => m[1] || m[2]));
 assert.deepStrictEqual([...handled].sort(), [...tabled].sort(),
   'the commands the native store handles must equal the table exactly');
+
+// 2b. track() must configure RevenueCat before it reads Purchases.shared
+//     (its distinct_id): build 88 tracked from didFinishLaunching and
+//     RevenueCat's fatalError killed the app on every open (Sep 1).
+assert(/static func track\(_ event: String, _ props: \[String: Any\]\) \{[^}]*?_ = configureOnce[^}]*?Purchases\.shared\.appUserID/s.test(SWIFT),
+  'track() must run configureOnce before touching Purchases.shared');
 
 // 3. Every reply key the table promises exists somewhere in the store's
 //    source as a quoted key, so a Swift-side rename cannot hide.
