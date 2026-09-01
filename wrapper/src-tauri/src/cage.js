@@ -13,6 +13,30 @@
   // already refuses subframes.
   try { if (window.self !== window.top) return; } catch (e) { return; }
 
+  // WKWebView has no navigator.serviceWorker at all (undefined, not a
+  // refusal), and a site build that touches it unguarded dies during boot
+  // while its data APIs keep answering (the Sep 1 stuck-shell device:
+  // fresh documents, inbox API 200 with threads, 930 DOM nodes forever).
+  // A quiet stub keeps such code walking: registrations never exist,
+  // register never settles, nothing ever fires.
+  try {
+    if (typeof navigator.serviceWorker === "undefined") {
+      var swPending = new Promise(function () {});
+      Object.defineProperty(navigator, "serviceWorker", {
+        configurable: true,
+        value: {
+          controller: null,
+          ready: swPending,
+          register: function () { return swPending; },
+          getRegistration: function () { return Promise.resolve(undefined); },
+          getRegistrations: function () { return Promise.resolve([]); },
+          addEventListener: function () {},
+          removeEventListener: function () {},
+        },
+      });
+    }
+  } catch (e) {}
+
   // Analytics go native: Instagram's CSP blocks a page-side call to
   // PostHog. Defined here rather than inside the paywall block because the
   // route watcher needs it too. Event names and screen ids only, never
@@ -774,13 +798,23 @@
 
   // Cage exceptions were invisible until the stuck-chat hunt; three per
   // session, message only, nothing from the page's content.
-  window.addEventListener("error", function (e) {
+  function noteErr(kind, msg) {
     try {
       var n = +(sessionStorage.konvoErrs || 0);
       if (n >= 3) return;
       sessionStorage.konvoErrs = n + 1;
-      track("cage_error", { msg: String((e && e.message) || "").slice(0, 120) });
+      track("cage_error", { kind: kind, msg: String(msg || "").slice(0, 120) });
     } catch (x) {}
+  }
+  window.addEventListener("error", function (e) {
+    noteErr("error", e && e.message);
+  });
+  // A boot that dies inside a promise never reaches the error event: zero
+  // cage_error from 150+ people in 30 days while a device sat on a shell
+  // (Sep 1). Rejections carried the missing evidence.
+  window.addEventListener("unhandledrejection", function (e) {
+    var r = e && e.reason;
+    noteErr("rejection", (r && (r.message || r.name)) || String(r));
   });
 
   // The rating ask (moved here Aug 27, App Review 5.6.3): asked once, on

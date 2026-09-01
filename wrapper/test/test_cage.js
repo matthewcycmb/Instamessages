@@ -1046,6 +1046,24 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const blob = JSON.stringify(detail);
   assert(!/alex\.chen|hunter2|double-check/.test(blob),
     'nothing typed and no error text may ever reach the bridge');
+  //     WKWebView has no navigator.serviceWorker; the stub keeps a site
+  //     build that touches it unguarded alive (Sep 1 stuck-shell device),
+  //     and a promise that dies unhandled is finally evidence.
+  const swLog = [];
+  const swBoot = boot('/direct/inbox/', '', { bridge: (m) => {
+    if (m.cmd === 'track') swLog.push([m.event, m.props]);
+  } });
+  await settle(600);
+  assert.strictEqual(typeof swBoot.window.navigator.serviceWorker, 'object',
+    'the stub stands in where WKWebView has nothing');
+  const swReg = await swBoot.window.navigator.serviceWorker.getRegistrations();
+  assert(Array.isArray(swReg) && swReg.length === 0, 'no registrations ever exist');
+  swBoot.window.dispatchEvent(Object.assign(new swBoot.window.Event('unhandledrejection'),
+    { reason: { message: 'boot died in a promise' } }));
+  await settle(400);
+  assert(swLog.some(([e, p]) => e === 'cage_error' && p.kind === 'rejection' && /boot died in a promise/.test(p.msg)),
+    'an unhandled rejection reports as cage_error {kind: rejection}');
+
   //     A dialog that greets the page (cookie consent) with nothing
   //     submitted is not an error: it fired login_error {other, submits: 0}
   //     within 4s on the very first build 90 device (Sep 1).
