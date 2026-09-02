@@ -32,17 +32,18 @@ export default async function InvitePage(ctx: Ctx) {
         padding: "48px 28px 40px", fontFamily: '-apple-system, "SF Pro Text", system-ui, sans-serif',
       }}
     >
-      <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: "-0.01em", marginBottom: 40 }}>Konvo</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 40 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icon-192.png" alt="" width={28} height={28} style={{ borderRadius: 7, display: "block" }} />
+        <span style={{ fontWeight: 700, fontSize: 17, letterSpacing: "-0.01em" }}>Konvo</span>
+      </div>
       <h1 style={{ fontSize: 34, lineHeight: 1.12, letterSpacing: "-0.02em", fontWeight: 700, margin: "0 0 12px", textWrap: "balance" }}>
         {handle ? `${handle} sent you 3 free days of Konvo` : "3 free days of Konvo"}
       </h1>
       <p style={{ fontSize: 17, lineHeight: 1.4, color: "#8e8e93", margin: "0 0 32px" }}>
-        Instagram DMs, no feed, no Reels. Install Konvo, sign in, paste this link, and your 3 free days start. No card needed.
+        Konvo only shows your Instagram messages and blocks the Feed, Explore and Reels pages. Install Konvo, sign in and paste this link to get 3 days for free.
       </p>
       <GetKonvo handle={handle} link={link} />
-      <p style={{ fontSize: 13, lineHeight: 1.4, color: "#8e8e93", textAlign: "center", margin: "14px 0 0" }}>
-        Tap Get Konvo, install, then open the app and paste the link when it asks. No card needed.
-      </p>
     </main>
   );
 }
