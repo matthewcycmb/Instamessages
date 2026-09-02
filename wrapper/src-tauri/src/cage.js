@@ -154,16 +154,18 @@
       "Reset it here, then come back and sign in.": "Réinitialise-le ici, puis reviens te connecter.",
       "Reset done?": "Mot de passe réinitialisé ?",
       "Sign in": "Me connecter",
-      "Send Konvo to 3 friends, and get a free week": "Envoie Konvo à 3 amis et gagne une semaine gratuite",
-      "Every friend who joins also get a free week too!": "Chaque ami qui s'inscrit a aussi une semaine gratuite !",
+      "Send Konvo to 3 friends, and get 3 days free": "Envoie Konvo à 3 amis et gagne 3 jours gratuits",
+      "When one of them joins, you both get 3 days free!": "Quand l'un d'eux s'inscrit, vous gagnez 3 jours gratuits tous les deux !",
+      "Link sent.": "Lien envoyé.",
+      "Your 3 free days start when a friend joins.": "Tes 3 jours gratuits commencent quand un ami s'inscrit.",
+      "Send to another friend": "Envoyer à un autre ami",
+      "Your 3 free days are on.": "Tes 3 jours gratuits ont commencé.",
+      "Ends {date}. Nothing to cancel, nothing charges.": "Se termine le {date}. Rien à annuler, rien à payer.",
+      "A friend joined. Your 3 free days are on.": "Un ami s'est inscrit. Tes 3 jours gratuits ont commencé.",
+      "Copy link": "Copier le lien",
+      "Copied": "Copié",
       "Send to 3 friends": "Envoyer à 3 amis",
       "Restore purchase": "Restaurer l'achat",
-      "Your free week is on.": "Ta semaine gratuite a commencé.",
-      "Ends {date}. Nothing to cancel, nothing charges.": "Se termine le {date}. Rien à annuler, rien à payer.",
-      "Friends who joined": "Amis inscrits",
-      "{n} of 3": "{n} sur 3",
-      "Each one adds": "Chacun ajoute",
-      "+7 days": "+7 jours",
       "Loading your username": "Chargement de ton nom d'utilisateur",
       "Could not open the share sheet. Try again.": "Impossible d'ouvrir le partage. Réessaie."
     },
@@ -278,16 +280,18 @@
       "Reset it here, then come back and sign in.": "在這裡重設，然後回來登入。",
       "Reset done?": "重設好了？",
       "Sign in": "登入",
-      "Send Konvo to 3 friends, and get a free week": "把 Konvo 傳給 3 個朋友，得到免費一週",
-      "Every friend who joins also get a free week too!": "每個加入的朋友也會得到免費一週！",
+      "Send Konvo to 3 friends, and get 3 days free": "把 Konvo 傳給 3 個朋友，免費 3 天",
+      "When one of them joins, you both get 3 days free!": "只要有一個朋友加入，你們兩個都免費 3 天！",
+      "Link sent.": "連結已送出。",
+      "Your 3 free days start when a friend joins.": "有朋友加入時，你的免費 3 天就開始。",
+      "Send to another friend": "再傳給另一個朋友",
+      "Your 3 free days are on.": "你的免費 3 天開始了。",
+      "Ends {date}. Nothing to cancel, nothing charges.": "{date} 結束。不用取消，不會扣款。",
+      "A friend joined. Your 3 free days are on.": "有朋友加入了。你的免費 3 天開始了。",
+      "Copy link": "複製連結",
+      "Copied": "已複製",
       "Send to 3 friends": "傳給 3 個朋友",
       "Restore purchase": "恢復購買",
-      "Your free week is on.": "你的免費一週開始了。",
-      "Ends {date}. Nothing to cancel, nothing charges.": "{date} 結束。不用取消，不會扣款。",
-      "Friends who joined": "已加入的朋友",
-      "{n} of 3": "{n} / 3",
-      "Each one adds": "每一位加",
-      "+7 days": "+7 天",
       "Loading your username": "正在讀取你的帳號名稱",
       "Could not open the share sheet. Try again.": "無法打開分享選單，再試一次。"
     },
@@ -402,16 +406,18 @@
       "Reset it here, then come back and sign in.": "여기서 재설정한 뒤 돌아와서 로그인해요.",
       "Reset done?": "재설정 끝났어요?",
       "Sign in": "로그인",
-      "Send Konvo to 3 friends, and get a free week": "친구 3명에게 Konvo를 보내고 일주일 무료로 받아요",
-      "Every friend who joins also get a free week too!": "가입하는 친구도 일주일 무료예요!",
+      "Send Konvo to 3 friends, and get 3 days free": "친구 3명에게 Konvo를 보내고 3일 무료로 받아요",
+      "When one of them joins, you both get 3 days free!": "한 명이 가입하면 둘 다 3일 무료예요!",
+      "Link sent.": "링크를 보냈어요.",
+      "Your 3 free days start when a friend joins.": "친구가 가입하면 무료 3일이 시작돼요.",
+      "Send to another friend": "다른 친구에게 보내기",
+      "Your 3 free days are on.": "무료 3일이 시작됐어요.",
+      "Ends {date}. Nothing to cancel, nothing charges.": "{date}에 끝나요. 취소할 것도, 결제될 것도 없어요.",
+      "A friend joined. Your 3 free days are on.": "친구가 가입했어요. 무료 3일이 시작됐어요.",
+      "Copy link": "링크 복사",
+      "Copied": "복사됨",
       "Send to 3 friends": "친구 3명에게 보내기",
       "Restore purchase": "구매 복원",
-      "Your free week is on.": "무료 일주일이 시작됐어요.",
-      "Ends {date}. Nothing to cancel, nothing charges.": "{date}에 끝나요. 취소할 것도, 결제될 것도 없어요.",
-      "Friends who joined": "가입한 친구",
-      "{n} of 3": "3명 중 {n}명",
-      "Each one adds": "한 명마다",
-      "+7 days": "+7일",
       "Loading your username": "사용자 이름을 불러오는 중",
       "Could not open the share sheet. Try again.": "공유 시트를 열 수 없어요. 다시 시도해요."
     }
@@ -568,7 +574,6 @@
   var titleSized = false, titleEl = null, titleMo = null;
   function sizeInboxTitle() {
     if (titleSized || !atInbox()) return;
-    titleSized = true;
     var els = document.querySelectorAll("span,h1,div");
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
@@ -577,6 +582,10 @@
       if (!/^[A-Za-z0-9._]{2,30}$/.test(t)) continue;
       var r = el.getBoundingClientRect();
       if (r.width === 0 || r.top < 0 || r.top > 120) continue;
+      // Latched only on a match (Sep 2): an early sweep on an inbox that
+      // had not painted its header yet used to give up for good, and the
+      // handle (the invite code) never arrived.
+      titleSized = true;
       el.dataset.imTitle = "1";
       el.style.fontSize = "23px";
       el.style.fontWeight = "700";
@@ -1386,6 +1395,10 @@
       // {"betaFree": false} withdraws the free-during-beta button
       // from tester builds without shipping anything.
       if (p.betaFree === false) window.__konvoNoFree = true;
+      // {"invite": false} (Sep 2) takes the close off the paywall, so the
+      // invite loop can be switched off from the site in a minute if it
+      // eats trial starts; the paywall is a hard gate again.
+      if (p.invite === false) window.__konvoNoInvite = true;
       if (p.sendSel) SEND_SEL = p.sendSel;
       enforce();
     } catch (e) {}
@@ -1959,6 +1972,10 @@
       // The invite loop (Sep 1): the paywall's close is a plain white X on
       // the blue header, no disc; a waiting Send is dimmed.
       "#im-pay .imp-close.inv-x{background:none;color:#fff}" +
+      "#im-pay .inv-link{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:22px;padding:12px 14px;" +
+      "border-radius:14px;background:var(--chip);font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums}" +
+      "#im-pay .inv-link .inv-url{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+      "#im-pay .inv-link .inv-copy{flex:none;color:var(--accent);font-weight:600}" +
       '#im-pay .imp-btn[disabled]{opacity:.5}' +
       // The reveal (Aug 22): the wall goes clear over the real inbox, a
       // pill up top, a sheet at the foot. The button inverts the scheme
@@ -2295,7 +2312,8 @@
                { price: y.price }), false);
       }
       var mot = motiveLine();
-      return "<div class='imp-close inv-x' data-act='x' aria-label='Close'>" + XSVG + "</div>" +
+      return (window.__konvoNoInvite ? "" :
+        "<div class='imp-close inv-x' data-act='x' aria-label='Close'>" + XSVG + "</div>") +
         "<div class='imp-head'>" +
         "<div style='position:absolute;inset:0;background:radial-gradient(circle at 50% 30%," +
         "rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 60%)'></div>" +
@@ -2624,11 +2642,9 @@
     var XSVG = "<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
       " stroke-width='2.4' stroke-linecap='round'><path d='M18 6 6 18M6 6l12 12'/></svg>";
     var DRAFTS = [
-      "not an ad lol but i've been using this app called konvo, it's just instagram dms with no feed or reels. been on my phone way less. you get a free week off my link if u want: {link}",
-      "i kinda deleted instagram. using konvo now, it only shows your dms so i can still text everyone without the feed. free week if you use this: {link}",
-      "remember we said we'd get off instagram. this app gives you the dms and nothing else. free for a week with my link: {link}"
+      "not an ad lol but i've been using this app called konvo, it's just instagram dms with no feed or reels. been on my phone way less. you get 3 days free off my link if u want: {link}"
     ];
-    var claimAsked = false, inviteExpires = 0, inviteClaims = 0, handleTries = 0;
+    var claimAsked = false, inviteExpires = 0, handleTries = 0;
     function handle() { try { return localStorage.konvoHandle || ""; } catch (e) { return ""; } }
     function inviteLink() { return "https://konvoinstall.com/i/" + handle(); }
     // The message the share sheet carries (Matthew's first draft); the
@@ -2638,31 +2654,81 @@
     function invitePage() {
       var h = handle();
       return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
-        "<h2 style='font-size:28px;text-align:center'>" + T("Send Konvo to 3 friends, and get a free week") + "</h2>" +
+        "<h2 style='font-size:28px;text-align:center'>" + T("Send Konvo to 3 friends, and get 3 days free") + "</h2>" +
         "<p style='font-size:17px;line-height:1.5;color:var(--ink);margin-top:14px;text-align:center'>" +
-        T("Every friend who joins also get a free week too!") + "</p></div>" +
+        T("When one of them joins, you both get 3 days free!") + "</p>" +
+        // The link itself, to copy and paste anywhere (Matthew, Sep 2).
+        "<div class='inv-link'" + (h ? " data-act='inv-copy'" : "") + "><span class='inv-url'>konvoinstall.com/i/" +
+        (h || "\u2026") + "</span><span class='inv-copy'>" + T("Copy link") + "</span></div></div>" +
         "<div class='imp-foot' style='padding:10px 28px 24px'>" +
         "<button class='imp-btn' data-act='inv-send'" + (h ? "" : " disabled") + ">" +
         (h ? T("Send to 3 friends") : T("Loading your username")) + "</button>" +
         "<div class='imp-links'><span data-act='inv-later'>" + T("Not now") + "</span>" +
         "<span data-act='restore'>" + T("Restore purchase") + "</span></div></div>";
     }
-    function inviteDone() {
-      var days = inviteExpires ? Math.max(1, Math.round((inviteExpires - Date.now()) / 86400000)) : 7;
+    // After the share sheet completes: nothing is granted for sending (Sep
+    // 2). The sender's 3 days land when the first friend joins, so the page
+    // says so, and asks the server once whether that already happened.
+    function inviteSent() {
       return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
-        drawnCheck(T("Your free week is on."),
-          T("Ends {date}. Nothing to cancel, nothing charges.",
-            { date: "<b style='color:var(--ink);font-weight:600'>" + dateIn(days) + "</b>" })) +
-        "<p class='inv-meter' style='font-size:15px;line-height:1.6;color:var(--mut);margin-top:18px;text-align:center'>" +
-        T("Friends who joined") + ": " + T("{n} of 3", { n: inviteClaims }) + "<br>" +
-        T("Each one adds") + " " + T("+7 days") + "</p></div>" +
+        "<h2 style='font-size:30px;text-align:center'>" + T("Link sent.") + "</h2>" +
+        "<p class='inv-wait' style='font-size:17px;line-height:1.5;color:var(--mut);margin-top:14px;text-align:center'>" +
+        T("Your 3 free days start when a friend joins.") + "</p></div>" +
+        "<div class='imp-foot' style='padding:10px 28px 24px'>" +
+        "<button class='imp-btn' data-act='inv-send'>" + T("Send to another friend") + "</button>" +
+        "<div class='imp-links'><span data-act='inv-later'>" + T("Not now") + "</span></div></div>";
+    }
+    // The 3 free days are on (a friend who pasted, or a sender whose first
+    // friend joined while the page was up).
+    function daysOn(head) {
+      var days = inviteExpires ? Math.max(1, Math.round((inviteExpires - Date.now()) / 86400000)) : 3;
+      return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
+        drawnCheck(head, T("Ends {date}. Nothing to cancel, nothing charges.",
+          { date: "<b style='color:var(--ink);font-weight:600'>" + dateIn(days) + "</b>" })) + "</div>" +
         "<div class='imp-foot' style='padding:0 28px 40px'>" +
         "<button class='imp-btn' data-act='inv-open'>" + T("Open my messages") + "</button></div>";
     }
     // Send waits for the handle (captured at the inbox settle under the
     // wall) rather than sending a broken link.
+    // The inbox title under the wall is not a reliable source (Sep 2,
+    // device: "Loading your username" forever). Instagram's own account
+    // endpoints answer with the signed-in username, with the headers their
+    // web client sends; two are tried in turn and each attempt reports its
+    // status, so a refusal is visible in PostHog instead of a stuck button.
+    // The username and nothing else is kept.
+    var handleAsked = false;
+    function igGet(path) {
+      var csrf = (document.cookie.match(/(?:^|; )csrftoken=([^;]+)/) || [])[1] || "";
+      return fetch(path, { credentials: "include", headers: {
+        "X-IG-App-ID": "936619743392459", "X-ASBD-ID": "129477", "X-IG-WWW-Claim": "0",
+        "X-CSRFToken": csrf, "X-Requested-With": "XMLHttpRequest", "Accept": "*/*" } })
+        .then(function (r) {
+          return r.json().then(function (j) { return { status: r.status, json: j }; },
+            function () { return { status: r.status, json: null }; });
+        });
+    }
+    function learnHandle() {
+      if (handleAsked || !window.fetch) return;
+      handleAsked = true;
+      var uid = (document.cookie.match(/(?:^|; )ds_user_id=(\d+)/) || [])[1];
+      var tries = [["current_user", "/api/v1/accounts/current_user/?edit=true"]];
+      if (uid) tries.push(["user_info", "/api/v1/users/" + uid + "/info/"]);
+      (function next(i) {
+        if (i >= tries.length) return;
+        igGet(tries[i][1]).then(function (r) {
+          var u = r.json && r.json.user && r.json.user.username;
+          var ok = !!(u && /^[A-Za-z0-9._]{1,30}$/.test(u));
+          track("invite_handle", { source: tries[i][0], status: r.status, found: ok });
+          if (ok) { try { localStorage.konvoHandle = u; } catch (e) {} } else next(i + 1);
+        }, function () {
+          track("invite_handle", { source: tries[i][0], status: 0, found: false });
+          next(i + 1);
+        });
+      })(0);
+    }
     function waitHandle() {
       if (handle() || handleTries++ > 40 || !wall) return;
+      learnHandle();
       setTimeout(function () {
         if (!wall || !wall.querySelector("[data-act='inv-send']")) return;
         if (handle()) setPage(invitePage(), true); else waitHandle();
@@ -2673,8 +2739,9 @@
     function claimCb(res) {
       if (!res || !res.entitled) return;
       track("invite_claimed", { method: res.method || "clipboard", screen_id: "s13_paywall" });
+      inviteExpires = +res.expires || 0;
       setCache(true);
-      finish("s13_paywall");
+      swap(daysOn(T("Your 3 free days are on.")));
     }
     // Once per session, at the first price paint: if the clipboard holds
     // a web link, the native claim sheet comes up instead of the cards.
@@ -3025,10 +3092,21 @@
         } else if (act === "buy-l") {
           buy(t, "konvo.pro.lifetime");
         } else if (act === "x") {
+          if (window.__konvoNoInvite) return;
           track("paywall_closed", { screen_id: "s13_paywall" });
           track("invite_page_viewed", { via: lapsedWall ? "lapsed" : "paywall_x", screen_id: "s15_invite" });
           swap(invitePage());
+          handleTries = 0;
           waitHandle();
+        } else if (act === "inv-copy") {
+          track("invite_link_copied", { screen_id: "s15_invite" });
+          var copied = function () {
+            var l = wall.querySelector(".inv-copy");
+            if (l) { l.textContent = T("Copied"); setTimeout(function () { if (l.isConnected) l.textContent = T("Copy link"); }, 1500); }
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(inviteLink()).then(copied, copied);
+          } else { copied(); }
         } else if (act === "inv-later") {
           swap(pay("y"));
         } else if (act === "inv-send") {
@@ -3042,16 +3120,14 @@
               if (!res || !res.ok) { t.textContent = T("Could not open the share sheet. Try again."); return; }
               if (!res.sent) return;
               track("invite_sent", { draft: sentDraft, screen_id: "s15_invite" });
-              inviteExpires = +res.expires || 0;
-              setCache(true);
-              // The success state paints first, then the meter reads the
-              // server (joins so far, the real end date) and repaints.
-              swap(inviteDone(), function () {
+              swap(inviteSent(), function () {
+                // Already credited (a friend joined before this send)? Then
+                // the days are on and the wall can go.
                 storekit("inviteStatus", null, function (st) {
-                  if (!st || !st.ok || !wall || !wall.querySelector(".inv-meter")) return;
-                  inviteClaims = +st.claims || 0;
-                  if (st.expires) inviteExpires = +st.expires;
-                  setPage(inviteDone(), true);
+                  if (!st || !st.ok || !st.credited || !wall || !wall.querySelector(".inv-wait")) return;
+                  inviteExpires = +st.expires || 0;
+                  setCache(true);
+                  setPage(daysOn(T("A friend joined. Your 3 free days are on.")), true);
                 });
               });
             });

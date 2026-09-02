@@ -1,16 +1,17 @@
-// The share sheet completed: week 1 for the sender, once per RevenueCat id,
-// no purchase, nothing to cancel (Sep 1).
+// The share sheet completed (Sep 2 rule): nothing is granted for sending.
+// The code is registered, the send noted once per RevenueCat id, and the
+// current expiry (if any) is read back so the page can tell the sender
+// where they stand.
 import { storeConfigured } from "@/lib/push-store";
-import { captureServer, expiryOf, grantWeek, rcConfigured, registerCode, sentOnce, validHandle, validRc } from "@/lib/invite";
+import { expiryOf, rcConfigured, registerCode, sentOnce, validHandle, validRc } from "@/lib/invite";
 
 export async function POST(req: Request) {
-  if (!storeConfigured() || !rcConfigured()) return Response.json({ ok: false, reason: "config" }, { status: 503 });
+  if (!storeConfigured()) return Response.json({ ok: false, reason: "store" }, { status: 503 });
   let b: { handle?: unknown; rc?: unknown; draft?: unknown };
   try { b = await req.json(); } catch { return Response.json({ ok: false }, { status: 400 }); }
   if (!validHandle(b.handle) || !validRc(b.rc)) return Response.json({ ok: false }, { status: 400 });
   await registerCode(b.handle, b.rc);
-  if (!(await sentOnce(b.rc))) return Response.json({ ok: true, expires: await expiryOf(b.rc) });
-  const expires = await grantWeek(b.rc);
-  await captureServer("referral_week_granted", b.rc, { role: "sender", week_n: 1 });
+  await sentOnce(b.rc);
+  const expires = rcConfigured() ? await expiryOf(b.rc) : null;
   return Response.json({ ok: true, expires });
 }

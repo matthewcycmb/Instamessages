@@ -1,8 +1,9 @@
-// A friend claims a code (Sep 1): the rules in lib/invite-rules decide, then
-// two RevenueCat grants: a week for the friend, a week onto the sender's end.
+// A friend claims a code (Sep 2 rule): the rules in lib/invite-rules decide,
+// then the friend gets 3 days, and the sender gets 3 days if this is the
+// first friend to join. Nothing stacks.
 import { storeConfigured } from "@/lib/push-store";
 import {
-  captureServer, claimedBy, claimsOf, cleanHandle, expiryOf, getCode, grantWeek,
+  FREE_DAYS, captureServer, claimedBy, claimsOf, cleanHandle, getCode, grantDays,
   rcConfigured, recordClaim, validHandle, validRc,
 } from "@/lib/invite";
 import { decideClaim } from "@/lib/invite-rules";
@@ -23,14 +24,15 @@ export async function POST(req: Request) {
   if (!verdict.ok) return Response.json(verdict, { status: 409 });
   const friendHandle = validHandle(b.friend_handle) ? cleanHandle(b.friend_handle) : "";
   await recordClaim(code, b.rc, friendHandle);
-  const expires = await grantWeek(b.rc);
-  const senderExpiry = await expiryOf(senderRc!);
-  await grantWeek(senderRc!, senderExpiry ?? undefined);
+  const expires = await grantDays(b.rc);
+  if (verdict.creditSender) await grantDays(senderRc!);
   const method = b.method === "handle" ? "handle" : "clipboard";
   await Promise.all([
-    captureServer("invite_claimed", b.rc, { method, code }),
-    captureServer("referral_week_granted", b.rc, { role: "friend", week_n: 1 }),
-    captureServer("referral_week_granted", senderRc!, { role: "sender", week_n: verdict.weekN + 1 }),
+    captureServer("invite_claimed", b.rc, { method, code, join_n: verdict.joinN }),
+    captureServer("referral_days_granted", b.rc, { role: "friend", days: FREE_DAYS }),
+    verdict.creditSender
+      ? captureServer("referral_days_granted", senderRc!, { role: "sender", days: FREE_DAYS })
+      : Promise.resolve(undefined),
   ]);
-  return Response.json({ ok: true, expires });
+  return Response.json({ ok: true, expires, credited: verdict.creditSender });
 }

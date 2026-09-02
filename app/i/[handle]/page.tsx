@@ -13,11 +13,11 @@ const clean = (h: string) => decodeURIComponent(h).replace(/^@/, "").replace(/[^
 
 export async function generateMetadata(ctx: Ctx): Promise<Metadata> {
   const handle = clean((await ctx.params).handle);
-  const title = handle ? `${handle} sent you a free week of Konvo` : "A free week of Konvo";
+  const title = handle ? `${handle} sent you 3 free days of Konvo` : "3 free days of Konvo";
   return {
     title,
-    description: "instagram dms with no feed or reels. free for a week with this link.",
-    openGraph: { title, description: "instagram dms with no feed or reels. free for a week with this link." },
+    description: "instagram dms with no feed or reels. 3 days free with this link.",
+    openGraph: { title, description: "instagram dms with no feed or reels. 3 days free with this link." },
   };
 }
 
@@ -34,14 +34,14 @@ export default async function InvitePage(ctx: Ctx) {
     >
       <div style={{ fontWeight: 700, fontSize: 17, letterSpacing: "-0.01em", marginBottom: 40 }}>Konvo</div>
       <h1 style={{ fontSize: 34, lineHeight: 1.12, letterSpacing: "-0.02em", fontWeight: 700, margin: "0 0 12px", textWrap: "balance" }}>
-        {handle ? `${handle} sent you a free week of Konvo` : "A free week of Konvo"}
+        {handle ? `${handle} sent you 3 free days of Konvo` : "3 free days of Konvo"}
       </h1>
       <p style={{ fontSize: 17, lineHeight: 1.4, color: "#8e8e93", margin: "0 0 32px" }}>
-        Instagram DMs, no feed, no Reels. Install Konvo, sign in, and the week is yours. No card needed.
+        Instagram DMs, no feed, no Reels. Install Konvo, sign in, paste this link, and you both get 3 days free. No card needed.
       </p>
       <GetKonvo handle={handle} link={link} />
       <p style={{ fontSize: 13, lineHeight: 1.4, color: "#8e8e93", textAlign: "center", margin: "14px 0 0" }}>
-        Tap Get Konvo, install, then open the app and paste the link when it asks.
+        Tap Get Konvo, install, then open the app and paste the link when it asks. No card needed.
       </p>
     </main>
   );

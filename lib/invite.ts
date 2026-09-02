@@ -32,11 +32,11 @@ export const bumpTap = (handle: string) => redis("HINCRBY", "inv:taps", h(handle
 export const sentOnce = async (rc: string) => (await redis("HSETNX", "inv:sent", rc, String(Date.now()))) === 1;
 
 // RevenueCat REST v1, secret key server-side only. A promotional grant of
-// "weekly" is 7 days from start_time_ms (now when omitted). An extension is
-// a weekly grant starting at the current expiry; RevenueCat treats a grant
-// ending within 2h of an active one as a duplicate, which +7 days never is.
+// "three_day" is 72 hours from now (Sep 2: 3 free days for everybody, once;
+// no stacking, so no start_time_ms games).
 const RC = "https://api.revenuecat.com/v1";
-const WEEK = 7 * 86400000;
+export const FREE_DAYS = 3;
+const FREE_MS = FREE_DAYS * 86400000;
 // Trimmed: the key was added from a pasteboard with a trailing newline
 // (Sep 1), and a newline in a header value fails the whole request.
 const rcKey = () => (process.env.REVENUECAT_SECRET_KEY ?? "").trim();
@@ -54,19 +54,15 @@ export async function expiryOf(rc: string): Promise<number | null> {
   return e ? Date.parse(e) : null;
 }
 
-export async function grantWeek(rc: string, fromMs?: number): Promise<number> {
+export async function grantDays(rc: string): Promise<number> {
   // A grant posted to an id RevenueCat has never seen answers 404; a read
   // creates the subscriber first (Sep 2, seen on the production smoke).
   await fetch(`${RC}/subscribers/${encodeURIComponent(rc)}`, { headers: rcHeaders(), cache: "no-store" }).catch(() => undefined);
-  const now = Date.now();
-  const start = fromMs && fromMs > now ? fromMs : now;
-  const body: Record<string, unknown> = { duration: "weekly" };
-  if (start !== now) body.start_time_ms = start;
   const r = await fetch(`${RC}/subscribers/${encodeURIComponent(rc)}/entitlements/Pro/promotional`, {
-    method: "POST", headers: rcHeaders(), body: JSON.stringify(body), cache: "no-store",
+    method: "POST", headers: rcHeaders(), body: JSON.stringify({ duration: "three_day" }), cache: "no-store",
   });
   if (!r.ok) throw new Error(`revenuecat ${r.status}`);
-  return start + WEEK;
+  return Date.now() + FREE_MS;
 }
 
 // Server-side PostHog capture into the app's project, so invite events sit

@@ -1,8 +1,8 @@
 // The whole referral policy, pure, so it can be tested without a store
-// (Sep 1): three claims per sender, one claim per friend ever, never your
-// own code, one level only (a friend's friends add weeks to the friend).
-export const CAP = 3;
-
+// (Sep 2): 3 free days for everybody, once. A friend who pastes a link gets
+// 3 days (one claim per friend, ever, never their own code); the first
+// friend to join credits the sender with 3 days, later friends credit
+// nothing. No stacking, no cap on how many friends a link can bring.
 export type ClaimInput = {
   code: { rc: string } | null;   // the sender behind the handle, if registered
   friendRc: string;              // the claiming phone's RevenueCat app user id
@@ -11,13 +11,12 @@ export type ClaimInput = {
 };
 
 export type ClaimVerdict =
-  | { ok: true; weekN: number }
-  | { ok: false; reason: "no_code" | "own_code" | "already" | "cap" };
+  | { ok: true; creditSender: boolean; joinN: number }
+  | { ok: false; reason: "no_code" | "own_code" | "already" };
 
 export function decideClaim(i: ClaimInput): ClaimVerdict {
   if (!i.code) return { ok: false, reason: "no_code" };
   if (i.code.rc === i.friendRc) return { ok: false, reason: "own_code" };
   if (i.alreadyClaimed) return { ok: false, reason: "already" };
-  if (i.claims >= CAP) return { ok: false, reason: "cap" };
-  return { ok: true, weekN: i.claims + 1 };
+  return { ok: true, creditSender: i.claims === 0, joinN: i.claims + 1 };
 }

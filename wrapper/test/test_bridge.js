@@ -43,12 +43,12 @@ const TABLE = {
                    replies: ['ok', 'result', 'entitled', 'productId'] },
   notify:        { arg: 'trial length in days (schedules the reminder); empty = permission only',
                    replies: ['ok', 'granted'] },
-  invite:        { arg: 'JSON {handle, text, url, draft}: the share sheet, week 1 on completion (Sep 1)',
+  invite:        { arg: 'JSON {handle, text, url, draft}: the share sheet (Sep 1); nothing granted for sending (Sep 2)',
                    replies: ['ok', 'sent', 'expires'] },
   claim:         { arg: '"auto" (the claim sheet only if the clipboard holds a link) | "ask" (always)',
                    replies: ['ok', 'shown', 'entitled', 'expires', 'method'] },
-  inviteStatus:  { arg: 'unused (the sender\'s meter from konvoinstall.com)',
-                   replies: ['ok', 'handle', 'claims', 'cap', 'expires'] },
+  inviteStatus:  { arg: 'unused (the sender\'s state from konvoinstall.com)',
+                   replies: ['ok', 'handle', 'claims', 'credited', 'expires'] },
 };
 
 const fs = require('fs');

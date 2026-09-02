@@ -571,8 +571,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     invPosted.push(m.cmd + ':' + (m.event || m.productId || ''));
     const replies = { entitlements: { entitled: false }, products: LIVE_PRODUCTS,
       claim: { ok: true, shown: false, entitled: false },
-      invite: { ok: true, sent: true, expires: Date.now() + 7 * 86400000 },
-      inviteStatus: { ok: true, handle: 'matt', claims: 1, cap: 3, expires: Date.now() + 14 * 86400000 } };
+      invite: { ok: true, sent: true, expires: null },
+      inviteStatus: { ok: true, handle: 'matt', claims: 1, credited: true, expires: Date.now() + 3 * 86400000 } };
     if (m.cmd in replies) d.window.__konvoStoreReply(m.id, replies[m.cmd]);
   };
   const inv = boot('/direct/inbox/', '', { seed: { konvoHandle: 'matt' }, bridge: invBridge });
@@ -587,8 +587,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the first price paint asks once whether the clipboard holds an invite');
   assert(!/Have an invite/.test(ipage()), 'no invite link on the price page (Matthew, Sep 1)');
   itap('x'); await settle(450);
-  assert(/Send Konvo to 3 friends, and get a free week/.test(ipage()) &&
-    /Every friend who joins also get a free week too!/.test(ipage()),
+  assert(/Send Konvo to 3 friends, and get 3 days free/.test(ipage()) &&
+    /When one of them joins, you both get 3 days free!/.test(ipage()),
     'the close lands on the invite page with Matthew\'s two lines');
   assert(!idoc.querySelector('#im-pay .inv-text') && !/Opens the share sheet/.test(ipage()) &&
     !/No card needed/.test(ipage()), 'no message card, no fine print, no eyebrow');
@@ -605,15 +605,22 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const sendArg = JSON.parse(invMsgs.find(m => m.cmd === 'invite').productId);
   assert.strictEqual(sendArg.url, 'https://konvoinstall.com/i/matt');
   assert.strictEqual(sendArg.handle, 'matt');
-  assert(/^not an ad lol/.test(sendArg.text) && sendArg.text.endsWith('konvoinstall.com/i/matt') && sendArg.draft === 0,
-    'the share sheet gets the first draft, link last, with the sender\'s handle');
+  assert(/^not an ad lol/.test(sendArg.text) && /3 days free off my link/.test(sendArg.text) &&
+    sendArg.text.endsWith('konvoinstall.com/i/matt') && sendArg.draft === 0 && !/week/.test(sendArg.text),
+    'the share sheet gets the draft, 3 days, link last, with the sender\'s handle');
   assert(invMsgs.some(m => m.event === 'invite_sent' && m.props.draft === 0), 'invite_sent carries the draft index only');
   assert(!invMsgs.some(m => m.cmd === 'track' && /not an ad|kinda deleted|remember we said/.test(JSON.stringify(m.props))),
     'no draft text rides an event');
-  assert(/Your free week is on\./.test(ipage()) && /Nothing to cancel, nothing charges\./.test(ipage()),
-    'a completed share sheet paints the success state');
+  //     Nothing is granted for sending (Sep 2): the page says the days
+  //     start when a friend joins, and offers another send.
+  assert(/Link sent\./.test(ipage()) && /Your 3 free days start when a friend joins\./.test(ipage()) &&
+    idoc.querySelector("#im-pay [data-act='inv-send']") && !/free week/.test(ipage()),
+    'a completed share sheet paints the sent state, no reward yet');
   await settle(300);
-  assert(/1 of 3/.test(ipage()) && /\+7 days/.test(ipage()), 'the meter reads the status from the bridge');
+  assert(invPosted.includes('inviteStatus:'), 'the sent state asks the server once whether a friend already joined');
+  //     The server says a friend already joined: the days are on.
+  assert(/A friend joined\. Your 3 free days are on\./.test(ipage()) && /Nothing to cancel, nothing charges\./.test(ipage()),
+    'a credited sender sees the days on');
   itap('inv-open'); await settle(1200);
   assert(invMsgs.some(m => m.event === 'onboarding_completed' && m.props.screen_id === 's15_invite'),
     'Open my messages ends the sequence');
@@ -624,7 +631,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const claimBridge = (m, d) => {
     claimMsgs.push(m);
     const replies = { entitlements: { entitled: false }, products: LIVE_PRODUCTS,
-      claim: { ok: true, shown: true, entitled: true, method: 'clipboard' } };
+      claim: { ok: true, shown: true, entitled: true, method: 'clipboard', expires: Date.now() + 3 * 86400000 } };
     if (m.cmd in replies) d.window.__konvoStoreReply(m.id, replies[m.cmd]);
   };
   const clm = boot('/direct/inbox/', '', { bridge: claimBridge });
@@ -637,8 +644,21 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the price paint asks the bridge about the clipboard');
   assert(claimMsgs.some(m => m.event === 'invite_claimed' && m.props.method === 'clipboard'),
     'a claim reports its method');
+  assert(/Your 3 free days are on\./.test(cldoc.getElementById('im-pay').textContent),
+    'a claim paints the friend\'s own 3-days page');
+  cltap('inv-open'); await settle(1200);
   assert(claimMsgs.some(m => m.event === 'onboarding_completed'),
-    'a claimed week ends the sequence like a purchase');
+    'Open my messages ends the friend\'s sequence');
+  //     {"invite": false} in the cage patch takes the close off the
+  //     paywall: the remote off switch for the whole loop (Sep 2).
+  const noInv = boot('/direct/inbox/', '', { patch: { invite: false }, seed: { konvoHandle: 'matt' }, bridge: invBridge });
+  await settle(8400);
+  const nidoc = noInv.window.document;
+  const nitap = act => nidoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new noInv.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  nitap('keep'); await settle(450); nitap('impact'); await settle(450); nitap('pay'); await settle(450);
+  assert(!nidoc.querySelector("#im-pay [data-act='x']") && /US\$39\.99\/year/.test(nidoc.getElementById('im-pay').textContent),
+    'with invite:false the paywall has no close and stays a hard gate');
   //     A sender whose handle is not known yet cannot send a broken link:
   //     Send waits, and says so.
   const noHandle = boot('/direct/inbox/', '', { bridge: invBridge });
@@ -651,6 +671,47 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const nsend = nhdoc.querySelector("#im-pay [data-act='inv-send']");
   assert(nsend && nsend.disabled && /Loading your username/.test(nsend.textContent),
     'no handle yet: Send waits rather than sending a broken link');
+  //     Instagram's own account endpoint is the reliable source of the
+  //     handle (Sep 2): when it answers, Send wakes up with the link.
+  const fetched = [];
+  const fh = boot('/direct/inbox/', '', { bridge: invBridge });
+  fh.window.fetch = (u) => { fetched.push(String(u)); return Promise.resolve({ ok: true, json: () => Promise.resolve({ user: { username: 'matt.two' } }) }); };
+  await settle(8400);
+  const fhdoc = fh.window.document;
+  const fhtap = act => fhdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new fh.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  fhtap('keep'); await settle(450); fhtap('impact'); await settle(450); fhtap('pay'); await settle(450);
+  fhtap('x'); await settle(1200);
+  assert(fetched.some(u => /\/api\/v1\/accounts\/current_user\//.test(u)), 'the invite page asks Instagram for the username');
+  const fsend = fhdoc.querySelector("#im-pay [data-act='inv-send']");
+  assert(fsend && !fsend.disabled && /Send to 3 friends/.test(fsend.textContent) &&
+    fh.window.localStorage.getItem('konvoHandle') === 'matt.two',
+    'the answer wakes Send with the handle as the code');
+  //     The link row: the code in the open, one tap copies it (Sep 2).
+  const copiedLinks = [];
+  Object.defineProperty(fh.window.navigator, 'clipboard', { value: { writeText: t => { copiedLinks.push(t); return Promise.resolve(); } }, configurable: true });
+  assert(/konvoinstall\.com\/i\/matt\.two/.test(fhdoc.querySelector('#im-pay .inv-link').textContent), 'the link row shows the sender\'s link');
+  fhtap('inv-copy'); await settle(50);
+  assert.deepStrictEqual(copiedLinks, ['https://konvoinstall.com/i/matt.two'], 'Copy link puts the full link on the clipboard');
+  assert(/Copied/.test(fhdoc.querySelector('#im-pay .inv-copy').textContent), 'the label says Copied');
+  //     Instagram refusing the first endpoint is reported, and the second
+  //     endpoint (by the ds_user_id cookie) still finds the username.
+  const secondMsgs = [], asked = [];
+  const sh = boot('/direct/inbox/', '', { bridge: (m, d) => { secondMsgs.push(m); invBridge(m, d); } });
+  sh.window.fetch = (u) => { asked.push(String(u));
+    if (/current_user/.test(String(u))) return Promise.resolve({ ok: false, status: 403, json: () => Promise.reject(new Error('html')) });
+    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ user: { username: 'matt.three' } }) }); };
+  await settle(8400);
+  const shdoc = sh.window.document;
+  const shtap = act => shdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new sh.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  shtap('keep'); await settle(450); shtap('impact'); await settle(450); shtap('pay'); await settle(450);
+  shtap('x'); await settle(1200);
+  assert(asked.some(u => /\/api\/v1\/users\/1234567\/info\//.test(u)), 'the second source is the user info endpoint by id');
+  const reports = secondMsgs.filter(m => m.event === 'invite_handle').map(m => [m.props.source, m.props.status, m.props.found]);
+  assert.deepStrictEqual(reports, [['current_user', 403, false], ['user_info', 200, true]], 'each attempt reports its status and outcome');
+  assert(!shdoc.querySelector("#im-pay [data-act='inv-send']").disabled && sh.window.localStorage.getItem('konvoHandle') === 'matt.three',
+    'the second source wakes Send');
 
   //     The login count is a fact about the session, not the wall (Aug
   //     31): an entitled restorer is dismissed before the wall mounts,
