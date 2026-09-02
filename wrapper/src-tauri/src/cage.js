@@ -1030,10 +1030,13 @@
     (document.body || document.documentElement).appendChild(sheet);
     return true;
   }
+  // The moment (Sep 2, Matthew): the person is in (paid, on a trial, or a
+  // friend's days), has read a chat, and is back at the inbox. The day
+  // gate is gone; the once-per-install flag and "never under a wall" stay.
   function maybeAskReview(days) {
     try {
       if (localStorage.konvoReviewAsked) return;
-      if (days < 3) return;
+      if (!localStorage.konvoPaid && !localStorage.konvoDone) return;
       if (!threadsThisSession) return;
       if (document.getElementById("im-pay")) return;
       localStorage.konvoReviewAsked = "1";

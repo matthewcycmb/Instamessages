@@ -1481,17 +1481,30 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(revLog.asked, 'the ask reports itself');
   assert.strictEqual(dayThree.window.localStorage.konvoReviewAsked, '1',
     'and the flag stops any repeat');
-  //     Day one, same walk: the day gate (Apple) still holds.
+  //     Day one, same walk, a paying user: asks (Sep 2, Matthew: the day
+  //     gate is gone; the moment is in, a chat read, back at the inbox).
   const dayOneLog = [];
   const dayOne = boot('/direct/inbox/', '', { paid: true,
     bridge: m => { if (m.cmd === 'review') dayOneLog.push(1); } });
   await settle(2600);
+  assert.strictEqual(dayOneLog.length, 0, 'the inbox loading alone is still not the moment');
   dayOne.window.__loc.pathname = '/direct/t/32/';
   await settle(900);
   dayOne.window.__loc.pathname = '/direct/inbox/';
   await settle(2600);
-  assert.strictEqual(dayOneLog.length, 0,
-    'a chat-and-back on day one must not ask (5.6.3 gate unchanged)');
+  assert.strictEqual(dayOneLog.length, 1,
+    'a chat-and-back on day one asks once the person is in');
+  //     The same walk with nobody in (no purchase, no trial, no friend's
+  //     days) never asks.
+  const outLog = [];
+  const outsider = boot('/direct/inbox/', '', { welcomed: true,
+    bridge: m => { if (m.cmd === 'review') outLog.push(1); } });
+  await settle(2600);
+  outsider.window.__loc.pathname = '/direct/t/33/';
+  await settle(900);
+  outsider.window.__loc.pathname = '/direct/inbox/';
+  await settle(2600);
+  assert.strictEqual(outLog.length, 0, 'no purchase, no trial, no days: no rating ask');
 
   //     Page errors report with their message, capped at three a session.
   //     (The stall detector that lived here was removed Aug 31: its
