@@ -160,9 +160,8 @@
       "Ends {date}. Nothing to cancel, nothing charges.": "Se termine le {date}. Rien à annuler, rien à payer.",
       "Send Konvo to 3 friends": "Envoie Konvo à 3 amis",
       "Every friend who joins gets 3 days free!": "Chaque ami qui s'inscrit a 3 jours gratuits !",
-      "Get a heads up": "Reste au courant",
-      "New DMs, and a reminder 2 days before your trial ends. Nothing else.": "Tes nouveaux DM, et un rappel 2 jours avant la fin de ton essai. Rien d'autre.",
-      "New DMs. Nothing else.": "Tes nouveaux DM. Rien d'autre.",
+      "Enable notifications for messages?": "Activer les notifications pour tes messages ?",
+      "We'll remind you 2 days before your trial ends.": "On te préviendra 2 jours avant la fin de ton essai.",
       "&ldquo;Konvo&rdquo; Would Like to Send You Notifications": "« Konvo » souhaite vous envoyer des notifications",
       "Notifications may include alerts, sounds, and icon badges. These can be configured in Settings.": "Les notifications peuvent inclure des alertes, des sons et des pastilles d'icône. Vous pouvez les configurer dans Réglages.",
       "Allow": "Autoriser",
@@ -292,9 +291,8 @@
       "Ends {date}. Nothing to cancel, nothing charges.": "{date} 結束。不用取消，不會扣款。",
       "Send Konvo to 3 friends": "把 Konvo 傳給 3 個朋友",
       "Every friend who joins gets 3 days free!": "每個加入的朋友都免費 3 天！",
-      "Get a heads up": "隨時掌握",
-      "New DMs, and a reminder 2 days before your trial ends. Nothing else.": "新的私訊，還有試用結束前 2 天的提醒。沒有別的。",
-      "New DMs. Nothing else.": "新的私訊。沒有別的。",
+      "Enable notifications for messages?": "要開啟訊息通知嗎？",
+      "We'll remind you 2 days before your trial ends.": "試用結束前 2 天我們會提醒你。",
       "&ldquo;Konvo&rdquo; Would Like to Send You Notifications": "「Konvo」想要傳送通知給你",
       "Notifications may include alerts, sounds, and icon badges. These can be configured in Settings.": "通知可能包含提示、聲音和圖像標記。你可以在「設定」中設定這些項目。",
       "Allow": "允許",
@@ -424,9 +422,8 @@
       "Ends {date}. Nothing to cancel, nothing charges.": "{date}에 끝나요. 취소할 것도, 결제될 것도 없어요.",
       "Send Konvo to 3 friends": "친구 3명에게 Konvo 보내기",
       "Every friend who joins gets 3 days free!": "가입하는 친구마다 3일 무료예요!",
-      "Get a heads up": "미리 알려드릴게요",
-      "New DMs, and a reminder 2 days before your trial ends. Nothing else.": "새 DM, 그리고 체험 종료 2일 전 알림. 그게 다예요.",
-      "New DMs. Nothing else.": "새 DM. 그게 다예요.",
+      "Enable notifications for messages?": "메시지 알림을 켤까요?",
+      "We'll remind you 2 days before your trial ends.": "체험 종료 2일 전에 미리 알려드릴게요.",
       "&ldquo;Konvo&rdquo; Would Like to Send You Notifications": "‘Konvo’에서 알림을 보내고자 합니다",
       "Notifications may include alerts, sounds, and icon badges. These can be configured in Settings.": "알림에는 경고, 사운드 및 아이콘 배지가 포함될 수 있습니다. 설정에서 구성할 수 있습니다.",
       "Allow": "허용",
@@ -2472,9 +2469,7 @@
     // tool against the first-hour trial cancel.
     function notifyPage(td) {
       return "<div class='imp-mid' style='padding:24px'>" +
-        "<h2 style='font-size:26px;text-align:center'>" + T("Get a heads up") + "</h2>" +
-        "<p style='font-size:15px;line-height:1.5;color:var(--mut);margin-top:8px;text-align:center'>" +
-        (td ? T("New DMs, and a reminder 2 days before your trial ends. Nothing else.") : T("New DMs. Nothing else.")) + "</p>" +
+        "<h2 style='font-size:26px;text-align:center'>" + T("Enable notifications for messages?") + "</h2>" +
         "<div style='border:2px solid var(--accent);border-radius:20px;padding:7px;" +
         "margin:22px auto 0;max-width:300px;width:100%'>" +
         "<div style='background:var(--icbg);border-radius:14px;padding:14px 12px 0;text-align:center'>" +
@@ -2490,7 +2485,9 @@
         " stroke-linecap='round' stroke-linejoin='round' style='margin:10px 0 0 62%'>" +
         "<path d='M24 36 C 26 22, 22 12, 14 5'/><path d='M22 7 L14 5 L13 13'/></svg>" +
         "<p style='text-align:center;font-size:13.5px;line-height:1.5;color:var(--mut);margin-top:14px'>" +
-        T("You can change this any time in Settings.") + "</p>" +
+        // The reminder promise sits here for a trial (Sep 2, Matthew): the
+        // page has no description, so this line is the only mention of it.
+        (td ? T("We'll remind you 2 days before your trial ends.") : T("You can change this any time in Settings.")) + "</p>" +
         "</div><div class='imp-foot'>" +
         "<button class='imp-btn' data-act='notify-go'>" + T("Turn on notifications") + "</button>" +
         "<div class='imp-links'><span data-act='notify-skip'>" + T("Not now") + "</span></div></div>";
@@ -2810,11 +2807,6 @@
         "</div>" +
         "<div class='imp-foot' style='padding:0 28px 40px'>" +
         "<button class='imp-btn' data-act='done'>" + T("Open my messages") + "</button>" +
-        // The invite loop's only door (Sep 2, final): after the money,
-        // never before it. A gift of 3 days to up to three friends; the
-        // sender gets nothing, so nothing here competes with the price.
-        (window.__konvoNoInvite ? "" :
-          "<div class='imp-links'><span data-act='inv-go'>" + T("Send Konvo to 3 friends") + "</span></div>") +
         "</div>";
     }
 
@@ -2869,12 +2861,17 @@
     }
     var finishTd = 0, finishAfter = null;
     function notifyAsked() { try { return !!localStorage.konvoNotifyAsked; } catch (e) { return true; } }
+    // The page holds still under the system prompt (Sep 2, device: it
+    // moved on to the next page while the prompt was still up); the
+    // sequence continues only when iOS answers.
     function askNotify() {
       try { localStorage.konvoNotifyAsked = "1"; } catch (e) {}
+      var b = wall && wall.querySelector("[data-act='notify-go']");
+      if (b) b.disabled = true;
       storekit("notify", String(finishTd), function (r) {
         track("notify_answered", { granted: !!(r && r.granted), trial: !!finishTd });
+        if (finishAfter) finishAfter();
       });
-      if (finishAfter) finishAfter();
     }
     function skipNotify() {
       try { localStorage.konvoNotifyAsked = "1"; } catch (e) {}
@@ -2885,7 +2882,7 @@
       var moved = false;
       var fallback = setTimeout(function () {
         moved = true;
-        swap(successPage(lastBuy));
+        inviteStep();
       }, 900);
       storekit("cageStatus", null, function (s) {
         if (moved) return;
@@ -2897,8 +2894,19 @@
         // The block is offered from the inbox instead: the lock button,
         // and one nudge on a later day (nudgeBlock).
         if (s && s.supported && s.authorized && s.picked) { cagePending = true; cageExit(true); return; }
-        swap(successPage(lastBuy));
+        inviteStep();
       });
+    }
+    // The gift is its own page (Sep 2, Matthew): notifications, then
+    // "Send Konvo to 3 friends", then "You're in". Only a purchase gets
+    // it; the beta grant, the free build and a restore go straight on.
+    // {"invite": false} in the cage patch skips it.
+    function inviteStep() {
+      if (window.__konvoNoInvite || !lastBuy) { swap(successPage(lastBuy)); return; }
+      track("invite_page_viewed", { via: "flow", screen_id: "s15_invite" });
+      swap(invitePage());
+      handleTries = 0;
+      waitHandle();
     }
     function armCage(then) {
       if (!cagePending) { if (then) then(); return; }
@@ -3159,11 +3167,6 @@
           buy(t, "konvo.pro.monthly");
         } else if (act === "buy-l") {
           buy(t, "konvo.pro.lifetime");
-        } else if (act === "inv-go") {
-          track("invite_page_viewed", { via: "success", screen_id: "s15_invite" });
-          swap(invitePage());
-          handleTries = 0;
-          waitHandle();
         } else if (act === "inv-copy") {
           track("invite_link_copied", { screen_id: "s15_invite" });
           var copied = function () {

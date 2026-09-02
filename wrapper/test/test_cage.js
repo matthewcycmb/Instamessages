@@ -529,7 +529,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
       savePct: 33, trialDays: 7 },
     monthly: { price: 'US$4.99', trialDays: 3 }, lifetime: { price: 'US$99.99' } };
   const live = boot('/direct/inbox/', '', { bridge: answer({
-    entitlements: { entitled: false },
+    entitlements: { entitled: false }, notify: { ok: true, granted: true },
     products: LIVE_PRODUCTS,
   }) });
   await settle(8400);
@@ -564,7 +564,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the funnel events must reach the bridge');
 
   //     The invite loop (Sep 2, final): the paywall is a hard gate with no
-  //     close; the only door is "Send Konvo to 3 friends" on "You're in".
+  //     close; "Send Konvo to 3 friends" is its own page after the
+  //     notifications page and before "You're in" (Sep 2, Matthew).
   //     Send is the share sheet through the bridge; the sender gets
   //     nothing; a friend who pastes the link at their paywall gets 3 days,
   //     three friends per code. Nothing typed leaves the page.
@@ -596,21 +597,17 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'the first price paint asks once whether the clipboard holds an invite');
   assert(!/Have an invite|Send Konvo/.test(ipage()), 'no invite door on the price page');
   itap('buy-y'); await settle(1300);
-  assert(/You're in\./.test(ipage()) && idoc.querySelector("#im-pay [data-act='inv-go']"),
-    'the only door is on You\'re in');
-  assert.strictEqual(invMsgs.filter(m => m.event === 'onboarding_completed').length, 1, 'the purchase completed the sequence once');
-  itap('inv-go'); await settle(450);
   assert(/Send Konvo to 3 friends/.test(ipage()) && /Every friend who joins gets 3 days free!/.test(ipage()),
-    'the door lands on the invite page with Matthew\'s two lines');
+    'a purchase lands on the invite page, its own step, with Matthew\'s two lines');
+  assert(!/You're in\./.test(ipage()) && !idoc.querySelector("#im-pay [data-act='inv-go']"),
+    'the gift is a page of its own, not a door on You\'re in');
+  assert.strictEqual(invMsgs.filter(m => m.event === 'onboarding_completed').length, 1, 'the purchase completed the sequence once');
   assert(!idoc.querySelector('#im-pay .inv-text') && !/Restore/.test(ipage()) && !/get 3 days free\b.*and/.test(ipage()),
     'a gift: no message card, no Restore, no reward for the sender');
-  assert(invMsgs.some(m => m.event === 'invite_page_viewed' && m.props.via === 'success'),
+  assert(invMsgs.some(m => m.event === 'invite_page_viewed' && m.props.via === 'flow'),
     'the page view says where from');
   assert(/konvoinstall\.com\/i\/matt/.test(idoc.querySelector('#im-pay .inv-link').textContent), 'the link row shows the sender\'s link');
   assert(!/—/.test(ipage()), 'no em dashes on the invite page');
-  itap('inv-later'); await settle(450);
-  assert(/You're in\./.test(ipage()), 'Not now returns to You\'re in');
-  itap('inv-go'); await settle(450);
   assert(!idoc.querySelector("#im-pay [data-act='inv-send']").disabled, 'Send is live once the handle is known');
   itap('inv-send'); await settle(450);
   const sendArg = JSON.parse(invMsgs.find(m => m.cmd === 'invite').productId);
@@ -629,15 +626,15 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   itap('inv-open'); await settle(1200);
   assert.strictEqual(invMsgs.filter(m => m.event === 'onboarding_completed').length, 1,
     'Open my messages from the invite page does not complete the sequence twice');
-  //     {"invite": false} in the cage patch hides the door.
+  //     {"invite": false} in the cage patch skips the page.
   const noInv = boot('/direct/inbox/', '', { patch: { invite: false }, seed: { konvoHandle: 'matt' }, bridge: invBridge });
   await settle(8400);
   const nidoc = noInv.window.document;
   const nitap = act => nidoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new noInv.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await toSuccess(noInv, nitap);
-  assert(/You're in\./.test(nidoc.getElementById('im-pay').textContent) && !nidoc.querySelector("#im-pay [data-act='inv-go']"),
-    'with invite:false there is no door at all');
+  assert(/You're in\./.test(nidoc.getElementById('im-pay').textContent) && !/Send Konvo/.test(nidoc.getElementById('im-pay').textContent),
+    'with invite:false the purchase goes straight to You\'re in');
   //     A friend at the paywall with a link on the clipboard: the bridge
   //     shows the claim sheet, the days are on, and Open my messages ends
   //     the sequence like a purchase.
@@ -671,10 +668,12 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const nhtap = act => nhdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new noHandle.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   await toSuccess(noHandle, nhtap);
-  nhtap('inv-go'); await settle(450);
   const nsend = nhdoc.querySelector("#im-pay [data-act='inv-send']");
   assert(nsend && nsend.disabled && /Loading your username/.test(nsend.textContent),
     'no handle yet: Send waits rather than sending a broken link');
+  nhtap('inv-later'); await settle(450);
+  const nhText = nhdoc.getElementById('im-pay').textContent;
+  assert(/You're in\./.test(nhText) && !/Send Konvo/.test(nhText), 'Not now goes on to You\'re in, which has no door');
   //     Instagram's own account endpoint is the reliable source of the
   //     handle (Sep 2): when it answers, Send wakes up with the link.
   const fetched = [];
@@ -684,8 +683,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const fhdoc = fh.window.document;
   const fhtap = act => fhdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new fh.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  await toSuccess(fh, fhtap);
-  fhtap('inv-go'); await settle(1200);
+  await toSuccess(fh, fhtap); await settle(1200);
   assert(fetched.some(u => /\/api\/v1\/accounts\/current_user\//.test(u)), 'the invite page asks Instagram for the username');
   const fsend = fhdoc.querySelector("#im-pay [data-act='inv-send']");
   assert(fsend && !fsend.disabled && /Send to 3 friends/.test(fsend.textContent) &&
@@ -709,8 +707,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const shdoc = sh.window.document;
   const shtap = act => shdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new sh.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  await toSuccess(sh, shtap);
-  shtap('inv-go'); await settle(1200);
+  await toSuccess(sh, shtap); await settle(1200);
   assert(asked.some(u => /\/api\/v1\/users\/1234567\/info\//.test(u)), 'the second source is the user info endpoint by id');
   const reports = secondMsgs.filter(m => m.event === 'invite_handle').map(m => [m.props.source, m.props.status, m.props.found]);
   assert.deepStrictEqual(reports, [['current_user', 403, false], ['user_info', 200, true]], 'each attempt reports its status and outcome');
@@ -721,11 +718,16 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     "You're in", in the Screen Time page's style, once per install.
   //     The system prompt fires only from its button; Not now records a
   //     skip and moves on; a second walk on the same install never sees it.
-  const npPosted = [];
+  const npPosted = [], npHeld = [];
   const npBridge = answer({ entitlements: { entitled: false }, products: LIVE_PRODUCTS,
     purchase: { ok: true, entitled: true }, notify: { ok: true, granted: true },
     cageStatus: { supported: true, authorized: false, picked: false, active: false } });
-  const np = boot('/direct/inbox/', '', { askNotify: true, bridge: (m, d) => { npPosted.push(m.cmd + ':' + (m.event || m.productId || '')); npBridge(m, d); } });
+  const np = boot('/direct/inbox/', '', { askNotify: true, bridge: (m, d) => {
+    npPosted.push(m.cmd + ':' + (m.event || m.productId || ''));
+    // iOS answers the prompt only when a finger does: the reply is held.
+    if (m.cmd === 'notify') { npHeld.push(() => d.window.__konvoStoreReply(m.id, { ok: true, granted: true })); return; }
+    npBridge(m, d);
+  } });
   await settle(8400);
   const npdoc = np.window.document;
   const nptap = act => npdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
@@ -733,17 +735,22 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const nptext = () => npdoc.getElementById('im-pay').textContent;
   nptap('keep'); await settle(450); nptap('impact'); await settle(450); nptap('pay'); await settle(450);
   nptap('buy-y'); await settle(1300);
-  assert(/Get a heads up/.test(nptext()) && /New DMs, and a reminder 2 days before your trial ends\. Nothing else\./.test(nptext()),
-    'a purchase lands on the notifications page with its two lines');
-  assert(/Would Like to Send You Notifications/.test(nptext()) && /Allow/.test(nptext()) &&
-    /You can change this any time in Settings\./.test(nptext()),
+  assert(/Enable notifications for messages\?/.test(nptext()) && !/New DMs|heads up/.test(nptext()),
+    'a purchase lands on the notifications page: the question alone, no description (Sep 2)');
+  assert(/We'll remind you 2 days before your trial ends\./.test(nptext()) && !/You can change this any time/.test(nptext()),
+    'a trial buyer reads the reminder promise on the page');
+  assert(/Would Like to Send You Notifications/.test(nptext()) && /Allow/.test(nptext()),
     'the page echoes the system dialog, like the Screen Time page');
   assert(!npPosted.some(p => p.startsWith('notify:')), 'the system prompt waits for the button');
-  assert(!/You're in\./.test(nptext()), 'You\'re in comes after');
+  assert(!/You're in\.|Send Konvo/.test(nptext()), 'the gift and You\'re in come after');
   nptap('notify-go'); await settle(1200);
   assert(npPosted.includes('notify:7'), 'Turn on notifications fires the prompt with the trial length');
+  assert(/Enable notifications for messages\?/.test(nptext()) && npdoc.querySelector("#im-pay [data-act='notify-go']").disabled,
+    'the page holds still under the system prompt until iOS answers (Sep 2)');
+  assert(!npPosted.includes('track:notify_answered'), 'nothing reports before the answer');
+  npHeld.forEach(f => f()); await settle(1200);
   assert(npPosted.includes('track:notify_answered'), 'the answer reports');
-  assert(/You're in\./.test(nptext()), 'then You\'re in');
+  assert(/Send Konvo to 3 friends/.test(nptext()), 'then the gift page, its own step');
   assert.strictEqual(np.window.localStorage.getItem('konvoNotifyAsked'), '1', 'asked once, remembered');
   //     Not now: a skip is recorded, and the sequence still ends.
   const skipMsgs = [];
@@ -754,13 +761,13 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new sk.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   sktap('keep'); await settle(450); sktap('impact'); await settle(450); sktap('pay'); await settle(450);
   sktap('pk-m'); sktap('buy-m'); await settle(1300);
-  assert(/New DMs, and a reminder 2 days before your trial ends\./.test(skdoc.getElementById('im-pay').textContent),
-    'the live monthly plan carries a 3-day trial, so the line keeps the reminder');
+  assert(/We'll remind you 2 days before your trial ends\./.test(skdoc.getElementById('im-pay').textContent),
+    'the live monthly plan carries a 3-day trial, so the page keeps the reminder promise');
   sktap('notify-skip'); await settle(1200);
   assert(!skipMsgs.some(m => m.cmd === 'notify'), 'Not now never fires the prompt');
   assert(skipMsgs.some(m => m.event === 'notify_answered' && m.props.granted === false && m.props.skipped === true),
     'a skip reports as not granted, skipped');
-  assert(/You're in\./.test(skdoc.getElementById('im-pay').textContent), 'and the sequence still ends');
+  assert(/Send Konvo to 3 friends/.test(skdoc.getElementById('im-pay').textContent), 'and the sequence goes on to the gift page');
   //     A friend ending a claim sees it once too, then the inbox.
   const nfMsgs = [];
   const nf = boot('/direct/inbox/', '', { askNotify: true, bridge: (m, d) => {
@@ -775,8 +782,9 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new nf.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   nftap('keep'); await settle(450); nftap('impact'); await settle(450); nftap('pay'); await settle(1200);
   nftap('inv-open'); await settle(450);
-  assert(/Get a heads up/.test(nfdoc.getElementById('im-pay').textContent) && /New DMs\. Nothing else\./.test(nfdoc.getElementById('im-pay').textContent),
-    'a friend gets the page once, without the trial line');
+  const nfText = nfdoc.getElementById('im-pay').textContent;
+  assert(/Enable notifications for messages\?/.test(nfText) && /You can change this any time in Settings\./.test(nfText) && !/trial ends/.test(nfText),
+    'a friend gets the page once, without the trial promise');
   nftap('notify-go'); await settle(1200);
   assert(nfMsgs.some(m => m.cmd === 'notify' && m.productId === '0') && !nfdoc.getElementById('im-pay'),
     'the prompt fires and the wall goes: the inbox');
@@ -858,6 +866,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
       // A real device always answers this; without a reply the sequence
       // waits out the entitlement timeout before it starts.
       if (m.cmd === 'entitlements') d.window.__konvoStoreReply(m.id, { entitled: false });
+      if (m.cmd === 'notify') d.window.__konvoStoreReply(m.id, { ok: true, granted: true });
       if (m.cmd === 'products') d.window.__konvoStoreReply(m.id, { ok: true,
         yearly: { price: '$19.99', perMonth: '$1.67', savePct: 66, trialDays: 7 },
         monthly: { price: '$4.99' }, lifetime: { price: '$29.99' } });
@@ -891,7 +900,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
 
   //     A trial-ineligible user gets the no-trial Annual story.
   const noTrial = boot('/direct/inbox/', '', { bridge: answer({
-    entitlements: { entitled: false },
+    entitlements: { entitled: false }, notify: { ok: true, granted: true },
     products: { ok: true, yearly: { price: '$29.99', perWeek: '$0.58',
       perMonth: '$2.50', savePct: 50 }, monthly: { price: '$4.99' },
       lifetime: { price: '$79.99' } },
@@ -939,7 +948,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
 
   //     A trial purchase lands on S14 activation: recap, notification ask
   //     (granted -> reminder set), then Open Konvo drops the wall.
-  const buyer = boot('/direct/inbox/', '', { bridge: answer({
+  const buyer = boot('/direct/inbox/', '', { patch: { invite: false }, bridge: answer({
     entitlements: { entitled: false },
     products: LIVE_PRODUCTS,
     purchase: { ok: true, entitled: true },
@@ -1017,8 +1026,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
 
 
   //     Monthly through its own card and product.
-  const monthlyBuy = boot('/direct/inbox/', '', { bridge: answer({
-    entitlements: { entitled: false },
+  const monthlyBuy = boot('/direct/inbox/', '', { patch: { invite: false }, bridge: answer({
+    entitlements: { entitled: false }, notify: { ok: true, granted: true },
     products: LIVE_PRODUCTS,
     purchase: { ok: true, entitled: true },
   }) });
@@ -1047,13 +1056,13 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   //     RevenueCat's paywall on the price step (Sep 1): with the patch on
   //     and a bridge that reports a purchase, Continue never paints the
   //     injected price screen; without a paywall in the offering, it does.
-  const rcBuy = boot('/direct/inbox/', '', { patch: { rcPaywall: true }, bridge: answer({
+  const rcBuy = boot('/direct/inbox/', '', { patch: { rcPaywall: true, invite: false }, bridge: answer({
     entitlements: { entitled: false }, products: LIVE_PRODUCTS,
     rcPaywall: { ok: true, result: 'purchased', entitled: true, productId: 'konvo.pro.yearly' },
     notify: { ok: true, granted: true },
   }) });
   const rcNone = boot('/direct/inbox/', '', { patch: { rcPaywall: true }, bridge: answer({
-    entitlements: { entitled: false }, products: LIVE_PRODUCTS,
+    entitlements: { entitled: false }, notify: { ok: true, granted: true }, products: LIVE_PRODUCTS,
     rcPaywall: { ok: false, result: 'no_paywall', entitled: false },
   }) });
   await settle(8400);
@@ -1078,7 +1087,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
 
   //     The verdict beats the cache in both directions.
   const lapsed = boot('/direct/inbox/', '', { paid: true, bridge: answer({
-    entitlements: { entitled: false },
+    entitlements: { entitled: false }, notify: { ok: true, granted: true },
     restore: { ok: true, entitled: true },
     products: { ok: true,
       yearly: { price: '$19.99', perWeek: '$0.38', perMonth: '$1.67', savePct: 76, trialDays: 7 },
@@ -1114,7 +1123,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const lapsedDone = boot('/direct/inbox/', '', { paid: true, bridge: (m, d) => {
     d.window.localStorage.setItem('konvoDone', '1');
     lapsedLog.push(m.cmd === 'track' ? 'track:' + m.event : m.cmd);
-    const r = { entitlements: { entitled: false }, products: LIVE_PRODUCTS }[m.cmd];
+    const r = { entitlements: { entitled: false }, notify: { ok: true, granted: true }, products: LIVE_PRODUCTS }[m.cmd];
     if (r) d.window.__konvoStoreReply(m.id, r);
   } });
   await settle(1200);
@@ -1829,7 +1838,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const armLog = [];
   const armReplies = Object.assign({}, cageReplies, {
     purchase: { ok: true, entitled: true } });
-  const armed = boot('/direct/inbox/', '', { bridge: (m, d) => {
+  const armed = boot('/direct/inbox/', '', { patch: { invite: false }, bridge: (m, d) => {
     armLog.push(m.cmd);
     if (m.cmd in armReplies) d.window.__konvoStoreReply(m.id, armReplies[m.cmd]);
   } });
@@ -1891,7 +1900,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const oldLog = [];
   const oldios = boot('/direct/inbox/', '', { beta: true, bridge: (m, d) => {
     oldLog.push(m.cmd === 'track' ? 'track:' + m.event : m.cmd);
-    const r = { entitlements: { entitled: false }, products: LIVE_PRODUCTS,
+    const r = { entitlements: { entitled: false }, notify: { ok: true, granted: true }, products: LIVE_PRODUCTS,
       cageStatus: { supported: false } };
     if (m.cmd in r) d.window.__konvoStoreReply(m.id, r[m.cmd]);
   } });
@@ -1961,7 +1970,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
         ? 'track:' + m.event + (m.props && m.props.mins ? ':' + m.props.mins : '')
         : m.cmd);
       const r = {
-        entitlements: { entitled: false },
+        entitlements: { entitled: false }, notify: { ok: true, granted: true },
         cageStatus: { supported: true, authorized: true, picked: true,
           active: true, passAvailable: true, passMins: 5, passesLeft: 2 },
         cagePass: { granted: true },
