@@ -160,6 +160,14 @@
       "Ends {date}. Nothing to cancel, nothing charges.": "Se termine le {date}. Rien à annuler, rien à payer.",
       "Send Konvo to 3 friends": "Envoie Konvo à 3 amis",
       "Every friend who joins gets 3 days free!": "Chaque ami qui s'inscrit a 3 jours gratuits !",
+      "Get a heads up": "Reste au courant",
+      "New DMs, and a reminder 2 days before your trial ends. Nothing else.": "Tes nouveaux DM, et un rappel 2 jours avant la fin de ton essai. Rien d'autre.",
+      "New DMs. Nothing else.": "Tes nouveaux DM. Rien d'autre.",
+      "&ldquo;Konvo&rdquo; Would Like to Send You Notifications": "« Konvo » souhaite vous envoyer des notifications",
+      "Notifications may include alerts, sounds, and icon badges. These can be configured in Settings.": "Les notifications peuvent inclure des alertes, des sons et des pastilles d'icône. Vous pouvez les configurer dans Réglages.",
+      "Allow": "Autoriser",
+      "Turn on notifications": "Activer les notifications",
+      "You can change this any time in Settings.": "Tu peux changer ça à tout moment dans Réglages.",
       "Copy link": "Copier le lien",
       "Copied": "Copié",
       "Send to 3 friends": "Envoyer à 3 amis",
@@ -284,6 +292,14 @@
       "Ends {date}. Nothing to cancel, nothing charges.": "{date} 結束。不用取消，不會扣款。",
       "Send Konvo to 3 friends": "把 Konvo 傳給 3 個朋友",
       "Every friend who joins gets 3 days free!": "每個加入的朋友都免費 3 天！",
+      "Get a heads up": "隨時掌握",
+      "New DMs, and a reminder 2 days before your trial ends. Nothing else.": "新的私訊，還有試用結束前 2 天的提醒。沒有別的。",
+      "New DMs. Nothing else.": "新的私訊。沒有別的。",
+      "&ldquo;Konvo&rdquo; Would Like to Send You Notifications": "「Konvo」想要傳送通知給你",
+      "Notifications may include alerts, sounds, and icon badges. These can be configured in Settings.": "通知可能包含提示、聲音和圖像標記。你可以在「設定」中設定這些項目。",
+      "Allow": "允許",
+      "Turn on notifications": "開啟通知",
+      "You can change this any time in Settings.": "你隨時可以在「設定」中更改。",
       "Copy link": "複製連結",
       "Copied": "已複製",
       "Send to 3 friends": "傳給 3 個朋友",
@@ -408,6 +424,14 @@
       "Ends {date}. Nothing to cancel, nothing charges.": "{date}에 끝나요. 취소할 것도, 결제될 것도 없어요.",
       "Send Konvo to 3 friends": "친구 3명에게 Konvo 보내기",
       "Every friend who joins gets 3 days free!": "가입하는 친구마다 3일 무료예요!",
+      "Get a heads up": "미리 알려드릴게요",
+      "New DMs, and a reminder 2 days before your trial ends. Nothing else.": "새 DM, 그리고 체험 종료 2일 전 알림. 그게 다예요.",
+      "New DMs. Nothing else.": "새 DM. 그게 다예요.",
+      "&ldquo;Konvo&rdquo; Would Like to Send You Notifications": "‘Konvo’에서 알림을 보내고자 합니다",
+      "Notifications may include alerts, sounds, and icon badges. These can be configured in Settings.": "알림에는 경고, 사운드 및 아이콘 배지가 포함될 수 있습니다. 설정에서 구성할 수 있습니다.",
+      "Allow": "허용",
+      "Turn on notifications": "알림 켜기",
+      "You can change this any time in Settings.": "설정에서 언제든지 바꿀 수 있어요.",
       "Copy link": "링크 복사",
       "Copied": "복사됨",
       "Send to 3 friends": "친구 3명에게 보내기",
@@ -2441,6 +2465,36 @@
         // proceeds, because an app cannot trap someone on an OS permission.
         "<button class='imp-btn' data-act='cage-setup-go'>" + T("Give permission") + "</button></div>";
     }
+    // The notifications page (Sep 2, Matthew): the Screen Time page's
+    // pattern for the one permission every buyer is asked, so the system
+    // dialog lands as expected. iOS asks once per install, so the page shows
+    // once (konvoNotifyAsked); the reminder it promises is the anti-forget
+    // tool against the first-hour trial cancel.
+    function notifyPage(td) {
+      return "<div class='imp-mid' style='padding:24px'>" +
+        "<h2 style='font-size:26px;text-align:center'>" + T("Get a heads up") + "</h2>" +
+        "<p style='font-size:15px;line-height:1.5;color:var(--mut);margin-top:8px;text-align:center'>" +
+        (td ? T("New DMs, and a reminder 2 days before your trial ends. Nothing else.") : T("New DMs. Nothing else.")) + "</p>" +
+        "<div style='border:2px solid var(--accent);border-radius:20px;padding:7px;" +
+        "margin:22px auto 0;max-width:300px;width:100%'>" +
+        "<div style='background:var(--icbg);border-radius:14px;padding:14px 12px 0;text-align:center'>" +
+        "<b style='font-size:14px;display:block'>" + T("&ldquo;Konvo&rdquo; Would Like to Send You Notifications") + "</b>" +
+        "<p style='font-size:11.5px;line-height:1.4;color:var(--mut);margin-top:5px'>" +
+        T("Notifications may include alerts, sounds, and icon badges. These can be configured in Settings.") + "</p>" +
+        "<div style='display:flex;border-top:1px solid rgba(120,120,128,.25);margin-top:12px'>" +
+        "<span style='flex:1;padding:11px 0;color:var(--accent);font-size:15.5px;" +
+        "border-right:1px solid rgba(120,120,128,.25)'>" + T("Don&rsquo;t Allow") + "</span>" +
+        "<span style='flex:1;padding:11px 0;color:var(--accent);font-weight:700;font-size:15.5px'>" + T("Allow") + "</span>" +
+        "</div></div></div>" +
+        "<svg width='34' height='40' viewBox='0 0 34 40' fill='none' stroke='var(--accent)' stroke-width='3'" +
+        " stroke-linecap='round' stroke-linejoin='round' style='margin:10px 0 0 62%'>" +
+        "<path d='M24 36 C 26 22, 22 12, 14 5'/><path d='M22 7 L14 5 L13 13'/></svg>" +
+        "<p style='text-align:center;font-size:13.5px;line-height:1.5;color:var(--mut);margin-top:14px'>" +
+        T("You can change this any time in Settings.") + "</p>" +
+        "</div><div class='imp-foot'>" +
+        "<button class='imp-btn' data-act='notify-go'>" + T("Turn on notifications") + "</button>" +
+        "<div class='imp-links'><span data-act='notify-skip'>" + T("Not now") + "</span></div></div>";
+    }
     // S12d (Aug 22): between "Ready to block" and the perks, the wall
     // clears and the user's own inbox shows through - the thing they came
     // for, recognisable, no mockup. The copy states only what the cage
@@ -2806,9 +2860,28 @@
       // in-inbox bar (trialBar) keeps the promise when the prompt is
       // declined. iOS prompts only if never asked.
       if (td) { try { localStorage.konvoTrialEnd = String(Date.now() + td * 86400000); } catch (e) {} }
-      storekit("notify", String(td), function (r) {
-        track("notify_answered", { granted: !!(r && r.granted), trial: !!td });
+      finishTd = td;
+      finishAfter = landing;
+      // The notifications page first (Sep 2), once per install; iOS only
+      // ever prompts once, so a second time through goes straight on.
+      if (notifyAsked()) { askNotify(); return; }
+      swap(notifyPage(td));
+    }
+    var finishTd = 0, finishAfter = null;
+    function notifyAsked() { try { return !!localStorage.konvoNotifyAsked; } catch (e) { return true; } }
+    function askNotify() {
+      try { localStorage.konvoNotifyAsked = "1"; } catch (e) {}
+      storekit("notify", String(finishTd), function (r) {
+        track("notify_answered", { granted: !!(r && r.granted), trial: !!finishTd });
       });
+      if (finishAfter) finishAfter();
+    }
+    function skipNotify() {
+      try { localStorage.konvoNotifyAsked = "1"; } catch (e) {}
+      track("notify_answered", { granted: false, trial: !!finishTd, skipped: true });
+      if (finishAfter) finishAfter();
+    }
+    function landing() {
       var moved = false;
       var fallback = setTimeout(function () {
         moved = true;
@@ -3100,6 +3173,10 @@
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(inviteLink()).then(copied, copied);
           } else { copied(); }
+        } else if (act === "notify-go") {
+          askNotify();
+        } else if (act === "notify-skip") {
+          skipNotify();
         } else if (act === "inv-later") {
           swap(successPage(lastBuy));
         } else if (act === "inv-send") {
@@ -3116,16 +3193,19 @@
               swap(inviteSent());
             });
         } else if (act === "inv-open") {
-          // A friend ending their claim finishes the sequence here; a payer
-          // coming from "You're in" already did.
+          // A friend ending their claim finishes the sequence here (with
+          // the notifications page once); a payer from "You're in" already did.
+          var fresh = false;
           try {
             if (!localStorage.konvoDone) {
+              fresh = true;
               track("onboarding_completed", { screen_id: "s15_invite" });
               localStorage.konvoDone = "1";
             }
           } catch (e) {}
-          if (!atInbox()) location.assign("/direct/inbox/");
-          dismiss();
+          var toInbox = function () { if (!atInbox()) location.assign("/direct/inbox/"); dismiss(); };
+          if (fresh && !notifyAsked()) { finishTd = 0; finishAfter = toInbox; swap(notifyPage(0)); return; }
+          toInbox();
         } else if (act === "restore") {
           // Sync then re-read entitlements; unlocking straight to the
           // inbox - a restorer is returning, not starting a trial.

@@ -48,6 +48,9 @@ function boot(path, html, opts = {}) {
   if (opts.welcomed) dom.window.localStorage.setItem('konvoWelcomed', '1');
   if (opts.betaFree) dom.window.localStorage.setItem('konvoBetaFree', '1');
   if (opts.seed) for (const k in opts.seed) dom.window.localStorage.setItem(k, opts.seed[k]);
+  // The notifications page (Sep 2) shows once per install; walks that are
+  // not about it model an install already asked. askNotify: true asks.
+  if (!opts.askNotify) dom.window.localStorage.setItem('konvoNotifyAsked', '1');
   if (opts.sseed) for (const k in opts.sseed) dom.window.sessionStorage.setItem(k, opts.sseed[k]);
   if (opts.patch) dom.window.localStorage.setItem('konvoPatch', JSON.stringify(opts.patch));
   if (opts.bridge) dom.window.webkit = { messageHandlers: { konvoStore: {
@@ -713,6 +716,69 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert.deepStrictEqual(reports, [['current_user', 403, false], ['user_info', 200, true]], 'each attempt reports its status and outcome');
   assert(!shdoc.querySelector("#im-pay [data-act='inv-send']").disabled && sh.window.localStorage.getItem('konvoHandle') === 'matt.three',
     'the second source wakes Send');
+
+  //     The notifications page (Sep 2, Matthew): after the money, before
+  //     "You're in", in the Screen Time page's style, once per install.
+  //     The system prompt fires only from its button; Not now records a
+  //     skip and moves on; a second walk on the same install never sees it.
+  const npPosted = [];
+  const npBridge = answer({ entitlements: { entitled: false }, products: LIVE_PRODUCTS,
+    purchase: { ok: true, entitled: true }, notify: { ok: true, granted: true },
+    cageStatus: { supported: true, authorized: false, picked: false, active: false } });
+  const np = boot('/direct/inbox/', '', { askNotify: true, bridge: (m, d) => { npPosted.push(m.cmd + ':' + (m.event || m.productId || '')); npBridge(m, d); } });
+  await settle(8400);
+  const npdoc = np.window.document;
+  const nptap = act => npdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new np.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  const nptext = () => npdoc.getElementById('im-pay').textContent;
+  nptap('keep'); await settle(450); nptap('impact'); await settle(450); nptap('pay'); await settle(450);
+  nptap('buy-y'); await settle(1300);
+  assert(/Get a heads up/.test(nptext()) && /New DMs, and a reminder 2 days before your trial ends\. Nothing else\./.test(nptext()),
+    'a purchase lands on the notifications page with its two lines');
+  assert(/Would Like to Send You Notifications/.test(nptext()) && /Allow/.test(nptext()) &&
+    /You can change this any time in Settings\./.test(nptext()),
+    'the page echoes the system dialog, like the Screen Time page');
+  assert(!npPosted.some(p => p.startsWith('notify:')), 'the system prompt waits for the button');
+  assert(!/You're in\./.test(nptext()), 'You\'re in comes after');
+  nptap('notify-go'); await settle(1200);
+  assert(npPosted.includes('notify:7'), 'Turn on notifications fires the prompt with the trial length');
+  assert(npPosted.includes('track:notify_answered'), 'the answer reports');
+  assert(/You're in\./.test(nptext()), 'then You\'re in');
+  assert.strictEqual(np.window.localStorage.getItem('konvoNotifyAsked'), '1', 'asked once, remembered');
+  //     Not now: a skip is recorded, and the sequence still ends.
+  const skipMsgs = [];
+  const sk = boot('/direct/inbox/', '', { askNotify: true, bridge: (m, d) => { skipMsgs.push(m); npBridge(m, d); } });
+  await settle(8400);
+  const skdoc = sk.window.document;
+  const sktap = act => skdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new sk.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  sktap('keep'); await settle(450); sktap('impact'); await settle(450); sktap('pay'); await settle(450);
+  sktap('pk-m'); sktap('buy-m'); await settle(1300);
+  assert(/New DMs\. Nothing else\./.test(skdoc.getElementById('im-pay').textContent), 'no trial: the line drops the reminder');
+  sktap('notify-skip'); await settle(1200);
+  assert(!skipMsgs.some(m => m.cmd === 'notify'), 'Not now never fires the prompt');
+  assert(skipMsgs.some(m => m.event === 'notify_answered' && m.props.granted === false && m.props.skipped === true),
+    'a skip reports as not granted, skipped');
+  assert(/You're in\./.test(skdoc.getElementById('im-pay').textContent), 'and the sequence still ends');
+  //     A friend ending a claim sees it once too, then the inbox.
+  const nfMsgs = [];
+  const nf = boot('/direct/inbox/', '', { askNotify: true, bridge: (m, d) => {
+    nfMsgs.push(m);
+    const replies = { entitlements: { entitled: false }, products: LIVE_PRODUCTS, notify: { ok: true, granted: true },
+      claim: { ok: true, shown: true, entitled: true, method: 'clipboard', expires: Date.now() + 3 * 86400000 } };
+    if (m.cmd in replies) d.window.__konvoStoreReply(m.id, replies[m.cmd]);
+  } });
+  await settle(8400);
+  const nfdoc = nf.window.document;
+  const nftap = act => nfdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new nf.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  nftap('keep'); await settle(450); nftap('impact'); await settle(450); nftap('pay'); await settle(1200);
+  nftap('inv-open'); await settle(450);
+  assert(/Get a heads up/.test(nfdoc.getElementById('im-pay').textContent) && /New DMs\. Nothing else\./.test(nfdoc.getElementById('im-pay').textContent),
+    'a friend gets the page once, without the trial line');
+  nftap('notify-go'); await settle(1200);
+  assert(nfMsgs.some(m => m.cmd === 'notify' && m.productId === '0') && !nfdoc.getElementById('im-pay'),
+    'the prompt fires and the wall goes: the inbox');
 
   //     The login count is a fact about the session, not the wall (Aug
   //     31): an entitled restorer is dismissed before the wall mounts,
