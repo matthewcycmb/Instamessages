@@ -22,10 +22,14 @@ export const recordClaim = (handle: string, friendRc: string, friendHandle: stri
     redis("HSET", `inv:claims:${h(handle)}`, friendRc, JSON.stringify({ handle: friendHandle, at: Date.now() })),
     redis("HSET", "inv:claimed", friendRc, h(handle)),
   ]);
-export const claimList = async (handle: string) =>
-  Object.values(((await redis("HGETALL", `inv:claims:${h(handle)}`)) as Record<string, string> | null) ?? {})
-    .map((v) => JSON.parse(v) as { handle: string; at: number })
-    .sort((a, b) => a.at - b.at);
+// Upstash's REST answers HGETALL as a flat [field, value, ...] array (Sep 2,
+// seen on production: the first join made status throw), so the values are
+// every second entry; an object form is handled too.
+export const claimList = async (handle: string) => {
+  const raw = (await redis("HGETALL", `inv:claims:${h(handle)}`)) as string[] | Record<string, string> | null;
+  const vals = Array.isArray(raw) ? raw.filter((_, i) => i % 2 === 1) : Object.values(raw ?? {});
+  return vals.map((v) => JSON.parse(v) as { handle: string; at: number }).sort((a, b) => a.at - b.at);
+};
 export const bumpTap = (handle: string) => redis("HINCRBY", "inv:taps", h(handle), 1);
 // Week 1 for the sender is granted once per RevenueCat id, however many
 // times the share sheet completes.
