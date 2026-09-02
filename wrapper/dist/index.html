@@ -291,6 +291,9 @@
   .dark .body { position: relative; z-index: 1 }
   .trust { display: flex; align-items: center; gap: 14px; font-size: 17px;
            font-weight: 600 }
+  /* The second privacy page (Sep 1) speaks in caps, Matthew's words; 14px
+     keeps the longest line on one line at 390pt. */
+  #s10b .trust { font-size: 14px; font-weight: 700; letter-spacing: 0.01em }
   .trust .ic { width: 34px; height: 34px; flex: none; border-radius: 10px;
                background: var(--icbg); display: inline-flex; align-items: center;
                justify-content: center; color: var(--accent) }
@@ -680,6 +683,39 @@
         </div>
       </div>
     </div>
+    <div class="foot"><button class="btn" data-next="s10b">Next</button></div>
+  </div>
+
+  <div class="screen" id="s10b">
+    <div class="body mid">
+      <span style="width: 44px; height: 44px; border-radius: 13px;
+            background: var(--icbg); display: inline-flex; align-items: center;
+            justify-content: center; margin-bottom: 20px;
+            color: var(--accent)"><svg width="23"
+            height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+      <h2 style="margin-bottom: 28px">Before you sign in.</h2>
+      <div style="display: flex; flex-direction: column; gap: 20px">
+        <div class="trust">
+          <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="3"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0"/></svg></span>
+          <span>WE NEVER SEE YOUR DMS</span>
+        </div>
+        <div class="trust">
+          <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><path d="m4.5 4.5 15 15"/></svg></span>
+          <span>WE DO NOT COLLECT YOUR PASSWORD</span>
+        </div>
+        <div class="trust">
+          <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.5 18.5h3"/></svg></span>
+          <span>YOUR DATA STAYS ON INSTAGRAM'S SERVERS</span>
+        </div>
+      </div>
+    </div>
     <div class="foot"><button class="btn" id="signin">Got it, sign in</button></div>
   </div>
 
@@ -771,6 +807,10 @@
       "Your password goes to Instagram, never to us": "Ton mot de passe va à Instagram, jamais à nous",
       "Your messages are never stored by us": "Tes messages ne sont jamais stockés chez nous",
       "Your session stays on this phone": "Ta session reste sur ce téléphone",
+      "Before you sign in.": "Avant de te connecter.",
+      "WE NEVER SEE YOUR DMS": "NOUS NE VOYONS JAMAIS TES DM",
+      "WE DO NOT COLLECT YOUR PASSWORD": "NOUS NE COLLECTONS PAS TON MOT DE PASSE",
+      "YOUR DATA STAYS ON INSTAGRAM'S SERVERS": "TES DONNÉES RESTENT SUR LES SERVEURS D'INSTAGRAM",
       "Got it, sign in": "Compris, me connecter",
       "Opening Instagram sign-in…": "Ouverture de la connexion Instagram…",
       "8 h +": "8 h +",
@@ -836,6 +876,10 @@
       "Your password goes to Instagram, never to us": "密碼只會送到 Instagram，不會經過我們",
       "Your messages are never stored by us": "我們不會儲存你的訊息",
       "Your session stays on this phone": "登入狀態只留在這支手機",
+      "Before you sign in.": "登入之前。",
+      "WE NEVER SEE YOUR DMS": "我們永遠看不到你的私訊",
+      "WE DO NOT COLLECT YOUR PASSWORD": "我們不會收集你的密碼",
+      "YOUR DATA STAYS ON INSTAGRAM'S SERVERS": "你的資料只留在 Instagram 的伺服器",
       "Got it, sign in": "明白了，登入",
       "Opening Instagram sign-in…": "正在開啟 Instagram 登入…",
       "8 h +": "8 小時+",
@@ -901,6 +945,10 @@
       "Your password goes to Instagram, never to us": "비밀번호는 인스타그램으로만 가고, 저희에겐 오지 않아요",
       "Your messages are never stored by us": "메시지는 저희 서버에 저장되지 않아요",
       "Your session stays on this phone": "로그인 세션은 이 폰에만 남아요",
+      "Before you sign in.": "로그인하기 전에.",
+      "WE NEVER SEE YOUR DMS": "저희는 DM을 절대 보지 않아요",
+      "WE DO NOT COLLECT YOUR PASSWORD": "비밀번호를 수집하지 않아요",
+      "YOUR DATA STAYS ON INSTAGRAM'S SERVERS": "데이터는 인스타그램 서버에만 있어요",
       "Got it, sign in": "알겠어요, 로그인",
       "Opening Instagram sign-in…": "인스타그램 로그인 여는 중…",
       "8 h +": "8시간+",

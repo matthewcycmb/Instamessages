@@ -6,7 +6,8 @@ const secret = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_T
 
 export const storeConfigured = () => Boolean(url && secret);
 
-async function redis(...cmd: (string | number)[]): Promise<unknown> {
+// Shared with the invite loop (lib/invite.ts) since Sep 1.
+export async function redis(...cmd: (string | number)[]): Promise<unknown> {
   const r = await fetch(url!, {
     method: "POST",
     headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json" },

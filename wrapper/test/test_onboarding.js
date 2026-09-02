@@ -257,6 +257,17 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(!d.window.localStorage.konvoOnboarded,
     'the flag must not exist before the login handoff');
   await settle(1100);
+  //     Two privacy pages since Sep 1: the first as it always was, then
+  //     the caps lines (Matthew's words) right before the sign-in.
+  tap('#s10 [data-next]');
+  await settle(400);
+  assert(doc.getElementById('s10b').classList.contains('on'), 'privacy hands to the caps page');
+  assert(/WE NEVER SEE YOUR DMS/.test(doc.getElementById('s10b').textContent) &&
+    /YOUR DATA STAYS ON INSTAGRAM'S SERVERS/.test(doc.getElementById('s10b').textContent),
+    'the caps page carries the three lines');
+  assert(/Your session stays on this phone/.test(doc.getElementById('s10').textContent),
+    'the first privacy page keeps its own rows');
+  await settle(1100);
   tap('#signin');                               // Got it, sign in
   assert.strictEqual(d.window.localStorage.konvoOnboarded, '1',
     'S10 must set the once-per-install flag at the handoff, not at the paywall');
@@ -321,6 +332,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   otap('#s8c [data-next]');
   await settle(1600);                            // the proof reveal's dwell
   otap('#s9t [data-next]');
+  await settle(1100);
+  otap('#s10 [data-next]');
   await settle(1100);
   otap('#signin');
   assert(one.nav[0].startsWith(INBOX + '#konvo='),

@@ -48,6 +48,7 @@ function boot(path, html, opts = {}) {
   if (opts.welcomed) dom.window.localStorage.setItem('konvoWelcomed', '1');
   if (opts.betaFree) dom.window.localStorage.setItem('konvoBetaFree', '1');
   if (opts.seed) for (const k in opts.seed) dom.window.localStorage.setItem(k, opts.seed[k]);
+  if (opts.sseed) for (const k in opts.sseed) dom.window.sessionStorage.setItem(k, opts.sseed[k]);
   if (opts.patch) dom.window.localStorage.setItem('konvoPatch', JSON.stringify(opts.patch));
   if (opts.bridge) dom.window.webkit = { messageHandlers: { konvoStore: {
     postMessage: m => opts.bridge(m, dom) } } };
@@ -558,6 +559,98 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(posted.includes('track:login_succeeded') &&
     posted.includes('track:paywall_viewed'),
     'the funnel events must reach the bridge');
+
+  //     The invite loop (Sep 1): the paywall's close lands on the invite
+  //     page, never a dead end; Send is the share sheet through the bridge;
+  //     the week is granted on completion; a friend claims at the paywall
+  //     when the clipboard holds a link. The page reads like the rest of
+  //     the sequence: Matthew's two lines, the button, Not now, Restore.
+  const invPosted = [], invMsgs = [];
+  const invBridge = (m, d) => {
+    invMsgs.push(m);
+    invPosted.push(m.cmd + ':' + (m.event || m.productId || ''));
+    const replies = { entitlements: { entitled: false }, products: LIVE_PRODUCTS,
+      claim: { ok: true, shown: false, entitled: false },
+      invite: { ok: true, sent: true, expires: Date.now() + 7 * 86400000 },
+      inviteStatus: { ok: true, handle: 'matt', claims: 1, cap: 3, expires: Date.now() + 14 * 86400000 } };
+    if (m.cmd in replies) d.window.__konvoStoreReply(m.id, replies[m.cmd]);
+  };
+  const inv = boot('/direct/inbox/', '', { seed: { konvoHandle: 'matt' }, bridge: invBridge });
+  await settle(8400);
+  const idoc = inv.window.document;
+  const itap = act => idoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new inv.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  const ipage = () => idoc.getElementById('im-pay').textContent;
+  itap('keep'); await settle(450); itap('impact'); await settle(450); itap('pay'); await settle(450);
+  assert(idoc.querySelector("#im-pay .imp-close.inv-x[data-act='x']"), 'the paywall has a plain close');
+  assert.strictEqual(invPosted.filter(p => p === 'claim:auto').length, 1,
+    'the first price paint asks once whether the clipboard holds an invite');
+  assert(!/Have an invite/.test(ipage()), 'no invite link on the price page (Matthew, Sep 1)');
+  itap('x'); await settle(450);
+  assert(/Send Konvo to 3 friends, and get a free week/.test(ipage()) &&
+    /Every friend who joins also get a free week too!/.test(ipage()),
+    'the close lands on the invite page with Matthew\'s two lines');
+  assert(!idoc.querySelector('#im-pay .inv-text') && !/Opens the share sheet/.test(ipage()) &&
+    !/No card needed/.test(ipage()), 'no message card, no fine print, no eyebrow');
+  assert(invPosted.includes('track:paywall_closed') &&
+    invMsgs.some(m => m.event === 'invite_page_viewed' && m.props.via === 'paywall_x'),
+    'the close is counted, and the page view says where from');
+  assert(!/—/.test(ipage()), 'no em dashes on the invite page');
+  itap('inv-later'); await settle(450);
+  assert(/US\$39\.99\/year/.test(ipage()), 'Not now returns to the price cards');
+  itap('x'); await settle(450);
+  assert(idoc.querySelector("#im-pay [data-act='restore']"), 'Restore stays reachable from the invite page');
+  assert(!idoc.querySelector("#im-pay [data-act='inv-send']").disabled, 'Send is live once the handle is known');
+  itap('inv-send'); await settle(450);
+  const sendArg = JSON.parse(invMsgs.find(m => m.cmd === 'invite').productId);
+  assert.strictEqual(sendArg.url, 'https://konvoinstall.com/i/matt');
+  assert.strictEqual(sendArg.handle, 'matt');
+  assert(/^not an ad lol/.test(sendArg.text) && sendArg.text.endsWith('konvoinstall.com/i/matt') && sendArg.draft === 0,
+    'the share sheet gets the first draft, link last, with the sender\'s handle');
+  assert(invMsgs.some(m => m.event === 'invite_sent' && m.props.draft === 0), 'invite_sent carries the draft index only');
+  assert(!invMsgs.some(m => m.cmd === 'track' && /not an ad|kinda deleted|remember we said/.test(JSON.stringify(m.props))),
+    'no draft text rides an event');
+  assert(/Your free week is on\./.test(ipage()) && /Nothing to cancel, nothing charges\./.test(ipage()),
+    'a completed share sheet paints the success state');
+  await settle(300);
+  assert(/1 of 3/.test(ipage()) && /\+7 days/.test(ipage()), 'the meter reads the status from the bridge');
+  itap('inv-open'); await settle(1200);
+  assert(invMsgs.some(m => m.event === 'onboarding_completed' && m.props.screen_id === 's15_invite'),
+    'Open my messages ends the sequence');
+  //     A friend at the paywall with a link on the clipboard: the bridge
+  //     shows the claim sheet, and an entitled answer ends the sequence
+  //     like a purchase.
+  const claimMsgs = [];
+  const claimBridge = (m, d) => {
+    claimMsgs.push(m);
+    const replies = { entitlements: { entitled: false }, products: LIVE_PRODUCTS,
+      claim: { ok: true, shown: true, entitled: true, method: 'clipboard' } };
+    if (m.cmd in replies) d.window.__konvoStoreReply(m.id, replies[m.cmd]);
+  };
+  const clm = boot('/direct/inbox/', '', { bridge: claimBridge });
+  await settle(8400);
+  const cldoc = clm.window.document;
+  const cltap = act => cldoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new clm.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  cltap('keep'); await settle(450); cltap('impact'); await settle(450); cltap('pay'); await settle(1200);
+  assert(claimMsgs.some(m => m.cmd === 'claim' && m.productId === 'auto'),
+    'the price paint asks the bridge about the clipboard');
+  assert(claimMsgs.some(m => m.event === 'invite_claimed' && m.props.method === 'clipboard'),
+    'a claim reports its method');
+  assert(claimMsgs.some(m => m.event === 'onboarding_completed'),
+    'a claimed week ends the sequence like a purchase');
+  //     A sender whose handle is not known yet cannot send a broken link:
+  //     Send waits, and says so.
+  const noHandle = boot('/direct/inbox/', '', { bridge: invBridge });
+  await settle(8400);
+  const nhdoc = noHandle.window.document;
+  const nhtap = act => nhdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new noHandle.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  nhtap('keep'); await settle(450); nhtap('impact'); await settle(450); nhtap('pay'); await settle(450);
+  nhtap('x'); await settle(450);
+  const nsend = nhdoc.querySelector("#im-pay [data-act='inv-send']");
+  assert(nsend && nsend.disabled && /Loading your username/.test(nsend.textContent),
+    'no handle yet: Send waits rather than sending a broken link');
 
   //     The login count is a fact about the session, not the wall (Aug
   //     31): an entitled restorer is dismissed before the wall mounts,
@@ -1072,6 +1165,107 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(1200);
   assert(!cookieEvents.includes('login_error'),
     'a dialog on an untouched login page (cookie consent) must not report as a login error');
+  //     The sign-in sheet (Sep 1): Safari's in-app sheet, drawn by Konvo
+  //     around Instagram's own page so the session stays in this webview.
+  //     Strip bound to the live URL, footer says whose page it is, Done
+  //     reveals Konvo's own page, the reset route has a way back, and the
+  //     black band above is native (appearance "black"). Nothing typed
+  //     leaves the page through any of it.
+  const sheetMsgs = [];
+  const sheetPage = boot('/accounts/login/', loginHtml, { loggedOut: true,
+    bridge: m => sheetMsgs.push(m) });
+  const sdoc = sheetPage.window.document;
+  //     The rise is a class for the first 700ms of the document.
+  await settle(100);
+  assert(sdoc.documentElement.classList.contains('im-rise'), 'the first arrival rises like a presented sheet');
+  await settle(800);
+  assert(!sdoc.documentElement.classList.contains('im-rise'), 'the rise class leaves once the animation is over');
+  const sclick = sel => sdoc.querySelector(sel).dispatchEvent(
+    new sheetPage.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  const acts = () => sheetMsgs.filter(m => m.cmd === 'track' && m.event === 'login_sheet').map(m => m.props.act);
+  const looks = () => sheetMsgs.filter(m => m.cmd === 'appearance').map(m => m.productId);
+  assert(sdoc.getElementById('im-sheet'), 'a signed-out login page gets the sheet');
+  assert(sdoc.documentElement.classList.contains('im-sheet'), 'the page is pushed down under the strip');
+  assert.strictEqual(sdoc.querySelector('#im-sheet .ims-host').textContent, 'instagram.com',
+    'the strip shows the real host');
+  assert.strictEqual(sdoc.querySelector('#im-sheet .ims-path').textContent, '/accounts/login/',
+    'the strip shows the real path');
+  assert(/Instagram's own page/.test(sdoc.getElementById('im-sheet-foot').textContent) &&
+    /Konvo never reads your password/.test(sdoc.getElementById('im-sheet-foot').textContent),
+    'the footer says whose page it is');
+  assert.deepStrictEqual(looks(), ['black'], 'the sheet asks native for the black band once');
+  //     No Done and no Konvo page behind the sheet (Matthew, build 99 on
+  //     device: "no idea why this is here"); Instagram's own Forgot
+  //     password is the reset route.
+  assert(!sdoc.querySelector('#im-sheet [data-act="done"]') && !sdoc.getElementById('im-connect'),
+    'no Done button and nothing behind the sheet');
+  assert(sdoc.body.contains(sdoc.getElementById('im-sheet')) && sdoc.body.contains(sdoc.getElementById('im-sheet-foot')),
+    'the strip and footer live inside the body');
+  assert(/@keyframes ims-rise/.test([...sdoc.querySelectorAll('style')].map(s => s.textContent).join('')) &&
+    /prefers-reduced-motion:reduce/.test([...sdoc.querySelectorAll('style')].map(s => s.textContent).join('')),
+    'the rise is a CSS animation, gated on the motion preference');
+  sclick('[data-act="reload"]');
+  assert(sheetPage.went.includes('reload'), 'the reload button reloads Instagram\'s page');
+  assert.deepStrictEqual(acts(), ['reload'], 'every sheet action reports as one event with an enum');
+  assert(!/alex\.chen|hunter2/.test(JSON.stringify(sheetMsgs)),
+    'the sheet never sends what is typed');
+  //     The key tip is anchored to the page, not the viewport (build 99
+  //     on device: the keyboard scrolled the form up under a fixed tip).
+  await settle(4300);
+  assert(/position:absolute/.test((sdoc.getElementById('im-keytip') || {}).getAttribute('style') || ''),
+    'the key tip scrolls with Instagram\'s page');
+  //     The session appearing mid-page (Instagram logs in without a full
+  //     load) takes the sheet down and hands the look to the phone.
+  sdoc.cookie = 'ds_user_id=1234567';
+  await settle(900);
+  assert(!sdoc.getElementById('im-sheet') && !sdoc.documentElement.classList.contains('im-sheet'),
+    'a session cookie takes the sheet down');
+  assert.deepStrictEqual(looks(), ['black', 'auto'], 'the band goes with the sheet');
+  //     The reset page: the footer changes its line, and coming back to
+  //     the app (from the email) offers the way back to sign in.
+  const resetMsgs = [];
+  const resetPage = boot('/accounts/password/reset/', '<input name="email_or_username">',
+    { loggedOut: true, bridge: m => resetMsgs.push(m) });
+  await settle(900);
+  const rsdoc = resetPage.window.document;
+  assert(/Reset it here, then come back and sign in\./.test(rsdoc.getElementById('im-sheet-foot').textContent),
+    'the reset page footer says what to do');
+  assert(resetMsgs.some(m => m.event === 'login_step' && m.props.stage === 'reset'),
+    'arriving on the reset page is a login step');
+  assert(!rsdoc.getElementById('im-reset-bar'), 'no way-back bar until the app comes back');
+  Object.defineProperty(rsdoc, 'visibilityState', { value: 'hidden', configurable: true });
+  rsdoc.dispatchEvent(new resetPage.window.Event('visibilitychange'));
+  Object.defineProperty(rsdoc, 'visibilityState', { value: 'visible', configurable: true });
+  rsdoc.dispatchEvent(new resetPage.window.Event('visibilitychange'));
+  assert(rsdoc.getElementById('im-reset-bar') && /Reset done\?/.test(rsdoc.getElementById('im-reset-bar').textContent),
+    'coming back to the reset page offers the way back');
+  rsdoc.querySelector('#im-reset-bar [data-act="reset_return"]').dispatchEvent(
+    new resetPage.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  assert(resetPage.went.includes('/accounts/login/'), 'Sign in goes back to the login');
+  assert(resetMsgs.some(m => m.event === 'login_sheet' && m.props.act === 'reset_return'),
+    'the way back reports');
+  //     Not for a signed-in visit, not on a Mac, not on the inbox; and a
+  //     new document with a session clears the band the last one asked for.
+  const signedSheet = boot('/accounts/login/', loginHtml, { bridge: () => {} });
+  const macSheet = boot('/accounts/login/', loginHtml, { loggedOut: true, ua: DESKTOP, bridge: () => {} });
+  const inboxSheet = boot('/direct/inbox/', '', { bridge: () => {} });
+  const afterMsgs = [];
+  const afterSheet = boot('/direct/inbox/', '', { sseed: { konvoSheet: '1' }, bridge: m => afterMsgs.push(m) });
+  //     The pages after the first (reset, challenge) are the same sheet,
+  //     already up: no second rise.
+  const secondPage = boot('/accounts/password/reset/', '<input name="email_or_username">',
+    { loggedOut: true, sseed: { konvoSheet: '1' }, bridge: () => {} });
+  await settle(900);
+  assert(secondPage.window.document.getElementById('im-sheet') &&
+    !secondPage.window.document.documentElement.classList.contains('im-rise'),
+    'the second page of the chain keeps the sheet up without rising again');
+  assert(!signedSheet.window.document.getElementById('im-sheet'), 'no sheet over a signed-in visit');
+  assert(!macSheet.window.document.getElementById('im-sheet'), 'no sheet on the Mac');
+  assert(!inboxSheet.window.document.getElementById('im-sheet'), 'no sheet on the inbox');
+  assert(afterMsgs.some(m => m.cmd === 'appearance' && m.productId === 'auto') &&
+    !afterSheet.window.sessionStorage.getItem('konvoSheet'),
+    'the document after the login clears the band');
+
   //     Keychain AutoFill (Aug 23): the sweep names the fields for iOS.
   //     Instagram ships them as autocomplete="on", which the keyboard
   //     ignores; username / current-password is what surfaces the saved

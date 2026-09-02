@@ -18,7 +18,7 @@ const TABLE = {
   bg:            { arg: 'CSS color for the native letterbox', replies: [] },
   haptic:        { arg: 'haptic kind', replies: [] },
   open:          { arg: 'external URL for the system browser', replies: [] },
-  appearance:    { arg: '"light" | "dark" | "blue" | "auto"', replies: [] },
+  appearance:    { arg: '"light" | "dark" | "blue" | "black" (sign-in sheet band, Sep 1) | "auto"', replies: [] },
   go:            { arg: 'in-app URL navigated natively (universal-link trap)', replies: [] },
   review:        { arg: 'unused (the system rating sheet; iOS decides if it shows)', replies: [] },
   feedback:      { arg: 'unused (the UserJot board as a native sheet)', replies: ['ok'] },
@@ -43,6 +43,12 @@ const TABLE = {
                    replies: ['ok', 'result', 'entitled', 'productId'] },
   notify:        { arg: 'trial length in days (schedules the reminder); empty = permission only',
                    replies: ['ok', 'granted'] },
+  invite:        { arg: 'JSON {handle, text, url, draft}: the share sheet, week 1 on completion (Sep 1)',
+                   replies: ['ok', 'sent', 'expires'] },
+  claim:         { arg: '"auto" (the claim sheet only if the clipboard holds a link) | "ask" (always)',
+                   replies: ['ok', 'shown', 'entitled', 'expires', 'method'] },
+  inviteStatus:  { arg: 'unused (the sender\'s meter from konvoinstall.com)',
+                   replies: ['ok', 'handle', 'claims', 'cap', 'expires'] },
 };
 
 const fs = require('fs');

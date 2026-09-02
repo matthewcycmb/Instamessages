@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Konvo Invite Page</title>
+<style>
+  /* Mockup only. The page that replaces the hard stop after ✕ on the paywall.
+     Open on a phone for the real size, or on a desktop for the framed view. */
+  :root { --bg: #000; --ink: #f5f5f7; --mute: #8e8e93; --blue: #0a84ff; --card: #1c1c1e; --line: #2c2c2e; --green: #30d158; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #1c1c1e; font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; }
+  .stage { min-height: 100%; display: grid; place-items: center; padding: 24px; }
+  .phone { position: relative; width: 390px; height: 844px; border-radius: 48px; overflow: hidden; background: var(--bg); color: var(--ink); box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 10px #2c2c2e; }
+  @media (max-width: 480px) { .stage { padding: 0; } .phone { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; } }
+
+  .page { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 64px 24px 40px; transition: transform .35s cubic-bezier(.32,.72,0,1), filter .35s; }
+  .page.recede { transform: scale(.96); filter: brightness(.5); }
+  .top { display: flex; justify-content: space-between; align-items: center; font-size: 15px; color: var(--mute); }
+  .top .wordmark { color: var(--ink); font-weight: 700; }
+  .eyebrow { margin-top: 40px; font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--green); }
+  h1 { font-size: 32px; line-height: 1.12; letter-spacing: -.02em; font-weight: 700; margin: 10px 0 12px; text-wrap: balance; }
+  .sub { font-size: 17px; line-height: 1.4; color: var(--mute); margin: 0 0 28px; }
+  .sub b { color: var(--ink); font-weight: 500; }
+
+  .msg { background: var(--card); border-radius: 18px; padding: 14px 16px 12px; }
+  .msg .lbl { display: flex; justify-content: space-between; font-size: 12px; color: var(--mute); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
+  .msg .lbl span:last-child { color: var(--blue); text-transform: none; letter-spacing: 0; font-size: 14px; }
+  .msg p { margin: 0; font-size: 16px; line-height: 1.4; min-height: 90px; outline: none; }
+  .msg p a { color: var(--blue); text-decoration: none; }
+  .dots { display: flex; justify-content: center; gap: 6px; margin: 12px 0 0; }
+  .dots i { width: 6px; height: 6px; border-radius: 3px; background: var(--line); }
+  .dots i.on { background: var(--ink); width: 16px; }
+  .hint { text-align: center; font-size: 13px; color: var(--mute); margin-top: 8px; }
+
+  .cta { display: block; width: 100%; margin-top: auto; padding: 17px; border: 0; border-radius: 14px; background: var(--blue); color: #fff; font: 600 17px/1 -apple-system, system-ui, sans-serif; }
+  .cta:active { filter: brightness(.9); }
+  .fine { font-size: 13px; line-height: 1.4; color: var(--mute); text-align: center; margin: 12px 0 0; }
+  .links { display: flex; justify-content: center; gap: 28px; margin-top: 18px; font-size: 15px; }
+  .links a { color: var(--mute); text-decoration: none; }
+
+  /* Success state */
+  .done { display: none; }
+  .page.sent .ask { display: none; }
+  .page.sent .done { display: flex; flex-direction: column; flex: 1; }
+  .check { width: 64px; height: 64px; border-radius: 50%; background: var(--green); display: grid; place-items: center; margin: 40px 0 20px; font-size: 32px; color: #000; }
+  .meter { background: var(--card); border-radius: 18px; padding: 16px; margin-top: 24px; }
+  .meter .row { display: flex; justify-content: space-between; font-size: 15px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .meter .row:last-child { border: 0; }
+  .meter .row span:last-child { color: var(--mute); font-variant-numeric: tabular-nums; }
+
+  /* iOS share sheet, mocked */
+  .dim { position: absolute; inset: 0; background: rgba(0,0,0,.4); opacity: 0; pointer-events: none; transition: opacity .3s; }
+  .dim.on { opacity: 1; pointer-events: auto; }
+  .share { position: absolute; left: 0; right: 0; bottom: 0; background: #2c2c2e; border-radius: 12px 12px 0 0; transform: translateY(105%); transition: transform .35s cubic-bezier(.32,.72,0,1); padding: 0 0 calc(24px + env(safe-area-inset-bottom)); }
+  .share.open { transform: translateY(0); }
+  .share .head { display: flex; align-items: center; gap: 12px; padding: 16px; border-bottom: 1px solid #3a3a3c; }
+  .share .head .ico { width: 44px; height: 44px; border-radius: 10px; background: var(--blue); display: grid; place-items: center; font-weight: 700; }
+  .share .head small { display: block; color: var(--mute); font-size: 13px; margin-top: 2px; max-width: 250px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .apps { display: flex; gap: 18px; padding: 18px 16px 6px; overflow-x: auto; }
+  .app { text-align: center; font-size: 11px; color: var(--ink); flex: 0 0 auto; width: 64px; }
+  .app i { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 14px; margin: 0 auto 6px; font-style: normal; font-size: 26px; }
+  .actions { margin: 10px 16px 0; background: #3a3a3c; border-radius: 12px; }
+  .actions div { padding: 14px 16px; border-bottom: 1px solid #48484a; font-size: 16px; }
+  .actions div:last-child { border: 0; }
+  @media (prefers-reduced-motion: reduce) { .page, .share, .dim { transition: none; } }
+</style>
+</head>
+<body>
+<div class="stage">
+<div class="phone">
+
+  <section class="page" id="page">
+    <div class="top"><span class="wordmark">Konvo</span><span>After ✕ on the paywall</span></div>
+
+    <div class="ask" style="display:contents">
+      <div class="eyebrow">No card needed</div>
+      <h1>Get a free week. Send Konvo to three friends.</h1>
+      <p class="sub">Every friend who joins adds another week. <b>They get a free week too.</b></p>
+
+      <div class="msg">
+        <div class="lbl"><span>Your message</span><span id="shuffle">Try another</span></div>
+        <p id="text" contenteditable="true" spellcheck="false"></p>
+        <div class="dots" id="dots"><i class="on"></i><i></i><i></i></div>
+      </div>
+      <div class="hint">Tap the text to make it yours.</div>
+
+      <button class="cta" id="send">Send to 3 friends</button>
+      <p class="fine">Opens the share sheet. Pick anyone. Nothing sends until you tap send.</p>
+      <div class="links"><a href="#" id="later">Not now</a><a href="#">Restore purchase</a></div>
+    </div>
+
+    <div class="done">
+      <div class="check">&#x2713;</div>
+      <h1>Your free week is on.</h1>
+      <p class="sub">Ends <b>Mon 8 Sep</b>. Nothing to cancel, nothing charges.</p>
+      <div class="meter">
+        <div class="row"><span>Friends who joined</span><span>0 of 3</span></div>
+        <div class="row"><span>Each one adds</span><span>+7 days</span></div>
+      </div>
+      <button class="cta" id="open">Open my messages</button>
+      <p class="fine">Tap to replay the mockup.</p>
+    </div>
+  </section>
+
+  <div class="dim" id="dim"></div>
+  <section class="share" id="share" aria-label="Share">
+    <div class="head"><div class="ico">K</div><div><div>konvo.app/i/matt</div><small id="preview"></small></div></div>
+    <div class="apps">
+      <div class="app"><i style="background:#3cc84a">&#x1F4AC;</i>Messages</div>
+      <div class="app"><i style="background:linear-gradient(45deg,#f9ce34,#ee2a7b,#6228d7)">&#x25CE;</i>Instagram</div>
+      <div class="app"><i style="background:#25d366">&#x260E;</i>WhatsApp</div>
+      <div class="app"><i style="background:#0a84ff">&#x2708;</i>Telegram</div>
+      <div class="app"><i style="background:#48484a">&#x2026;</i>More</div>
+    </div>
+    <div class="actions"><div>Copy</div><div>Add to Reading List</div></div>
+  </section>
+
+</div>
+</div>
+
+<script>
+  // Mock wiring. In the app: "send" is one bridge command that opens the real
+  // share sheet with the text and link; the week is granted on the sheet's
+  // completion callback; each friend's second tap on the link adds a week.
+  var drafts = [
+    "not an ad lol but i've been using this app called konvo, it's just instagram dms with no feed or reels. been on my phone way less. you get a free week off my link if u want: konvo.app/i/matt",
+    "i kinda deleted instagram. using konvo now, it only shows your dms so i can still text everyone without the feed. free week if you use this: konvo.app/i/matt",
+    "remember we said we'd get off instagram. this app gives you the dms and nothing else. free for a week with my link: konvo.app/i/matt"
+  ];
+  var i = 0, text = document.getElementById('text'), dots = document.getElementById('dots').children;
+  var page = document.getElementById('page'), share = document.getElementById('share'), dim = document.getElementById('dim');
+  function show(n) {
+    i = n; text.textContent = drafts[n];
+    for (var k = 0; k < dots.length; k++) dots[k].className = k === n ? 'on' : '';
+  }
+  show(0);
+  document.getElementById('shuffle').onclick = function () { show((i + 1) % drafts.length); };
+  document.getElementById('send').onclick = function () {
+    document.getElementById('preview').textContent = text.textContent;
+    page.classList.add('recede'); dim.classList.add('on'); share.classList.add('open');
+  };
+  function closeShare(sent) {
+    dim.classList.remove('on'); share.classList.remove('open'); page.classList.remove('recede');
+    if (sent) setTimeout(function () { page.classList.add('sent'); }, 300);
+  }
+  dim.onclick = function () { closeShare(false); };
+  share.querySelectorAll('.app, .actions div').forEach(function (el) { el.onclick = function () { closeShare(true); }; });
+  document.getElementById('open').onclick = function () { page.classList.remove('sent'); show(0); };
+  document.getElementById('later').onclick = function (e) { e.preventDefault(); };
+  console.assert(!page.classList.contains('sent') && !share.classList.contains('open'), 'mock starts on the ask state');
+</script>
+</body>
+</html>

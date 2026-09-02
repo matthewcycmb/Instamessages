@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Konvo Login Sheet</title>
+<style>
+  /* Mockup only. Nothing here ships; it shows the feeling of the sign-in sheet.
+     Open on a phone for the real size, or on a desktop for the framed view. */
+  :root {
+    --konvo-bg: #000;
+    --konvo-ink: #f5f5f7;
+    --konvo-mute: #8e8e93;
+    --konvo-blue: #0a84ff;
+    --sheet-bg: #fff;
+    --chrome: #f7f7f7;
+    --chrome-line: #d9d9de;
+    --ig-ink: #000;
+    --ig-mute: #737373;
+    --ig-line: #dbdbdb;
+    --ig-field: #fafafa;
+    --ig-blue: #0095f6;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: #1c1c1e; font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; }
+
+  /* Phone frame on desktop; full viewport on a phone. */
+  .stage { min-height: 100%; display: grid; place-items: center; padding: 24px; }
+  .phone { position: relative; width: 390px; height: 844px; border-radius: 48px; overflow: hidden; background: var(--konvo-bg); box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 0 10px #2c2c2e; }
+  @media (max-width: 480px) {
+    .stage { padding: 0; }
+    .phone { width: 100vw; height: 100vh; height: 100dvh; border-radius: 0; box-shadow: none; }
+  }
+
+  /* Konvo screen (what exists today, before the sign-in tap) */
+  .konvo { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 72px 28px 44px; color: var(--konvo-ink); transition: transform .45s cubic-bezier(.32,.72,0,1), border-radius .45s, filter .45s; transform-origin: 50% 0; }
+  .konvo.recede { transform: translateY(18px) scale(.93); border-radius: 12px; filter: brightness(.55); }
+  .wordmark { font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
+  .konvo h1 { font-size: 34px; line-height: 1.12; letter-spacing: -.02em; font-weight: 700; margin: auto 0 12px; text-wrap: balance; }
+  .konvo p { font-size: 17px; line-height: 1.4; color: var(--konvo-mute); margin: 0 0 32px; }
+  .cta { display: block; width: 100%; padding: 17px; border: 0; border-radius: 14px; background: var(--konvo-blue); color: #fff; font: 600 17px/1 -apple-system, system-ui, sans-serif; }
+  .cta:active { filter: brightness(.9); }
+  .fine { font-size: 13px; line-height: 1.4; color: var(--konvo-mute); text-align: center; margin: 14px 0 0; }
+  .fine b { color: var(--konvo-ink); font-weight: 500; }
+  .konvo .done { display: none; }
+  .konvo.signed .done { display: block; }
+  .konvo.signed .pre { display: none; }
+  .avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg,#f9ce34,#ee2a7b,#6228d7); margin-bottom: 20px; }
+
+  /* The sheet: a card Konvo owns. Chrome on top, Instagram's real page inside. */
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 93%; background: var(--sheet-bg); border-radius: 12px 12px 0 0; transform: translateY(105%); transition: transform .45s cubic-bezier(.32,.72,0,1); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -8px 40px rgba(0,0,0,.4); }
+  .sheet.open { transform: translateY(0); }
+  .grabber { width: 36px; height: 5px; border-radius: 3px; background: #c7c7cc; margin: 6px auto 0; }
+  .bar { display: grid; grid-template-columns: 64px 1fr 64px; align-items: center; height: 46px; padding: 0 10px; background: var(--chrome); border-bottom: 1px solid var(--chrome-line); }
+  .bar button { border: 0; background: none; color: var(--konvo-blue); font: 400 17px/1 -apple-system, system-ui, sans-serif; padding: 8px 6px; text-align: left; }
+  .bar .reload { text-align: right; font-size: 19px; }
+  .url { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 15px; color: #1c1c1e; font-variant-numeric: tabular-nums; }
+  .url .lock { width: 11px; height: 13px; }
+  .url .path { color: #8e8e93; }
+  .sheet-foot { height: 38px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: #6b6b70; background: var(--chrome); border-top: 1px solid var(--chrome-line); padding-bottom: env(safe-area-inset-bottom); }
+
+  /* Instagram's phone login page, mocked. In the app this is instagram.com itself. */
+  .ig { flex: 1; overflow: auto; padding: 22px 26px 24px; display: flex; flex-direction: column; color: var(--ig-ink); }
+  .ig .lang { text-align: center; font-size: 12px; color: var(--ig-mute); }
+  .ig .logo { font: 700 30px/1 "Billabong", "Brush Script MT", "Segoe Script", cursive; text-align: center; margin: 44px 0 40px; letter-spacing: .01em; }
+  .field { position: relative; margin-bottom: 10px; }
+  .field input { width: 100%; height: 52px; padding: 18px 14px 4px; border: 1px solid var(--ig-line); border-radius: 12px; background: var(--ig-field); font-size: 15px; color: var(--ig-ink); outline: none; }
+  .field label { position: absolute; left: 14px; top: 16px; font-size: 14px; color: var(--ig-mute); pointer-events: none; transition: .15s; }
+  .field input:focus + label, .field input:not(:placeholder-shown) + label { top: 7px; font-size: 11px; }
+  .field input:focus { border-color: #a8a8a8; }
+  .login { width: 100%; height: 44px; border: 0; border-radius: 22px; background: var(--ig-blue); color: #fff; font: 600 15px/1 -apple-system, system-ui, sans-serif; margin-top: 8px; opacity: .45; }
+  .login.ready { opacity: 1; }
+  .forgot { text-align: center; font-size: 14px; margin: 22px 0 0; }
+  .create { margin-top: auto; height: 44px; border: 1px solid var(--ig-blue); border-radius: 22px; background: none; color: var(--ig-blue); font: 600 15px/1 -apple-system, system-ui, sans-serif; }
+  .meta { text-align: center; font-size: 12px; color: var(--ig-mute); margin-top: 18px; letter-spacing: .02em; font-weight: 600; }
+
+  /* Keychain suggestion above the keyboard (what the Aug 23 fix makes appear) */
+  .quicktype { position: absolute; left: 0; right: 0; bottom: 0; transform: translateY(110%); transition: transform .25s; background: #d1d3d9; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px; }
+  .quicktype.up { transform: translateY(0); }
+  .quicktype .key { display: flex; align-items: center; gap: 8px; flex: 1; background: #fff; border-radius: 8px; padding: 10px 12px; font-size: 15px; box-shadow: 0 1px 0 #8f9198; }
+  .quicktype .key small { display: block; color: #6b6b70; font-size: 12px; }
+  .quicktype .pw { font-size: 22px; padding: 0 6px; }
+  .toast { position: absolute; left: 16px; right: 16px; top: 62px; padding: 12px 18px; border-radius: 18px; background: rgba(18,22,30,.94); color: #f2f3f7; font: 600 14px/1.35 -apple-system, system-ui, sans-serif; text-align: center; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .konvo, .sheet, .quicktype { transition: none; } }
+</style>
+</head>
+<body>
+<div class="stage">
+<div class="phone">
+
+  <!-- 1. Konvo's own screen. This exists today. -->
+  <section class="konvo" id="konvo">
+    <div class="wordmark">Konvo</div>
+    <div class="pre">
+      <h1>Connect your Instagram</h1>
+      <p>Your DMs, none of the feed. Sign in on Instagram's own page and Konvo shows you just the messages.</p>
+      <button class="cta" id="open">Sign in on instagram.com</button>
+      <p class="fine">You sign in on <b>Instagram's own page</b>. Konvo never reads your password.</p>
+    </div>
+    <div class="done">
+      <div class="avatar"></div>
+      <h1>You're in.</h1>
+      <p>Signed in as <b style="color:#f5f5f7">your_username</b>. The inbox is loading behind this screen.</p>
+      <button class="cta" id="reset">Open my messages</button>
+      <p class="fine">Tap to replay the mockup.</p>
+    </div>
+  </section>
+
+  <!-- 2. The sheet Konvo draws. The strip is bound to the real URL; the page is instagram.com. -->
+  <section class="sheet" id="sheet" aria-label="Sign in to Instagram">
+    <div class="grabber"></div>
+    <div class="bar">
+      <button id="close">Done</button>
+      <div class="url">
+        <svg class="lock" viewBox="0 0 11 13" aria-hidden="true"><path d="M2 5V4a3.5 3.5 0 0 1 7 0v1h.5A1.5 1.5 0 0 1 11 6.5v5A1.5 1.5 0 0 1 9.5 13h-8A1.5 1.5 0 0 1 0 11.5v-5A1.5 1.5 0 0 1 1.5 5H2zm1.5 0h4V4a2 2 0 0 0-4 0v1z" fill="#3c3c43"/></svg>
+        <span id="host">instagram.com</span><span class="path" id="path"></span>
+      </div>
+      <button class="reload" aria-label="Reload">&#x21bb;</button>
+    </div>
+
+    <div class="ig" id="ig">
+      <div class="lang">English (US) &#x25BE;</div>
+      <div class="logo">Instagram</div>
+      <div class="field"><input id="user" placeholder=" " autocomplete="username" autocapitalize="none"><label for="user">Username, email or mobile number</label></div>
+      <div class="field"><input id="pass" type="password" placeholder=" " autocomplete="current-password"><label for="pass">Password</label></div>
+      <button class="login" id="login">Log in</button>
+      <div class="forgot">Forgot password?</div>
+      <button class="create">Create new account</button>
+      <div class="meta">&#x221E; Meta</div>
+    </div>
+
+    <div class="sheet-foot">
+      <svg width="10" height="12" viewBox="0 0 11 13" aria-hidden="true"><path d="M2 5V4a3.5 3.5 0 0 1 7 0v1h.5A1.5 1.5 0 0 1 11 6.5v5A1.5 1.5 0 0 1 9.5 13h-8A1.5 1.5 0 0 1 0 11.5v-5A1.5 1.5 0 0 1 1.5 5H2zm1.5 0h4V4a2 2 0 0 0-4 0v1z" fill="#6b6b70"/></svg>
+      Instagram's own page &middot; Konvo never reads your password
+    </div>
+
+    <div class="toast" id="toast">Press &ldquo;Passwords&rdquo; above your keyboard and search Instagram to find your account.</div>
+
+    <div class="quicktype" id="qt">
+      <div class="key" id="fill"><span>&#x1F511;</span><span>your_username<small>instagram.com</small></span></div>
+      <div class="pw">&#x1F511;</div>
+    </div>
+  </section>
+
+</div>
+</div>
+
+<script>
+  // Mock wiring. In the app: "open" is one bridge command that presents a native
+  // sheet holding a webview on the shared cookie store; "login" success is the
+  // session cookie appearing, which dismisses the sheet.
+  var konvo = document.getElementById('konvo'), sheet = document.getElementById('sheet');
+  var user = document.getElementById('user'), pass = document.getElementById('pass');
+  var login = document.getElementById('login'), qt = document.getElementById('qt');
+  var toast = document.getElementById('toast'), path = document.getElementById('path');
+
+  function openSheet() {
+    konvo.classList.add('recede'); sheet.classList.add('open');
+    path.textContent = '/accounts/login/';
+    setTimeout(function () { toast.classList.add('show'); }, 600);
+  }
+  function closeSheet() {
+    sheet.classList.remove('open'); konvo.classList.remove('recede');
+    qt.classList.remove('up'); toast.classList.remove('show');
+  }
+  function ready() { login.classList.toggle('ready', user.value && pass.value); }
+
+  document.getElementById('open').onclick = openSheet;
+  document.getElementById('close').onclick = closeSheet;
+  document.getElementById('reset').onclick = function () {
+    konvo.classList.remove('signed'); user.value = ''; pass.value = ''; ready();
+  };
+  // Focusing either field brings up the Keychain suggestion (the real keyboard
+  // sits under it on a device; the mock shows only the suggestion bar).
+  user.onfocus = pass.onfocus = function () { qt.classList.add('up'); toast.classList.remove('show'); };
+  user.oninput = pass.oninput = ready;
+  document.getElementById('fill').onclick = function () {
+    user.value = 'your_username'; pass.value = 'correct horse battery'; ready();
+    qt.classList.remove('up'); user.blur(); pass.blur();
+  };
+  login.onclick = function () {
+    if (!login.classList.contains('ready')) return;
+    login.textContent = 'Logging in…';
+    path.textContent = '/accounts/login/ajax/';
+    setTimeout(function () {
+      path.textContent = '/direct/inbox/';          // the strip follows the real URL
+    }, 700);
+    setTimeout(function () {                         // session cookie seen: dismiss
+      closeSheet(); konvo.classList.add('signed');
+      login.textContent = 'Log in';
+    }, 1300);
+  };
+  // Quick self-check for the wiring (open the console).
+  console.assert(!sheet.classList.contains('open') && !konvo.classList.contains('signed'), 'mock starts closed');
+</script>
+</body>
+</html>

@@ -28,6 +28,7 @@ import StoreKit
 import SuperwallKit
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 import UserNotifications
 import WebKit
 import UserJot
@@ -559,9 +560,14 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             // the app to the phone. Blue takes the dark style so the status
             // bar draws white over it.
             let blue = productId == "blue"
+            // "black" (Sep 1) is the sign-in sheet: the band above
+            // Instagram's page is the dark Konvo page the sheet rose over,
+            // the clock draws white, and the page itself is held Light so
+            // the sheet stays a light sheet whatever the phone prefers.
+            let black = productId == "black"
             let style: UIUserInterfaceStyle =
                 productId == "light" ? .light
-                : (productId == "dark" || blue) ? .dark
+                : (productId == "dark" || blue || black) ? .dark
                 : .unspecified
             // Remembered across launches: lib.rs pins Light at startup only
             // while the funnel is unfinished. Only "auto" means done.
@@ -569,6 +575,10 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             DispatchQueue.main.async {
                 let root = webView.window?.rootViewController
                 root?.overrideUserInterfaceStyle = style
+                webView.overrideUserInterfaceStyle = black ? .light : .unspecified
+                if let root, black || Self.sheetBand != nil {
+                    Self.band(in: root, over: webView).isHidden = !black
+                }
                 // The letterbox above and below the safe-area-pinned webview
                 // is the root view; CSS cannot reach it, so a screen that
                 // must fill the whole phone has to say so through here.
@@ -579,6 +589,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
                 // dark theme are #000, light is #fff.
                 let bg: UIColor = blue
                     ? UIColor(red: 10 / 255, green: 92 / 255, blue: 240 / 255, alpha: 1)
+                    : black ? UIColor(white: 0.97, alpha: 1)  // the sheet's toolbar grey, under the home indicator
                     : UIColor { $0.userInterfaceStyle == .dark ? .black : .white }
                 root?.view.backgroundColor = bg
                 webView.backgroundColor = bg
@@ -992,6 +1003,18 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             let info = try? await Purchases.shared.restorePurchases()
             let ok = info?.entitlements.active["Pro"] != nil
             return ["ok": true, "entitled": ok]
+        // ── The invite loop (Sep 1) ──────────────────────────────────
+        // Send = the iOS share sheet with the draft and the link, week 1
+        // on its completion; claim = the friend's paste sheet at the
+        // paywall; inviteStatus = the sender's meter. The site holds
+        // handles, RevenueCat ids and counts; the RevenueCat secret key
+        // never leaves it.
+        case "invite":
+            return await inviteShare(productId)
+        case "claim":
+            return await inviteClaim(mode: productId)
+        case "inviteStatus":
+            return await inviteStatus()
         case "paywall":
             // Superwall placement, raised from CAGE_SCRIPT only when the
             // cage-patch flips {"superwall": true}. Resolves when the sheet
@@ -1134,6 +1157,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         ) { task in
             let work = Task {
                 await checkUnread(via: "refresh")
+                await checkInvites(via: "refresh")
                 scheduleRefresh()
                 task.setTaskCompleted(success: true)
             }
@@ -1164,6 +1188,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             let bg = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
             Task {
                 await checkUnread(via: "background")
+                await checkInvites(via: "background")
                 UIApplication.shared.endBackgroundTask(bg)
             }
         }
@@ -1248,7 +1273,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         }
         let onPush: @convention(block)
             (AnyObject, UIApplication, NSDictionary, @escaping (UIBackgroundFetchResult) -> Void) -> Void = { _, _, _, done in
-            Task { await checkUnread(via: "push"); done(.newData) }
+            Task { await checkUnread(via: "push"); await checkInvites(via: "push"); done(.newData) }
         }
         let added = [
             class_addMethod(cls, NSSelectorFromString("application:didRegisterForRemoteNotificationsWithDeviceToken:"),
@@ -1473,6 +1498,138 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         return ["granted": true]
     }
 
+    // ── The invite loop (Sep 1) ──────────────────────────────────
+    // A dev build can point at a preview deploy with the launch argument
+    // -konvoInviteHost https://...; store builds always talk to the site.
+    private static var inviteHost: String {
+        UserDefaults.standard.string(forKey: "konvoInviteHost") ?? "https://konvoinstall.com"
+    }
+    static func invitePost(_ path: String, _ body: [String: Any]) async -> (Int, [String: Any]?) {
+        guard let url = URL(string: inviteHost + path),
+              let data = try? JSONSerialization.data(withJSONObject: body) else { return (0, nil) }
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.httpBody = data
+        req.timeoutInterval = 20
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        guard let (d, resp) = try? await URLSession.shared.data(for: req) else { return (0, nil) }
+        let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+        return (code, (try? JSONSerialization.jsonObject(with: d)) as? [String: Any])
+    }
+    @MainActor
+    private static func inviteShare(_ json: String) async -> [String: Any] {
+        guard let d = json.data(using: .utf8),
+              let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any],
+              let handle = o["handle"] as? String, let text = o["text"] as? String,
+              let link = o["url"] as? String, let url = URL(string: link),
+              let front = frontViewController() else { return ["ok": false] }
+        let rc = Purchases.shared.appUserID
+        _ = await invitePost("/api/invite/register", ["handle": handle, "rc": rc])
+        let completed: Bool = await withCheckedContinuation { cont in
+            var done = false
+            let sheet = UIActivityViewController(activityItems: [text, url], applicationActivities: nil)
+            sheet.completionWithItemsHandler = { _, ok, _, _ in
+                guard !done else { return }
+                done = true
+                cont.resume(returning: ok)
+            }
+            front.present(sheet, animated: true)
+        }
+        guard completed else { return ["ok": true, "sent": false] }
+        let (_, r) = await invitePost("/api/invite/sent",
+            ["handle": handle, "rc": rc, "draft": o["draft"] ?? 0])
+        Purchases.shared.invalidateCustomerInfoCache()
+        _ = try? await Purchases.shared.customerInfo(fetchPolicy: .fetchCurrent)
+        return ["ok": true, "sent": true, "expires": r?["expires"] ?? NSNull()]
+    }
+    static func inviteStatus() async -> [String: Any] {
+        guard var c = URLComponents(string: inviteHost + "/api/invite/status") else { return ["ok": false] }
+        c.queryItems = [URLQueryItem(name: "rc", value: Purchases.shared.appUserID)]
+        guard let u = c.url, let (d, _) = try? await URLSession.shared.data(from: u),
+              let j = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any] else { return ["ok": false] }
+        return j
+    }
+    // "auto" asks the pasteboard only whether it holds a web link; nothing
+    // is read and no alert shows. The link itself is read when the friend
+    // taps the paste button (UIPasteControl reads without the alert).
+    @MainActor
+    private static func inviteClaim(mode: String) async -> [String: Any] {
+        if mode == "auto" {
+            let found: Bool = await withCheckedContinuation { cont in
+                UIPasteboard.general.detectPatterns(for: [.probableWebURL]) { r in
+                    cont.resume(returning: ((try? r.get()) ?? []).contains(.probableWebURL))
+                }
+            }
+            if !found { return ["ok": true, "shown": false, "entitled": false] }
+        }
+        // The paste control is iOS 16+; below it there is no sheet, and
+        // the paywall stays as it is.
+        guard #available(iOS 16.0, *) else { return ["ok": true, "shown": false, "entitled": false] }
+        guard let front = frontViewController() else { return ["ok": false] }
+        let result: [String: Any] = await withCheckedContinuation { cont in
+            var done = false
+            let vc = InviteClaimController()
+            vc.finish = { r in
+                guard !done else { return }
+                done = true
+                vc.dismiss(animated: true)
+                cont.resume(returning: r)
+            }
+            vc.modalPresentationStyle = .pageSheet
+            front.present(vc, animated: true)
+        }
+        var out = result
+        out["ok"] = true
+        out["shown"] = true
+        return out
+    }
+    // The heartbeat's second question (Sep 1): any new joins? One local
+    // notification per new claim, and only from a real wake, never from
+    // the plain backgrounding that primes the baseline.
+    static func checkInvites(via: String) async {
+        _ = configureOnce
+        let s = await inviteStatus()
+        guard s["ok"] as? Bool == true, let claims = s["claims"] as? Int else { return }
+        let d = UserDefaults.standard
+        let last = d.integer(forKey: "konvoInviteClaims")
+        d.set(claims, forKey: "konvoInviteClaims")
+        guard claims > last, via != "background" else { return }
+        let joined = (s["joined"] as? [[String: Any]]) ?? []
+        let named = (joined.last?["handle"] as? String) ?? ""
+        let who = named.isEmpty ? "A friend" : named
+        let center = UNUserNotificationCenter.current()
+        let status = await center.notificationSettings().authorizationStatus
+        guard status == .authorized || status == .provisional else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "Konvo"
+        content.body = "\(who) joined Konvo. Your free week just got longer."
+        content.sound = .default
+        try? await center.add(UNNotificationRequest(
+            identifier: "konvo.invite.\(claims)", content: content, trigger: nil))
+    }
+
+    // The black band above the sign-in sheet (appearance "black"): a view
+    // behind the webview from the top of the screen down to the webview's
+    // safe-area top, where the letterbox alone would be one flat colour.
+    private static var sheetBand: UIView?
+    @MainActor
+    private static func band(in root: UIViewController, over webView: WKWebView) -> UIView {
+        if let b = sheetBand { return b }
+        let b = UIView()
+        b.backgroundColor = .black
+        b.translatesAutoresizingMaskIntoConstraints = false
+        root.view.addSubview(b)
+        root.view.sendSubviewToBack(b)
+        NSLayoutConstraint.activate([
+            b.topAnchor.constraint(equalTo: root.view.topAnchor),
+            b.leadingAnchor.constraint(equalTo: root.view.leadingAnchor),
+            b.trailingAnchor.constraint(equalTo: root.view.trailingAnchor),
+            b.bottomAnchor.constraint(equalTo: webView.topAnchor),
+        ])
+        sheetBand = b
+        return b
+    }
+
     @MainActor
     private static func frontViewController() -> UIViewController? {
         let windows = UIApplication.shared.connectedScenes
@@ -1567,5 +1724,129 @@ private struct CagePickerSheet: View {
             .padding(.bottom, 6)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
+    }
+}
+
+// The friend's claim sheet (Sep 1), presented over the paywall. The paste
+// button is Apple's UIPasteControl: it reads the clipboard without the
+// paste alert, only when tapped. The handle field is the fallback for a
+// friend who arrived without the link on their clipboard.
+@available(iOS 16.0, *)
+final class InviteClaimController: UIViewController {
+    var finish: (([String: Any]) -> Void)?
+    private let status = UILabel()
+    private let field = UITextField()
+    private var busy = false
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        pasteConfiguration = UIPasteConfiguration(
+            acceptableTypeIdentifiers: [UTType.url.identifier, UTType.plainText.identifier])
+        let title = UILabel()
+        title.text = "Did a friend send you Konvo?"
+        title.font = .systemFont(ofSize: 26, weight: .bold)
+        title.numberOfLines = 0
+        let sub = UILabel()
+        sub.text = "Paste their link, or type their Instagram handle. You both get a free week. No card needed."
+        sub.font = .systemFont(ofSize: 16)
+        sub.textColor = .secondaryLabel
+        sub.numberOfLines = 0
+        var cfg = UIPasteControl.Configuration()
+        cfg.displayMode = .iconAndLabel
+        cfg.baseBackgroundColor = .systemBlue
+        cfg.baseForegroundColor = .white
+        cfg.cornerStyle = .large
+        let paste = UIPasteControl(configuration: cfg)
+        paste.target = self
+        paste.heightAnchor.constraint(equalToConstant: 54).isActive = true
+        field.placeholder = "Their Instagram handle"
+        field.borderStyle = .roundedRect
+        field.autocapitalizationType = .none
+        field.autocorrectionType = .no
+        field.font = .systemFont(ofSize: 17)
+        field.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        let claim = UIButton(type: .system)
+        claim.setTitle("Claim", for: .normal)
+        claim.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        claim.addTarget(self, action: #selector(claimTyped), for: .touchUpInside)
+        let skip = UIButton(type: .system)
+        skip.setTitle("Skip", for: .normal)
+        skip.titleLabel?.font = .systemFont(ofSize: 17)
+        skip.addTarget(self, action: #selector(skipTapped), for: .touchUpInside)
+        status.font = .systemFont(ofSize: 15)
+        status.textColor = .secondaryLabel
+        status.numberOfLines = 0
+        status.textAlignment = .center
+        let row = UIStackView(arrangedSubviews: [field, claim])
+        row.spacing = 12
+        row.alignment = .center
+        let stack = UIStackView(arrangedSubviews: [title, sub, paste, row, status, skip])
+        stack.axis = .vertical
+        stack.spacing = 18
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 24),
+            stack.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -24),
+            stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 32),
+        ])
+    }
+
+    override func paste(itemProviders: [NSItemProvider]) {
+        for p in itemProviders {
+            if p.canLoadObject(ofClass: NSURL.self) {
+                p.loadObject(ofClass: NSURL.self) { obj, _ in
+                    DispatchQueue.main.async { self.take((obj as? NSURL)?.absoluteString ?? "", method: "clipboard") }
+                }
+                return
+            }
+            if p.canLoadObject(ofClass: NSString.self) {
+                p.loadObject(ofClass: NSString.self) { obj, _ in
+                    DispatchQueue.main.async { self.take((obj as? NSString) as String? ?? "", method: "clipboard") }
+                }
+                return
+            }
+        }
+        status.text = "No invite link on your clipboard. Type the handle instead."
+    }
+
+    @objc private func claimTyped() { take(field.text ?? "", method: "handle") }
+    @objc private func skipTapped() { finish?(["entitled": false, "method": "skip"]) }
+
+    private func take(_ raw: String, method: String) {
+        let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let handle: String
+        if let r = text.range(of: #"/i/([A-Za-z0-9._]{1,30})"#, options: .regularExpression) {
+            handle = String(text[r]).replacingOccurrences(of: "/i/", with: "")
+        } else if method == "handle", text.range(of: #"^@?[A-Za-z0-9._]{1,30}$"#, options: .regularExpression) != nil {
+            handle = text.replacingOccurrences(of: "@", with: "")
+        } else {
+            status.text = method == "handle" ? "That does not look like an Instagram handle."
+                : "No invite link on your clipboard. Type the handle instead."
+            return
+        }
+        guard !busy else { return }
+        busy = true
+        status.text = "Checking\u{2026}"
+        Task { @MainActor in
+            let (code, r) = await KonvoStore.invitePost("/api/invite/claim",
+                ["handle": handle, "rc": Purchases.shared.appUserID, "method": method])
+            if code == 200, r?["ok"] as? Bool == true {
+                Purchases.shared.invalidateCustomerInfoCache()
+                _ = try? await Purchases.shared.customerInfo(fetchPolicy: .fetchCurrent)
+                finish?(["entitled": true, "method": method, "expires": r?["expires"] ?? NSNull()])
+                return
+            }
+            busy = false
+            let why: [String: String] = [
+                "cap": "That link has been used three times already.",
+                "own_code": "That is your own link.",
+                "already": "You already used an invite.",
+                "no_code": "No invite under that handle.",
+            ]
+            status.text = why[(r?["reason"] as? String) ?? ""]
+                ?? (code == 0 ? "No connection. Try again." : "Could not claim right now. Try again.")
+        }
     }
 }

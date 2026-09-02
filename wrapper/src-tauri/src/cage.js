@@ -147,7 +147,25 @@
       "Your hours back, every week": "Tes heures, de retour chaque semaine",
       "No commitment. Cancel anytime.": "Sans engagement. Annule quand tu veux.",
       "Free. Nothing to cancel.": "Gratuit. Rien à annuler.",
-      "Not now": "Pas maintenant"
+      "Not now": "Pas maintenant",
+      "Reload": "Recharger",
+      "Instagram's own page": "La page d'Instagram",
+      "Konvo never reads your password": "Konvo ne lit jamais ton mot de passe",
+      "Reset it here, then come back and sign in.": "Réinitialise-le ici, puis reviens te connecter.",
+      "Reset done?": "Mot de passe réinitialisé ?",
+      "Sign in": "Me connecter",
+      "Send Konvo to 3 friends, and get a free week": "Envoie Konvo à 3 amis et gagne une semaine gratuite",
+      "Every friend who joins also get a free week too!": "Chaque ami qui s'inscrit a aussi une semaine gratuite !",
+      "Send to 3 friends": "Envoyer à 3 amis",
+      "Restore purchase": "Restaurer l'achat",
+      "Your free week is on.": "Ta semaine gratuite a commencé.",
+      "Ends {date}. Nothing to cancel, nothing charges.": "Se termine le {date}. Rien à annuler, rien à payer.",
+      "Friends who joined": "Amis inscrits",
+      "{n} of 3": "{n} sur 3",
+      "Each one adds": "Chacun ajoute",
+      "+7 days": "+7 jours",
+      "Loading your username": "Chargement de ton nom d'utilisateur",
+      "Could not open the share sheet. Try again.": "Impossible d'ouvrir le partage. Réessaie."
     },
     zh: {
       "Instagram connected.": "Instagram 已連結。",
@@ -253,7 +271,25 @@
       "Your hours back, every week": "每週都拿回你的時間",
       "No commitment. Cancel anytime.": "不綁約，隨時取消。",
       "Free. Nothing to cancel.": "免費。不用取消。",
-      "Not now": "先不要"
+      "Not now": "先不要",
+      "Reload": "重新載入",
+      "Instagram's own page": "Instagram 官方頁面",
+      "Konvo never reads your password": "Konvo 絕不會讀取你的密碼",
+      "Reset it here, then come back and sign in.": "在這裡重設，然後回來登入。",
+      "Reset done?": "重設好了？",
+      "Sign in": "登入",
+      "Send Konvo to 3 friends, and get a free week": "把 Konvo 傳給 3 個朋友，得到免費一週",
+      "Every friend who joins also get a free week too!": "每個加入的朋友也會得到免費一週！",
+      "Send to 3 friends": "傳給 3 個朋友",
+      "Restore purchase": "恢復購買",
+      "Your free week is on.": "你的免費一週開始了。",
+      "Ends {date}. Nothing to cancel, nothing charges.": "{date} 結束。不用取消，不會扣款。",
+      "Friends who joined": "已加入的朋友",
+      "{n} of 3": "{n} / 3",
+      "Each one adds": "每一位加",
+      "+7 days": "+7 天",
+      "Loading your username": "正在讀取你的帳號名稱",
+      "Could not open the share sheet. Try again.": "無法打開分享選單，再試一次。"
     },
     ko: {
       "Instagram connected.": "인스타그램 연결 완료.",
@@ -359,7 +395,25 @@
       "Your hours back, every week": "매주 시간을 되찾아요",
       "No commitment. Cancel anytime.": "약정 없음. 언제든 취소.",
       "Free. Nothing to cancel.": "무료. 취소할 것도 없어요.",
-      "Not now": "나중에"
+      "Not now": "나중에",
+      "Reload": "새로고침",
+      "Instagram's own page": "인스타그램 공식 페이지",
+      "Konvo never reads your password": "Konvo는 비밀번호를 절대 읽지 않아요",
+      "Reset it here, then come back and sign in.": "여기서 재설정한 뒤 돌아와서 로그인해요.",
+      "Reset done?": "재설정 끝났어요?",
+      "Sign in": "로그인",
+      "Send Konvo to 3 friends, and get a free week": "친구 3명에게 Konvo를 보내고 일주일 무료로 받아요",
+      "Every friend who joins also get a free week too!": "가입하는 친구도 일주일 무료예요!",
+      "Send to 3 friends": "친구 3명에게 보내기",
+      "Restore purchase": "구매 복원",
+      "Your free week is on.": "무료 일주일이 시작됐어요.",
+      "Ends {date}. Nothing to cancel, nothing charges.": "{date}에 끝나요. 취소할 것도, 결제될 것도 없어요.",
+      "Friends who joined": "가입한 친구",
+      "{n} of 3": "3명 중 {n}명",
+      "Each one adds": "한 명마다",
+      "+7 days": "+7일",
+      "Loading your username": "사용자 이름을 불러오는 중",
+      "Could not open the share sheet. Try again.": "공유 시트를 열 수 없어요. 다시 시도해요."
     }
   };
   function T(s, v) {
@@ -627,11 +681,18 @@
     track("login_submitted", { stage: st, attempt: loginSubmits });
   }
   var loginErrorsSeen = {};
+  // The signed-out chain on instagram.com. reset and signup joined Sep 1
+  // for the sheet; their login_step / login_left rows are the reset
+  // route's own measure.
   function loginStage() {
-    return location.pathname.indexOf("/challenge") !== -1 ? "challenge"
-      : location.pathname.indexOf("two_factor") !== -1 ? "two_factor"
-      : location.pathname.indexOf("/accounts/login") === 0 ? "login" : null;
+    var p = location.pathname;
+    return p.indexOf("/challenge") !== -1 ? "challenge"
+      : p.indexOf("two_factor") !== -1 ? "two_factor"
+      : p.indexOf("/accounts/password/reset") === 0 ? "reset"
+      : p.indexOf("/accounts/emailsignup") === 0 ? "signup"
+      : p.indexOf("/accounts/login") === 0 ? "login" : null;
   }
+  function signedIn() { return /(?:^|; )ds_user_id=\d/.test(document.cookie); }
   function classifyLoginError(t) {
     t = t.toLowerCase();
     if (/password was incorrect|incorrect password/.test(t)) return "wrong_password";
@@ -649,6 +710,9 @@
       var st = loginStage();
       var b = e.target && e.target.closest && e.target.closest("button,[role=button],a");
       if (!st || !b) return;
+      // The sheet's own buttons report as login_sheet, not as taps on
+      // Instagram's page.
+      if (b.closest("#im-sheet,#im-reset-bar")) return;
       var label = (b.textContent || "").replace(/\s+/g, " ").trim().toLowerCase();
       if (!label) return;
       label = label.replace(/^(continue|log in) as .*$/, "$1 as").slice(0, 24);
@@ -742,7 +806,10 @@
     hintShown = true;
     var tip = document.createElement("div");
     tip.id = "im-keytip";
-    tip.setAttribute("style", "position:fixed;top:" + top + "px;left:16px;right:16px;" +
+    // Anchored to the page, not the viewport (Sep 1, build 99 on device):
+    // the keyboard scrolls the form up and a fixed tip stayed over it.
+    top += window.pageYOffset || 0;
+    tip.setAttribute("style", "position:absolute;top:" + top + "px;left:16px;right:16px;" +
       "z-index:2147483646;padding:12px 18px;border-radius:18px;" +
       "background:rgba(18,22,30,.94);color:#f2f3f7;font:600 14px/1.35 -apple-system,system-ui,sans-serif;" +
       "box-shadow:0 4px 18px rgba(0,0,0,.3);text-align:center;pointer-events:none");
@@ -770,6 +837,130 @@
       loginErrorsSeen[t] = 1;
       track("login_error", { stage: st, error: classifyLoginError(t), submits: loginSubmits });
     }
+  }
+
+  // The sign-in sheet (Sep 1): Instagram's login page framed the way
+  // Safari's in-app sheet frames a page - the lock, the real address,
+  // reload, and a footer naming whose page it is - so signing in feels
+  // like signing in on Instagram, because it is. Drawn by the cage inside
+  // the one webview, never a real Safari controller: that one keeps its
+  // own cookies and consumer Instagram has no way to hand the session
+  // back. The strip reads location, so it cannot lie. Up on every
+  // signed-out page of the chain, down the moment the session cookie
+  // exists; iPhone only, the Mac has a window. No Done: there is nothing
+  // behind the sheet to go back to (the onboarding bounces straight here
+  // once finished), and the Konvo page that stood in for it read as a
+  // stray screen on the phone (Matthew, build 99). Instagram's own
+  // "Forgot password?" is the reset route; the sheet gives that page its
+  // own footer line and a way back when the app returns from the email.
+  // The sheet rises once, on first arrival, like a presented sheet; the
+  // band above it is native (appearance "black") and goes with the sheet.
+  // Half of the people lost at login never touched the page (95 of 193
+  // in the week before this); the sheet is for them.
+  var resetBarShown = false, footLine = "";
+  var LOCK = "<svg width='11' height='13' viewBox='0 0 11 13' aria-hidden='true'>" +
+    "<path d='M2 5V4a3.5 3.5 0 0 1 7 0v1h.5A1.5 1.5 0 0 1 11 6.5v5A1.5 1.5 0 0 1 9.5 13h-8" +
+    "A1.5 1.5 0 0 1 0 11.5v-5A1.5 1.5 0 0 1 1.5 5H2zm1.5 0h4V4a2 2 0 0 0-4 0v1z' fill='currentColor'/></svg>";
+  function sheetLook(mode) {
+    try {
+      window.webkit.messageHandlers.konvoStore.postMessage(
+        { cmd: "appearance", id: 0, productId: mode });
+    } catch (e) {}
+  }
+  function sheetAct(e) {
+    var t = e.target.closest && e.target.closest("[data-act]");
+    if (!t) return;
+    var act = t.getAttribute("data-act");
+    track("login_sheet", { act: act, stage: loginStage() });
+    if (act === "reset_return") location.assign("/accounts/login/");
+    else if (act === "reload") location.reload();
+  }
+  function loginSheet(st) {
+    // Waits for the body: the strip and footer live inside it, and the
+    // rise must start with something to show.
+    if (!/iPhone|iPad|iPod/.test(navigator.userAgent) || !document.body) return;
+    var strip = document.getElementById("im-sheet"), foot;
+    if (!strip) {
+      var css = document.createElement("style");
+      css.textContent =
+        "#im-sheet,#im-sheet-foot,#im-reset-bar{display:none;font-family:-apple-system,system-ui,sans-serif;-webkit-user-select:none}" +
+        "html.im-sheet{background:#000 !important}" +
+        // ponytail: body padding is the push; the live page (build 99 on
+        // device) obeys the top and keeps its own 100vh below, so the foot
+        // of Instagram's page scrolls out from under the footer.
+        "html.im-sheet body{padding-top:70px !important;padding-bottom:38px !important;box-sizing:border-box}" +
+        // The rise: the whole document (page, strip, footer) slides up as
+        // one sheet over the black canvas, once, on first arrival.
+        "html.im-sheet.im-rise{animation:ims-rise .5s cubic-bezier(.32,.72,0,1) both}" +
+        "@keyframes ims-rise{from{transform:translateY(100%)}to{transform:none}}" +
+        "@media (prefers-reduced-motion:reduce){html.im-sheet.im-rise{animation:none}}" +
+        "html.im-sheet #im-sheet{display:block;position:fixed;top:0;left:0;right:0;z-index:2147483646;padding-top:8px;background:#000}" +
+        "#im-sheet .ims-card{background:#f7f7f7;border-radius:12px 12px 0 0;border-bottom:1px solid #d9d9de}" +
+        "#im-sheet .ims-grab{width:36px;height:5px;border-radius:3px;background:#c7c7cc;margin:6px auto 0}" +
+        "#im-sheet .ims-bar{display:grid;grid-template-columns:64px 1fr 64px;align-items:center;height:46px;padding:0 10px}" +
+        "#im-sheet button{border:0;background:none;color:#0a84ff;font:400 21px/1 -apple-system,system-ui,sans-serif;padding:8px 6px;margin:0;text-align:right}" +
+        "#im-sheet .ims-url{display:flex;align-items:center;justify-content:center;gap:5px;font-size:15px;color:#1c1c1e;white-space:nowrap;overflow:hidden}" +
+        "#im-sheet .ims-url svg{color:#3c3c43;flex:none}" +
+        "#im-sheet .ims-path{color:#8e8e93;overflow:hidden;text-overflow:ellipsis}" +
+        "html.im-sheet #im-sheet-foot{display:flex;position:fixed;left:0;right:0;bottom:0;height:38px;z-index:2147483646;" +
+        "align-items:center;justify-content:center;gap:6px;font-size:12px;color:#6b6b70;background:#f7f7f7;border-top:1px solid #d9d9de}" +
+        "html.im-sheet #im-reset-bar{display:flex;position:fixed;left:16px;right:16px;bottom:50px;z-index:2147483646;align-items:center;" +
+        "justify-content:space-between;gap:12px;padding:8px 8px 8px 18px;border-radius:18px;background:rgba(18,22,30,.94);color:#f2f3f7;" +
+        "font:600 14px/1.35 -apple-system,system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.3)}" +
+        "#im-reset-bar button{border:0;border-radius:12px;background:#0a84ff;color:#fff;font:600 15px/1 -apple-system,system-ui,sans-serif;padding:11px 16px}";
+      document.head.appendChild(css);
+      strip = document.createElement("div");
+      strip.id = "im-sheet";
+      strip.innerHTML = "<div class='ims-card'><div class='ims-grab'></div><div class='ims-bar'><span></span>" +
+        "<div class='ims-url'>" + LOCK + "<span class='ims-host'></span><span class='ims-path'></span></div>" +
+        "<button data-act='reload' aria-label='" + T("Reload") + "'>↻</button></div></div>";
+      strip.addEventListener("click", sheetAct);
+      foot = document.createElement("div");
+      foot.id = "im-sheet-foot";
+      document.body.appendChild(strip);
+      document.body.appendChild(foot);
+      // Back from the email with the reset page still up: one way back.
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState !== "visible" || loginStage() !== "reset" || resetBarShown) return;
+        resetBarShown = true;
+        var bar = document.createElement("div");
+        bar.id = "im-reset-bar";
+        bar.innerHTML = "<span>" + T("Reset done?") + "</span>" +
+          "<button data-act='reset_return'>" + T("Sign in") + "</button>";
+        bar.addEventListener("click", sheetAct);
+        document.body.appendChild(bar);
+      });
+      // The first document of the chain rises; the pages after it (the
+      // reset page, a challenge) are the same sheet, already up.
+      var rise = true;
+      try { rise = !sessionStorage.konvoSheet; sessionStorage.konvoSheet = "1"; } catch (e) {}
+      if (rise) {
+        document.documentElement.classList.add("im-rise");
+        setTimeout(function () { document.documentElement.classList.remove("im-rise"); }, 700);
+      }
+      sheetLook("black");
+    }
+    foot = document.getElementById("im-sheet-foot");
+    strip.querySelector(".ims-host").textContent = location.hostname.replace(/^www\./, "");
+    strip.querySelector(".ims-path").textContent = location.pathname;
+    var line = st === "reset" ? T("Reset it here, then come back and sign in.")
+      : LOCK + "<span>" + T("Instagram's own page") + " · " + T("Konvo never reads your password") + "</span>";
+    if (footLine !== line) { footLine = line; foot.innerHTML = line; }
+    document.documentElement.classList.add("im-sheet");
+  }
+  // The session is here (this document or the one before it): the sheet
+  // and its band go, and the look is the phone's again.
+  function dropLoginSheet() {
+    var ids = ["im-sheet", "im-sheet-foot", "im-reset-bar"], had = false;
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el && el.parentNode) { el.parentNode.removeChild(el); had = true; }
+    }
+    document.documentElement.classList.remove("im-sheet");
+    try {
+      if (sessionStorage.konvoSheet) { had = true; sessionStorage.removeItem("konvoSheet"); }
+    } catch (e) {}
+    if (had) sheetLook("auto");
   }
 
   // Cage exceptions were invisible until the stuck-chat hunt; three per
@@ -860,20 +1051,22 @@
     // these routes are the only witnesses. The challenge page is the
     // emailed verification code - the wall that stopped App Review twice.
     // Stage names only, never anything from the page.
-    var ls = location.pathname.indexOf("/challenge") !== -1 ? "challenge"
-      : location.pathname.indexOf("two_factor") !== -1 ? "two_factor"
-      : location.pathname.indexOf("/accounts/login") === 0 ? "login" : null;
+    var ls = loginStage();
     if (ls && ls !== lastLoginStage) {
       lastLoginStage = ls;
       // A signed-in visit to these routes is not login friction.
-      if (!/(?:^|; )ds_user_id=\d/.test(document.cookie))
-        track("login_step", { stage: ls });
+      if (!signedIn()) track("login_step", { stage: ls });
     }
-    if (ls && !/(?:^|; )ds_user_id=\d/.test(document.cookie)) {
+    if (ls && !signedIn()) {
       watchLogin();
       hintLoginFields(ls);
+      // The sheet pushes the page down; the key tip measures the logo
+      // after that, not before, or it lands on the logo (render, Sep 1).
+      loginSheet(ls);
       showKeyTip(ls);
       pollLoginErrors(ls);
+    } else if (signedIn()) {
+      dropLoginSheet();
     }
     // Session rescue: landing on the login page with no session cookie
     // means WebKit lost the cookies (lazy disk flush plus a force-quit;
@@ -975,6 +1168,10 @@
             // and message content stay untouched.
             try {
               var idm = document.cookie.match(/(?:^|; )ds_user_id=(\d+)/);
+              // The handle is also the invite code (Sep 1): kept on every
+              // settle so the invite page can build the link.
+              var un0 = titleEl && (titleEl.textContent || "").trim();
+              if (un0) localStorage.konvoHandle = un0;
               if (idm && !localStorage.konvoIdentified) {
                 rp.$set = { ig_user_id: idm[1] };
                 var un = titleEl && (titleEl.textContent || "").trim();
@@ -1759,6 +1956,10 @@
       '#im-pay .imp-mid{flex:1;display:flex;flex-direction:column;justify-content:center;' +
       'padding:0 24px;overflow-y:auto;overscroll-behavior:none}' +
       '#im-pay .imp-foot{flex:none;padding:0 20px 34px}' +
+      // The invite loop (Sep 1): the paywall's close is a plain white X on
+      // the blue header, no disc; a waiting Send is dimmed.
+      "#im-pay .imp-close.inv-x{background:none;color:#fff}" +
+      '#im-pay .imp-btn[disabled]{opacity:.5}' +
       // The reveal (Aug 22): the wall goes clear over the real inbox, a
       // pill up top, a sheet at the foot. The button inverts the scheme
       // so it reads against whatever the inbox is showing.
@@ -2094,7 +2295,8 @@
                { price: y.price }), false);
       }
       var mot = motiveLine();
-      return "<div class='imp-head'>" +
+      return "<div class='imp-close inv-x' data-act='x' aria-label='Close'>" + XSVG + "</div>" +
+        "<div class='imp-head'>" +
         "<div style='position:absolute;inset:0;background:radial-gradient(circle at 50% 30%," +
         "rgba(255,255,255,.22) 0%,rgba(255,255,255,0) 60%)'></div>" +
         "<div style='position:absolute;left:34px;top:26px;width:74px;height:22px;" +
@@ -2408,6 +2610,78 @@
         drawnCheck(T("You're protected."),
           T("Instagram is blocked. Your DMs remain available through Konvo.")) +
         "</div>";
+    }
+
+    // ── The invite loop (Sep 1) ──────────────────────────────────
+    // The paywall's close lands here, never on a dead end (275 of 335
+    // walked away from a hard gate in the first ten days). Send is the
+    // iOS share sheet through the bridge, never Instagram's composer; the
+    // sheet's completion is the sender's free week, no card. Each friend
+    // who claims adds a week, three at most, one level only. The drafts
+    // are Matthew's (lowercase, no adjectives, link last) and stay
+    // English in every language; the chrome speaks the phone's language.
+    // The trial and monthly stay exactly as they are: a third door.
+    var XSVG = "<svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor'" +
+      " stroke-width='2.4' stroke-linecap='round'><path d='M18 6 6 18M6 6l12 12'/></svg>";
+    var DRAFTS = [
+      "not an ad lol but i've been using this app called konvo, it's just instagram dms with no feed or reels. been on my phone way less. you get a free week off my link if u want: {link}",
+      "i kinda deleted instagram. using konvo now, it only shows your dms so i can still text everyone without the feed. free week if you use this: {link}",
+      "remember we said we'd get off instagram. this app gives you the dms and nothing else. free for a week with my link: {link}"
+    ];
+    var claimAsked = false, inviteExpires = 0, inviteClaims = 0, handleTries = 0;
+    function handle() { try { return localStorage.konvoHandle || ""; } catch (e) { return ""; } }
+    function inviteLink() { return "https://konvoinstall.com/i/" + handle(); }
+    // The message the share sheet carries (Matthew's first draft); the
+    // page itself shows no text to edit (Sep 1 evening: "no pre written
+    // text", the page reads like the rest of the sequence).
+    function draftText() { return DRAFTS[0].split("{link}").join("konvoinstall.com/i/" + handle()); }
+    function invitePage() {
+      var h = handle();
+      return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
+        "<h2 style='font-size:28px;text-align:center'>" + T("Send Konvo to 3 friends, and get a free week") + "</h2>" +
+        "<p style='font-size:17px;line-height:1.5;color:var(--ink);margin-top:14px;text-align:center'>" +
+        T("Every friend who joins also get a free week too!") + "</p></div>" +
+        "<div class='imp-foot' style='padding:10px 28px 24px'>" +
+        "<button class='imp-btn' data-act='inv-send'" + (h ? "" : " disabled") + ">" +
+        (h ? T("Send to 3 friends") : T("Loading your username")) + "</button>" +
+        "<div class='imp-links'><span data-act='inv-later'>" + T("Not now") + "</span>" +
+        "<span data-act='restore'>" + T("Restore purchase") + "</span></div></div>";
+    }
+    function inviteDone() {
+      var days = inviteExpires ? Math.max(1, Math.round((inviteExpires - Date.now()) / 86400000)) : 7;
+      return "<div class='imp-mid' style='align-items:center;padding:0 34px'>" +
+        drawnCheck(T("Your free week is on."),
+          T("Ends {date}. Nothing to cancel, nothing charges.",
+            { date: "<b style='color:var(--ink);font-weight:600'>" + dateIn(days) + "</b>" })) +
+        "<p class='inv-meter' style='font-size:15px;line-height:1.6;color:var(--mut);margin-top:18px;text-align:center'>" +
+        T("Friends who joined") + ": " + T("{n} of 3", { n: inviteClaims }) + "<br>" +
+        T("Each one adds") + " " + T("+7 days") + "</p></div>" +
+        "<div class='imp-foot' style='padding:0 28px 40px'>" +
+        "<button class='imp-btn' data-act='inv-open'>" + T("Open my messages") + "</button></div>";
+    }
+    // Send waits for the handle (captured at the inbox settle under the
+    // wall) rather than sending a broken link.
+    function waitHandle() {
+      if (handle() || handleTries++ > 40 || !wall) return;
+      setTimeout(function () {
+        if (!wall || !wall.querySelector("[data-act='inv-send']")) return;
+        if (handle()) setPage(invitePage(), true); else waitHandle();
+      }, 500);
+    }
+    // The friend's side: an entitled answer from the claim sheet ends the
+    // sequence the way a purchase does.
+    function claimCb(res) {
+      if (!res || !res.entitled) return;
+      track("invite_claimed", { method: res.method || "clipboard", screen_id: "s13_paywall" });
+      setCache(true);
+      finish("s13_paywall");
+    }
+    // Once per session, at the first price paint: if the clipboard holds
+    // a web link, the native claim sheet comes up instead of the cards.
+    function claimAuto() {
+      if (claimAsked) return;
+      claimAsked = true;
+      storekit("claim", "auto", claimCb);
     }
 
     function successPage(pid) {
@@ -2730,12 +3004,14 @@
               track("paywall_viewed", { variant: "default", screen_id: "s13_paywall" });
               if (!pricesReady()) fetchProducts();
               swap(pay("y"));
+              claimAuto();
             });
             return;
           }
           track("paywall_viewed", { variant: "default", screen_id: "s13_paywall" });
           if (!pricesReady()) fetchProducts();
           swap(pay("y"));
+          claimAuto();
         } else if (act === "betafree") {
           // Beta only: unlock without charging, and record that the price
           // was seen and declined - which is the whole point of showing it.
@@ -2748,6 +3024,42 @@
           buy(t, "konvo.pro.monthly");
         } else if (act === "buy-l") {
           buy(t, "konvo.pro.lifetime");
+        } else if (act === "x") {
+          track("paywall_closed", { screen_id: "s13_paywall" });
+          track("invite_page_viewed", { via: lapsedWall ? "lapsed" : "paywall_x", screen_id: "s15_invite" });
+          swap(invitePage());
+          waitHandle();
+        } else if (act === "inv-later") {
+          swap(pay("y"));
+        } else if (act === "inv-send") {
+          if (t.disabled || !handle()) return;
+          var sentDraft = 0;
+          t.disabled = true;
+          storekit("invite", JSON.stringify({ handle: handle(), text: draftText(), url: inviteLink(), draft: sentDraft }),
+            function (res) {
+              if (!wall) return;
+              t.disabled = false;
+              if (!res || !res.ok) { t.textContent = T("Could not open the share sheet. Try again."); return; }
+              if (!res.sent) return;
+              track("invite_sent", { draft: sentDraft, screen_id: "s15_invite" });
+              inviteExpires = +res.expires || 0;
+              setCache(true);
+              // The success state paints first, then the meter reads the
+              // server (joins so far, the real end date) and repaints.
+              swap(inviteDone(), function () {
+                storekit("inviteStatus", null, function (st) {
+                  if (!st || !st.ok || !wall || !wall.querySelector(".inv-meter")) return;
+                  inviteClaims = +st.claims || 0;
+                  if (st.expires) inviteExpires = +st.expires;
+                  setPage(inviteDone(), true);
+                });
+              });
+            });
+        } else if (act === "inv-open") {
+          track("onboarding_completed", { screen_id: "s15_invite" });
+          try { localStorage.konvoDone = "1"; } catch (e) {}
+          if (!atInbox()) location.assign("/direct/inbox/");
+          dismiss();
         } else if (act === "restore") {
           // Sync then re-read entitlements; unlocking straight to the
           // inbox - a restorer is returning, not starting a trial.
@@ -2786,6 +3098,7 @@
         payShown = true;
         track("paywall_viewed", { variant: "default", screen_id: "s13_paywall", via: "lapsed" });
         setPage(pay("y"));
+        claimAuto();
       };
       var priceTries = 0;
       fetchProducts = function () {
