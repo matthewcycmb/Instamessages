@@ -560,20 +560,25 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     posted.includes('track:paywall_viewed'),
     'the funnel events must reach the bridge');
 
-  //     The invite loop (Sep 1): the paywall's close lands on the invite
-  //     page, never a dead end; Send is the share sheet through the bridge;
-  //     the week is granted on completion; a friend claims at the paywall
-  //     when the clipboard holds a link. The page reads like the rest of
-  //     the sequence: Matthew's two lines, the button, Not now, Restore.
+  //     The invite loop (Sep 2, final): the paywall is a hard gate with no
+  //     close; the only door is "Send Konvo to 3 friends" on "You're in".
+  //     Send is the share sheet through the bridge; the sender gets
+  //     nothing; a friend who pastes the link at their paywall gets 3 days,
+  //     three friends per code. Nothing typed leaves the page.
   const invPosted = [], invMsgs = [];
+  const INV_REPLIES = { entitlements: { entitled: false }, products: LIVE_PRODUCTS,
+    purchase: { ok: true, entitled: true }, notify: { ok: true, granted: true },
+    cageStatus: { supported: true, authorized: false, picked: false, active: false },
+    claim: { ok: true, shown: false, entitled: false },
+    invite: { ok: true, sent: true, expires: null } };
   const invBridge = (m, d) => {
     invMsgs.push(m);
     invPosted.push(m.cmd + ':' + (m.event || m.productId || ''));
-    const replies = { entitlements: { entitled: false }, products: LIVE_PRODUCTS,
-      claim: { ok: true, shown: false, entitled: false },
-      invite: { ok: true, sent: true, expires: null },
-      inviteStatus: { ok: true, handle: 'matt', claims: 1, credited: true, expires: Date.now() + 3 * 86400000 } };
-    if (m.cmd in replies) d.window.__konvoStoreReply(m.id, replies[m.cmd]);
+    if (m.cmd in INV_REPLIES) d.window.__konvoStoreReply(m.id, INV_REPLIES[m.cmd]);
+  };
+  const toSuccess = async (d, tap) => {
+    tap('keep'); await settle(450); tap('impact'); await settle(450); tap('pay'); await settle(450);
+    tap('buy-y'); await settle(1300);
   };
   const inv = boot('/direct/inbox/', '', { seed: { konvoHandle: 'matt' }, bridge: invBridge });
   await settle(8400);
@@ -582,24 +587,27 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new inv.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   const ipage = () => idoc.getElementById('im-pay').textContent;
   itap('keep'); await settle(450); itap('impact'); await settle(450); itap('pay'); await settle(450);
-  assert(idoc.querySelector("#im-pay .imp-close.inv-x[data-act='x']"), 'the paywall has a plain close');
+  assert(!idoc.querySelector("#im-pay [data-act='x']") && !idoc.querySelector('#im-pay .imp-close'),
+    'the paywall has no close: a hard gate, as before');
   assert.strictEqual(invPosted.filter(p => p === 'claim:auto').length, 1,
     'the first price paint asks once whether the clipboard holds an invite');
-  assert(!/Have an invite/.test(ipage()), 'no invite link on the price page (Matthew, Sep 1)');
-  itap('x'); await settle(450);
-  assert(/Send Konvo to 3 friends, and get 3 days free/.test(ipage()) &&
-    /When one of them joins, you both get 3 days free!/.test(ipage()),
-    'the close lands on the invite page with Matthew\'s two lines');
-  assert(!idoc.querySelector('#im-pay .inv-text') && !/Opens the share sheet/.test(ipage()) &&
-    !/No card needed/.test(ipage()), 'no message card, no fine print, no eyebrow');
-  assert(invPosted.includes('track:paywall_closed') &&
-    invMsgs.some(m => m.event === 'invite_page_viewed' && m.props.via === 'paywall_x'),
-    'the close is counted, and the page view says where from');
+  assert(!/Have an invite|Send Konvo/.test(ipage()), 'no invite door on the price page');
+  itap('buy-y'); await settle(1300);
+  assert(/You're in\./.test(ipage()) && idoc.querySelector("#im-pay [data-act='inv-go']"),
+    'the only door is on You\'re in');
+  assert.strictEqual(invMsgs.filter(m => m.event === 'onboarding_completed').length, 1, 'the purchase completed the sequence once');
+  itap('inv-go'); await settle(450);
+  assert(/Send Konvo to 3 friends/.test(ipage()) && /Every friend who joins gets 3 days free!/.test(ipage()),
+    'the door lands on the invite page with Matthew\'s two lines');
+  assert(!idoc.querySelector('#im-pay .inv-text') && !/Restore/.test(ipage()) && !/get 3 days free\b.*and/.test(ipage()),
+    'a gift: no message card, no Restore, no reward for the sender');
+  assert(invMsgs.some(m => m.event === 'invite_page_viewed' && m.props.via === 'success'),
+    'the page view says where from');
+  assert(/konvoinstall\.com\/i\/matt/.test(idoc.querySelector('#im-pay .inv-link').textContent), 'the link row shows the sender\'s link');
   assert(!/—/.test(ipage()), 'no em dashes on the invite page');
   itap('inv-later'); await settle(450);
-  assert(/US\$39\.99\/year/.test(ipage()), 'Not now returns to the price cards');
-  itap('x'); await settle(450);
-  assert(idoc.querySelector("#im-pay [data-act='restore']"), 'Restore stays reachable from the invite page');
+  assert(/You're in\./.test(ipage()), 'Not now returns to You\'re in');
+  itap('inv-go'); await settle(450);
   assert(!idoc.querySelector("#im-pay [data-act='inv-send']").disabled, 'Send is live once the handle is known');
   itap('inv-send'); await settle(450);
   const sendArg = JSON.parse(invMsgs.find(m => m.cmd === 'invite').productId);
@@ -611,22 +619,25 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(invMsgs.some(m => m.event === 'invite_sent' && m.props.draft === 0), 'invite_sent carries the draft index only');
   assert(!invMsgs.some(m => m.cmd === 'track' && /not an ad|kinda deleted|remember we said/.test(JSON.stringify(m.props))),
     'no draft text rides an event');
-  //     Nothing is granted for sending (Sep 2): the page says the days
-  //     start when a friend joins, and offers another send.
-  assert(/Link sent\./.test(ipage()) && /Your 3 free days start when a friend joins\./.test(ipage()) &&
-    idoc.querySelector("#im-pay [data-act='inv-send']") && !/free week/.test(ipage()),
-    'a completed share sheet paints the sent state, no reward yet');
-  await settle(300);
-  assert(invPosted.includes('inviteStatus:'), 'the sent state asks the server once whether a friend already joined');
-  //     The server says a friend already joined: the days are on.
-  assert(/A friend joined\. Your 3 free days are on\./.test(ipage()) && /Nothing to cancel, nothing charges\./.test(ipage()),
-    'a credited sender sees the days on');
+  assert(/Link sent\./.test(ipage()) && idoc.querySelector("#im-pay [data-act='inv-send']") &&
+    idoc.querySelector("#im-pay [data-act='inv-open']") && !/free week|3 free days start/.test(ipage()),
+    'a completed share sheet paints the sent state: send again, or open the inbox');
+  assert(!invPosted.includes('inviteStatus:'), 'the sender is never asked about joins: there is nothing to earn');
   itap('inv-open'); await settle(1200);
-  assert(invMsgs.some(m => m.event === 'onboarding_completed' && m.props.screen_id === 's15_invite'),
-    'Open my messages ends the sequence');
+  assert.strictEqual(invMsgs.filter(m => m.event === 'onboarding_completed').length, 1,
+    'Open my messages from the invite page does not complete the sequence twice');
+  //     {"invite": false} in the cage patch hides the door.
+  const noInv = boot('/direct/inbox/', '', { patch: { invite: false }, seed: { konvoHandle: 'matt' }, bridge: invBridge });
+  await settle(8400);
+  const nidoc = noInv.window.document;
+  const nitap = act => nidoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new noInv.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await toSuccess(noInv, nitap);
+  assert(/You're in\./.test(nidoc.getElementById('im-pay').textContent) && !nidoc.querySelector("#im-pay [data-act='inv-go']"),
+    'with invite:false there is no door at all');
   //     A friend at the paywall with a link on the clipboard: the bridge
-  //     shows the claim sheet, and an entitled answer ends the sequence
-  //     like a purchase.
+  //     shows the claim sheet, the days are on, and Open my messages ends
+  //     the sequence like a purchase.
   const claimMsgs = [];
   const claimBridge = (m, d) => {
     claimMsgs.push(m);
@@ -647,18 +658,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   assert(/Your 3 free days are on\./.test(cldoc.getElementById('im-pay').textContent),
     'a claim paints the friend\'s own 3-days page');
   cltap('inv-open'); await settle(1200);
-  assert(claimMsgs.some(m => m.event === 'onboarding_completed'),
+  assert(claimMsgs.some(m => m.event === 'onboarding_completed' && m.props.screen_id === 's15_invite'),
     'Open my messages ends the friend\'s sequence');
-  //     {"invite": false} in the cage patch takes the close off the
-  //     paywall: the remote off switch for the whole loop (Sep 2).
-  const noInv = boot('/direct/inbox/', '', { patch: { invite: false }, seed: { konvoHandle: 'matt' }, bridge: invBridge });
-  await settle(8400);
-  const nidoc = noInv.window.document;
-  const nitap = act => nidoc.querySelector(`[data-act='${act}']`).dispatchEvent(
-    new noInv.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  nitap('keep'); await settle(450); nitap('impact'); await settle(450); nitap('pay'); await settle(450);
-  assert(!nidoc.querySelector("#im-pay [data-act='x']") && /US\$39\.99\/year/.test(nidoc.getElementById('im-pay').textContent),
-    'with invite:false the paywall has no close and stays a hard gate');
   //     A sender whose handle is not known yet cannot send a broken link:
   //     Send waits, and says so.
   const noHandle = boot('/direct/inbox/', '', { bridge: invBridge });
@@ -666,8 +667,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const nhdoc = noHandle.window.document;
   const nhtap = act => nhdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new noHandle.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  nhtap('keep'); await settle(450); nhtap('impact'); await settle(450); nhtap('pay'); await settle(450);
-  nhtap('x'); await settle(450);
+  await toSuccess(noHandle, nhtap);
+  nhtap('inv-go'); await settle(450);
   const nsend = nhdoc.querySelector("#im-pay [data-act='inv-send']");
   assert(nsend && nsend.disabled && /Loading your username/.test(nsend.textContent),
     'no handle yet: Send waits rather than sending a broken link');
@@ -680,8 +681,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const fhdoc = fh.window.document;
   const fhtap = act => fhdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new fh.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  fhtap('keep'); await settle(450); fhtap('impact'); await settle(450); fhtap('pay'); await settle(450);
-  fhtap('x'); await settle(1200);
+  await toSuccess(fh, fhtap);
+  fhtap('inv-go'); await settle(1200);
   assert(fetched.some(u => /\/api\/v1\/accounts\/current_user\//.test(u)), 'the invite page asks Instagram for the username');
   const fsend = fhdoc.querySelector("#im-pay [data-act='inv-send']");
   assert(fsend && !fsend.disabled && /Send to 3 friends/.test(fsend.textContent) &&
@@ -705,8 +706,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const shdoc = sh.window.document;
   const shtap = act => shdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
     new sh.window.MouseEvent('click', { bubbles: true, cancelable: true }));
-  shtap('keep'); await settle(450); shtap('impact'); await settle(450); shtap('pay'); await settle(450);
-  shtap('x'); await settle(1200);
+  await toSuccess(sh, shtap);
+  shtap('inv-go'); await settle(1200);
   assert(asked.some(u => /\/api\/v1\/users\/1234567\/info\//.test(u)), 'the second source is the user info endpoint by id');
   const reports = secondMsgs.filter(m => m.event === 'invite_handle').map(m => [m.props.source, m.props.status, m.props.found]);
   assert.deepStrictEqual(reports, [['current_user', 403, false], ['user_info', 200, true]], 'each attempt reports its status and outcome');

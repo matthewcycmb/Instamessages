@@ -37,7 +37,7 @@ export default async function InvitePage(ctx: Ctx) {
         {handle ? `${handle} sent you 3 free days of Konvo` : "3 free days of Konvo"}
       </h1>
       <p style={{ fontSize: 17, lineHeight: 1.4, color: "#8e8e93", margin: "0 0 32px" }}>
-        Instagram DMs, no feed, no Reels. Install Konvo, sign in, paste this link, and you both get 3 days free. No card needed.
+        Instagram DMs, no feed, no Reels. Install Konvo, sign in, paste this link, and your 3 free days start. No card needed.
       </p>
       <GetKonvo handle={handle} link={link} />
       <p style={{ fontSize: 13, lineHeight: 1.4, color: "#8e8e93", textAlign: "center", margin: "14px 0 0" }}>

@@ -47,8 +47,6 @@ const TABLE = {
                    replies: ['ok', 'sent', 'expires'] },
   claim:         { arg: '"auto" (the claim sheet only if the clipboard holds a link) | "ask" (always)',
                    replies: ['ok', 'shown', 'entitled', 'expires', 'method'] },
-  inviteStatus:  { arg: 'unused (the sender\'s state from konvoinstall.com)',
-                   replies: ['ok', 'handle', 'claims', 'credited', 'expires'] },
 };
 
 const fs = require('fs');

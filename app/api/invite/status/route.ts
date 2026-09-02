@@ -1,6 +1,8 @@
-// The sender's state and the heartbeat's "did a friend join?" question.
+// The sender's joins (the heartbeat asks after each wake) and, for a friend,
+// the current expiry.
 import { storeConfigured } from "@/lib/push-store";
 import { claimList, codeOf, expiryOf, rcConfigured, validRc } from "@/lib/invite";
+import { CAP } from "@/lib/invite-rules";
 
 export async function GET(req: Request) {
   if (!storeConfigured()) return Response.json({ ok: false, reason: "store" }, { status: 503 });
@@ -9,5 +11,5 @@ export async function GET(req: Request) {
   const handle = await codeOf(rc);
   const joined = handle ? await claimList(handle) : [];
   const expires = rcConfigured() ? await expiryOf(rc) : null;
-  return Response.json({ ok: true, handle, claims: joined.length, credited: joined.length > 0, joined, expires });
+  return Response.json({ ok: true, handle, claims: joined.length, cap: CAP, joined, expires });
 }

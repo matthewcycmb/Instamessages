@@ -1013,8 +1013,6 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
             return await inviteShare(productId)
         case "claim":
             return await inviteClaim(mode: productId)
-        case "inviteStatus":
-            return await inviteStatus()
         case "paywall":
             // Superwall placement, raised from CAGE_SCRIPT only when the
             // cage-patch flips {"superwall": true}. Resolves when the sheet
@@ -1501,6 +1499,8 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
     // ── The invite loop (Sep 1) ──────────────────────────────────
     // A dev build can point at a preview deploy with the launch argument
     // -konvoInviteHost https://...; store builds always talk to the site.
+    // inviteStatus() is the heartbeat's read (checkInvites); the page never
+    // asks for it since Sep 2 (the sender gets nothing, so no meter).
     private static var inviteHost: String {
         UserDefaults.standard.string(forKey: "konvoInviteHost") ?? "https://konvoinstall.com"
     }
@@ -1590,12 +1590,11 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         _ = configureOnce
         let s = await inviteStatus()
         guard s["ok"] as? Bool == true, let claims = s["claims"] as? Int else { return }
-        let credited = (s["credited"] as? Bool) ?? (claims > 0)
         let d = UserDefaults.standard
         let last = d.integer(forKey: "konvoInviteClaims")
         d.set(claims, forKey: "konvoInviteClaims")
-        // One notification, for the first join: later joins credit nothing.
-        guard credited, claims > last, last == 0, via != "background" else { return }
+        // One notification per new join (three at most per code).
+        guard claims > last, via != "background" else { return }
         let joined = (s["joined"] as? [[String: Any]]) ?? []
         let named = (joined.last?["handle"] as? String) ?? ""
         let who = named.isEmpty ? "A friend" : named
@@ -1604,7 +1603,7 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         guard status == .authorized || status == .provisional else { return }
         let content = UNMutableNotificationContent()
         content.title = "Konvo"
-        content.body = "\(who) joined Konvo. Your 3 free days start now."
+        content.body = "\(who) joined Konvo through your link."
         content.sound = .default
         try? await center.add(UNNotificationRequest(
             identifier: "konvo.invite.\(claims)", content: content, trigger: nil))
@@ -1750,7 +1749,7 @@ final class InviteClaimController: UIViewController {
         title.font = .systemFont(ofSize: 26, weight: .bold)
         title.numberOfLines = 0
         let sub = UILabel()
-        sub.text = "Paste their link and you both get 3 days free. No card needed."
+        sub.text = "Paste their link and your 3 free days start. No card needed."
         sub.font = .systemFont(ofSize: 16)
         sub.textColor = .secondaryLabel
         sub.numberOfLines = 0

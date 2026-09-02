@@ -1,6 +1,6 @@
-// A friend claims a code (Sep 2 rule): the rules in lib/invite-rules decide,
-// then the friend gets 3 days, and the sender gets 3 days if this is the
-// first friend to join. Nothing stacks.
+// A friend claims a code (Sep 2, final rule): the rules in lib/invite-rules
+// decide, then the friend gets 3 days. The sender gets nothing; a code
+// serves three friends at most.
 import { storeConfigured } from "@/lib/push-store";
 import {
   FREE_DAYS, captureServer, claimedBy, claimsOf, cleanHandle, getCode, grantDays,
@@ -25,14 +25,11 @@ export async function POST(req: Request) {
   const friendHandle = validHandle(b.friend_handle) ? cleanHandle(b.friend_handle) : "";
   await recordClaim(code, b.rc, friendHandle);
   const expires = await grantDays(b.rc);
-  if (verdict.creditSender) await grantDays(senderRc!);
   const method = b.method === "handle" ? "handle" : "clipboard";
   await Promise.all([
     captureServer("invite_claimed", b.rc, { method, code, join_n: verdict.joinN }),
     captureServer("referral_days_granted", b.rc, { role: "friend", days: FREE_DAYS }),
-    verdict.creditSender
-      ? captureServer("referral_days_granted", senderRc!, { role: "sender", days: FREE_DAYS })
-      : Promise.resolve(undefined),
+    captureServer("invite_friend_joined", senderRc!, { code, join_n: verdict.joinN }),
   ]);
-  return Response.json({ ok: true, expires, credited: verdict.creditSender });
+  return Response.json({ ok: true, expires });
 }

@@ -8,6 +8,17 @@
 
 **Tech Stack:** cage.js (vanilla, jsdom tests), Swift (UIKit share sheet, UIPasteControl, RevenueCat SDK), Next.js App Router route handlers (Node runtime), Upstash Redis REST, RevenueCat REST v1, PostHog capture API.
 
+
+> **Rule change, Sep 2 morning (supersedes the reward lines below):** nothing is
+> granted for sending. A friend who pastes the link at their paywall gets 3
+> free days (once per friend, ever); the first friend to join credits the
+> sender 3 days; later joins credit nothing; no stacking. RevenueCat grants
+> use `three_day`. Apple's 7-day trial is unchanged. The paywall's close can
+> be removed remotely with `{"invite": false}` in the cage patch. Copy
+> approved by Matthew: "Send Konvo to 3 friends, and get 3 days free" /
+> "When one of them joins, you both get 3 days free!" / "Link sent. Your 3
+> free days start when a friend joins." / "Your 3 free days are on."
+
 **Spec:** scratchpad copy of the handoff (`ref/handoff-referral.md`) plus the grill decisions of Sep 1 2026 evening: link is `konvoinstall.com/i/<handle>`, the code IS the handle, ✕ on the paywall to the invite page and Not now back to the paywall, claim at the paywall moment after login, two iPhones on the cable for acceptance, 1.5.0 held for this build (build 100).
 
 ## Global Constraints
