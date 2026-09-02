@@ -55,6 +55,9 @@ export async function expiryOf(rc: string): Promise<number | null> {
 }
 
 export async function grantWeek(rc: string, fromMs?: number): Promise<number> {
+  // A grant posted to an id RevenueCat has never seen answers 404; a read
+  // creates the subscriber first (Sep 2, seen on the production smoke).
+  await fetch(`${RC}/subscribers/${encodeURIComponent(rc)}`, { headers: rcHeaders(), cache: "no-store" }).catch(() => undefined);
   const now = Date.now();
   const start = fromMs && fromMs > now ? fromMs : now;
   const body: Record<string, unknown> = { duration: "weekly" };
