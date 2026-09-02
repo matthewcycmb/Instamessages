@@ -1046,20 +1046,19 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const blob = JSON.stringify(detail);
   assert(!/alex\.chen|hunter2|double-check/.test(blob),
     'nothing typed and no error text may ever reach the bridge');
-  //     Boot survival WITHOUT the thread regression: define the class
-  //     globals Instagram's boot references (it died on "Can't find
-  //     variable: ServiceWorkerRegistration"), but leave navigator
-  //     .serviceWorker undefined - build 92 stubbed it and its mere
-  //     presence made Instagram route the thread load through a worker that
-  //     never runs, hanging every chat. Undefined = build 91's working path.
+  //     Build 91 behavior, kept on purpose (Sep 1): NO ServiceWorker*
+  //     stubs of any kind. Builds 92/93 defined the class globals and
+  //     navigator.serviceWorker to "fix" a boot crash; on device, build
+  //     91's cage.js boots fine WITHOUT them, and defining them made
+  //     Instagram feature-detect service-worker support and route every
+  //     chat's message load through a worker that never runs (chats hung,
+  //     zero network). Matthew pinned it; the differential run proved it.
   const swBoot = boot('/direct/inbox/', '');
   await settle(300);
-  assert.strictEqual(typeof swBoot.window.ServiceWorkerRegistration, 'function',
-    'the class global exists so the boot does not die');
-  assert(new swBoot.window.ServiceWorkerRegistration() instanceof swBoot.window.ServiceWorkerRegistration,
-    'instanceof works against the stubbed class');
+  assert.strictEqual(typeof swBoot.window.ServiceWorkerRegistration, 'undefined',
+    'no ServiceWorkerRegistration stub: defining it broke chat loading (build 92/93 regression)');
   assert.strictEqual(typeof swBoot.window.navigator.serviceWorker, 'undefined',
-    'navigator.serviceWorker stays undefined: Instagram must not detect SW support (the build 91 -> 92 thread regression)');
+    'no navigator.serviceWorker stub: its presence made Instagram take the broken SW path');
 
   //     A dialog that greets the page (cookie consent) with nothing
   //     submitted is not an error: it fired login_error {other, submits: 0}

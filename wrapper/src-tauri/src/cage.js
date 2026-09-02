@@ -13,26 +13,6 @@
   // already refuses subframes.
   try { if (window.self !== window.top) return; } catch (e) { return; }
 
-  // Instagram's boot references the class global ServiceWorkerRegistration,
-  // absent in WKWebView; the caught boot error read, verbatim, "Can't find
-  // variable: ServiceWorkerRegistration", and the boot halted (black
-  // screen). Define the class globals as bare constructors so the boot
-  // survives. NOTHING more: build 92 also stubbed navigator.serviceWorker,
-  // and its mere PRESENCE made Instagram feature-detect service-worker
-  // support and route the thread's message load through a worker that never
-  // runs - every chat hung with zero network (the build 91 -> 92
-  // regression the user pinned exactly). Leaving navigator.serviceWorker
-  // undefined is build 91's behavior: Instagram uses its normal path and
-  // chats load. Boot needs the class, threads need no navigator.serviceWorker.
-  try {
-    if (typeof window.ServiceWorkerRegistration === "undefined")
-      window.ServiceWorkerRegistration = function ServiceWorkerRegistration() {};
-    if (typeof window.ServiceWorker === "undefined")
-      window.ServiceWorker = function ServiceWorker() {};
-    if (typeof window.ServiceWorkerContainer === "undefined")
-      window.ServiceWorkerContainer = function ServiceWorkerContainer() {};
-  } catch (e) {}
-
   // Analytics go native: Instagram's CSP blocks a page-side call to
   // PostHog. Defined here rather than inside the paywall block because the
   // route watcher needs it too. Event names and screen ids only, never
@@ -794,23 +774,13 @@
 
   // Cage exceptions were invisible until the stuck-chat hunt; three per
   // session, message only, nothing from the page's content.
-  function noteErr(kind, msg) {
+  window.addEventListener("error", function (e) {
     try {
       var n = +(sessionStorage.konvoErrs || 0);
       if (n >= 3) return;
       sessionStorage.konvoErrs = n + 1;
-      track("cage_error", { kind: kind, msg: String(msg || "").slice(0, 120) });
+      track("cage_error", { msg: String((e && e.message) || "").slice(0, 120) });
     } catch (x) {}
-  }
-  window.addEventListener("error", function (e) {
-    noteErr("error", e && e.message);
-  });
-  // A boot that dies inside a promise never reaches the error event: zero
-  // cage_error from 150+ people in 30 days while a device sat on a shell
-  // (Sep 1). Rejections carried the missing evidence.
-  window.addEventListener("unhandledrejection", function (e) {
-    var r = e && e.reason;
-    noteErr("rejection", (r && (r.message || r.name)) || String(r));
   });
 
   // The rating ask (moved here Aug 27, App Review 5.6.3): asked once, on
@@ -877,8 +847,6 @@
       storekit("review", null, function () {});
     } catch (e) {}
   }
-
-
 
   function enforce() {
     if (!location.hostname.endsWith("instagram.com")) return;
