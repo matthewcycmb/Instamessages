@@ -13,37 +13,24 @@
   // already refuses subframes.
   try { if (window.self !== window.top) return; } catch (e) { return; }
 
-  // WKWebView has no navigator.serviceWorker at all (undefined, not a
-  // refusal), and a site build that touches it unguarded dies during boot
-  // while its data APIs keep answering (the Sep 1 stuck-shell device:
-  // fresh documents, inbox API 200 with threads, 930 DOM nodes forever).
-  // A quiet stub keeps such code walking: registrations never exist,
-  // register never settles, nothing ever fires.
+  // Instagram's boot references the class global ServiceWorkerRegistration,
+  // absent in WKWebView; the caught boot error read, verbatim, "Can't find
+  // variable: ServiceWorkerRegistration", and the boot halted (black
+  // screen). Define the class globals as bare constructors so the boot
+  // survives. NOTHING more: build 92 also stubbed navigator.serviceWorker,
+  // and its mere PRESENCE made Instagram feature-detect service-worker
+  // support and route the thread's message load through a worker that never
+  // runs - every chat hung with zero network (the build 91 -> 92
+  // regression the user pinned exactly). Leaving navigator.serviceWorker
+  // undefined is build 91's behavior: Instagram uses its normal path and
+  // chats load. Boot needs the class, threads need no navigator.serviceWorker.
   try {
-    // The class globals too: the caught boot error on the wedged device
-    // read, verbatim, "Can't find variable: ServiceWorkerRegistration".
-    // Plain constructors: instanceof works, prototype exists, nothing runs.
     if (typeof window.ServiceWorkerRegistration === "undefined")
       window.ServiceWorkerRegistration = function ServiceWorkerRegistration() {};
     if (typeof window.ServiceWorker === "undefined")
       window.ServiceWorker = function ServiceWorker() {};
     if (typeof window.ServiceWorkerContainer === "undefined")
       window.ServiceWorkerContainer = function ServiceWorkerContainer() {};
-    if (typeof navigator.serviceWorker === "undefined") {
-      var swPending = new Promise(function () {});
-      Object.defineProperty(navigator, "serviceWorker", {
-        configurable: true,
-        value: {
-          controller: null,
-          ready: swPending,
-          register: function () { return swPending; },
-          getRegistration: function () { return Promise.resolve(undefined); },
-          getRegistrations: function () { return Promise.resolve([]); },
-          addEventListener: function () {},
-          removeEventListener: function () {},
-        },
-      });
-    }
   } catch (e) {}
 
   // Analytics go native: Instagram's CSP blocks a page-side call to
@@ -891,58 +878,7 @@
     } catch (e) {}
   }
 
-  // Thread self-heal (Sep 1). Instagram A/B-ships a web build whose
-  // client-side inbox->thread transition never fires the message load in
-  // WKWebView: the URL becomes /direct/t/<id>, a bare skeleton paints, and
-  // NOTHING is requested - no error, no network, forever (measured on a
-  // live 16e: composer absent, zero resource entries in 12s). A full
-  // document load of the SAME url always renders it (composer, messages,
-  // 49 requests). So when a thread route sits on a skeleton with no
-  // composer past a generous window, reload it once. Both premises are
-  // device-verified this session; the signal is the composer the cage
-  // already knows (div[role=textbox]), not a guessed selector - the
-  // lesson of the dead stall probe. Once per thread id per session so a
-  // genuinely composer-less thread cannot loop; never under the wall.
-  var threadHealed = {}, threadHealArmed = "", threadHealTimer = null;
-  function healThread() {
-    var p = location.pathname;
-    var m = p.match(/^\/direct\/t\/(\d+)/);
-    if (!m) { threadHealArmed = ""; if (threadHealTimer) { clearTimeout(threadHealTimer); threadHealTimer = null; } return; }
-    if (p === threadHealArmed) return;            // already watching this thread
-    threadHealArmed = p;
-    if (threadHealTimer) clearTimeout(threadHealTimer);
-    var id = m[1];
-    if (threadHealed[id]) return;                 // one attempt per thread, no loop
-    if (document.getElementById("im-pay")) return;   // never under the wall
-    // Once a thread has been seen to hang this session, the SPA transition
-    // is broken for this Instagram cohort and every chat will hang the same
-    // way. Skip the wait: reload straight into the document-load path (the
-    // only path that renders for this cohort, verified on-device). Healthy
-    // cohorts never set the flag and never pay this.
-    var known = false;
-    try { known = sessionStorage.konvoSPABroken === "1"; } catch (e) {}
-    if (known) {
-      threadHealed[id] = 1;
-      track("thread_reload", { fast: true });
-      location.reload();
-      return;
-    }
-    // First hang of the session: detect it. The broken transition fires
-    // ZERO network and never paints a composer, so 1.2s cleanly separates
-    // it from a healthy (or merely slow) load, which always has the
-    // composer by then. Composer is the on-device-verified signal, not a
-    // fixture selector (the dead stall probe's lesson).
-    threadHealTimer = setTimeout(function () {
-      threadHealTimer = null;
-      if (location.pathname !== p) return;                        // moved away
-      if (document.querySelector('div[role="textbox"]')) return;  // loaded fine
-      if (document.getElementById("im-pay")) return;
-      threadHealed[id] = 1;
-      try { sessionStorage.konvoSPABroken = "1"; } catch (e) {}
-      track("thread_reload", { fast: false });
-      location.reload();
-    }, 1200);
-  }
+
 
   function enforce() {
     if (!location.hostname.endsWith("instagram.com")) return;
@@ -998,7 +934,6 @@
     // mid-render is the glitch every naive swipe shows.
     var r = ib ? "inbox"
       : location.pathname.indexOf("/direct/t/") === 0 ? "thread" : "other";
-    healThread();
     // Instagram ships the DM composer (a role=textbox contenteditable)
     // without autocorrect, so typing gets no correction bar. In a
     // messaging app that is a bug, not a preference. Re-asserted on the

@@ -1046,28 +1046,20 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   const blob = JSON.stringify(detail);
   assert(!/alex\.chen|hunter2|double-check/.test(blob),
     'nothing typed and no error text may ever reach the bridge');
-  //     WKWebView has no navigator.serviceWorker; the stub keeps a site
-  //     build that touches it unguarded alive (Sep 1 stuck-shell device),
-  //     and a promise that dies unhandled is finally evidence.
-  const swLog = [];
-  const swBoot = boot('/direct/inbox/', '', { bridge: (m) => {
-    if (m.cmd === 'track') swLog.push([m.event, m.props]);
-  } });
-  await settle(600);
-  assert.strictEqual(typeof swBoot.window.navigator.serviceWorker, 'object',
-    'the stub stands in where WKWebView has nothing');
+  //     Boot survival WITHOUT the thread regression: define the class
+  //     globals Instagram's boot references (it died on "Can't find
+  //     variable: ServiceWorkerRegistration"), but leave navigator
+  //     .serviceWorker undefined - build 92 stubbed it and its mere
+  //     presence made Instagram route the thread load through a worker that
+  //     never runs, hanging every chat. Undefined = build 91's working path.
+  const swBoot = boot('/direct/inbox/', '');
+  await settle(300);
   assert.strictEqual(typeof swBoot.window.ServiceWorkerRegistration, 'function',
-    'the class global exists too: the wedged device died on exactly ' +
-    '"Can\'t find variable: ServiceWorkerRegistration" (Sep 1)');
+    'the class global exists so the boot does not die');
   assert(new swBoot.window.ServiceWorkerRegistration() instanceof swBoot.window.ServiceWorkerRegistration,
     'instanceof works against the stubbed class');
-  const swReg = await swBoot.window.navigator.serviceWorker.getRegistrations();
-  assert(Array.isArray(swReg) && swReg.length === 0, 'no registrations ever exist');
-  swBoot.window.dispatchEvent(Object.assign(new swBoot.window.Event('unhandledrejection'),
-    { reason: { message: 'boot died in a promise' } }));
-  await settle(400);
-  assert(swLog.some(([e, p]) => e === 'cage_error' && p.kind === 'rejection' && /boot died in a promise/.test(p.msg)),
-    'an unhandled rejection reports as cage_error {kind: rejection}');
+  assert.strictEqual(typeof swBoot.window.navigator.serviceWorker, 'undefined',
+    'navigator.serviceWorker stays undefined: Instagram must not detect SW support (the build 91 -> 92 thread regression)');
 
   //     A dialog that greets the page (cookie consent) with nothing
   //     submitted is not an error: it fired login_error {other, submits: 0}
@@ -1854,43 +1846,6 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     assert(CAGE.includes('@keyframes ' + name),
       `animation "${name}" must have matching @keyframes`);
   }
-
-  //     Thread self-heal (Sep 1): Instagram's client-side inbox->thread
-  //     transition wedges in WKWebView - the URL becomes /direct/t/<id>, a
-  //     skeleton paints, and no message load ever fires (measured live on
-  //     the 16e: composer absent, zero network, forever). A document load
-  //     of the same url always renders it. So a thread route with no
-  //     composer past the window reloads ONCE. The signal is the composer
-  //     the cage already knows (div[role=textbox]), verified on-device,
-  //     not a guessed selector (the dead stall probe's lesson). 5s timer;
-  //     the tests wait it out.
-  const stuck = boot('/direct/t/70001/', '');
-  await settle(1600);
-  assert(stuck.went.includes('reload'),
-    'a thread stuck on a bare skeleton (no composer) reloads once');
-  assert(stuck.went.filter(w => w === 'reload').length === 1,
-    'and only once - a still-broken thread must not loop');
-
-  const loaded = boot('/direct/t/70002/', '<div role="textbox"></div>');
-  await settle(1600);
-  assert(!loaded.went.includes('reload'),
-    'a thread that has its composer never reloads');
-
-  //     Never reload out from under the paywall wall: the reveal shows the
-  //     inbox, not a thread, but a thread route with the wall up must wait.
-  const underWall = boot('/direct/t/70003/', '<div id="im-pay"></div>');
-  await settle(1600);
-  assert(!underWall.went.includes('reload'),
-    'the self-heal never reloads while the wall is up');
-
-  //     Once a hang is seen, sessionStorage.konvoSPABroken is set and every
-  //     later chat reloads IMMEDIATELY into the document-load path - no 1.2s
-  //     wait on the second and subsequent opens.
-  const known = boot('/direct/t/70004/', '');
-  known.window.sessionStorage.setItem('konvoSPABroken', '1');  // per-session flag, not localStorage
-  await settle(1000);   // the 800ms enforce tick calls healThread -> immediate reload
-  assert(known.went.includes('reload'),
-    'a known-broken session reloads a fresh thread at once, without the detection wait');
 
   console.log('ALL CAGE TESTS PASS');
   process.exit(0);
