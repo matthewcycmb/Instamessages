@@ -754,7 +754,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     new sk.window.MouseEvent('click', { bubbles: true, cancelable: true }));
   sktap('keep'); await settle(450); sktap('impact'); await settle(450); sktap('pay'); await settle(450);
   sktap('pk-m'); sktap('buy-m'); await settle(1300);
-  assert(/New DMs\. Nothing else\./.test(skdoc.getElementById('im-pay').textContent), 'no trial: the line drops the reminder');
+  assert(/New DMs, and a reminder 2 days before your trial ends\./.test(skdoc.getElementById('im-pay').textContent),
+    'the live monthly plan carries a 3-day trial, so the line keeps the reminder');
   sktap('notify-skip'); await settle(1200);
   assert(!skipMsgs.some(m => m.cmd === 'notify'), 'Not now never fires the prompt');
   assert(skipMsgs.some(m => m.event === 'notify_answered' && m.props.granted === false && m.props.skipped === true),
