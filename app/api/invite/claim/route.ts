@@ -6,7 +6,7 @@ import {
   FREE_DAYS, captureServer, claimedBy, claimsOf, cleanHandle, getCode, grantDays,
   rcConfigured, recordClaim, validHandle, validRc,
 } from "@/lib/invite";
-import { decideClaim } from "@/lib/invite-rules";
+import { capFor, decideClaim } from "@/lib/invite-rules";
 
 export async function POST(req: Request) {
   if (!storeConfigured() || !rcConfigured()) return Response.json({ ok: false, reason: "config" }, { status: 503 });
@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     friendRc: b.rc,
     alreadyClaimed: await claimedBy(b.rc),
     claims: await claimsOf(code),
+    cap: capFor(code),
   });
   if (!verdict.ok) return Response.json(verdict, { status: 409 });
   const friendHandle = validHandle(b.friend_handle) ? cleanHandle(b.friend_handle) : "";
