@@ -47,3 +47,4 @@ extension/_metadata/
 # local agent tooling state (daemon pids, logs, metrics, vendored skills)
 .claude-flow/
 .claude/
+

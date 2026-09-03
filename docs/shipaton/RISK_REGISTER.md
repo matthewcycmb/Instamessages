@@ -4,7 +4,7 @@ Probability and severity: low, medium, high. Owner M = Matthew, C = Claude sessi
 
 | # | Area | Risk | Prob | Sev | Judge impact | Mitigation | Owner | Status |
 |---|---|---|---|---|---|---|---|---|
-| 1 | Eligibility | Minor entrant without the guardian consent form before Sep 30 | med | high | Disqualified | Guardian reads the rules, completes https://forms.gle/Gx2Cr4X8WPk9V1q77, guardian may hold the Devpost account | M | open |
+| 1 | Eligibility | Minor entrant without the guardian consent form before Sep 30 | med | high | Disqualified | Guardian reads the rules, completes https://forms.gle/Gx2Cr4X8WPk9V1q77, guardian may hold the Devpost account | M | done 2026-09-03 (Matthew) |
 | 2 | Eligibility | School email not on the Devpost account or fails the swot domain check | low | high | Not judged as Next Gen | Matthew says it is set and eligible; screenshot the checker result | M | reported done |
 | 3 | Eligibility | Repo has no open-source license, so it is not "open source" per the rules | high | high | Fails intake | Add a license file (decision D3), verify GitHub shows it in About | M decides, C does | open |
 | 4 | Third-party | Video shows Instagram's wordmark and logo on the login page | high | med | Rules forbid third-party marks; Section 5 allows removal, not stated as disqualifying | Blur the wordmark or start after login (decision D4) | M | open |

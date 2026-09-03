@@ -31,3 +31,11 @@ Status vocabulary: observed (live data after the change), technically verified (
 - Status: technically verified (all three suites pass); not yet in any IPA.
 - Judge proof: the diff and the test line; the privacy page wording (copy for Matthew to approve): "Konvo sends an anonymous device id, the app's build number and which setup screens you reach to our analytics. It also records your Instagram account's numeric id once, so we can tell returning devices apart. It never sends your username, your password or any message."
 - Remaining: App Privacy label in App Store Connect must list User ID (Matthew's click); ASC review submission list shows 8 COMPLETE submissions since Aug 29, no rejection count, so the "6 back to back rejections" in the LinkedIn post stays Matthew's own count, unverified by the API.
+
+## Entry 4: public repository readiness (2026-09-03, approved by Matthew)
+- Before: public repo, no license, README describing a July architecture, internal handoffs and plans in the tree, .env.example listing only the analytics key.
+- Change: LICENSE (MIT) at root; README rewritten (what, why, the cage with its five rules and 39 selectors, the patch channel, what broke and what changed with the gate and its test named, RevenueCat usage, data that leaves the phone, build, tests, known limits, layout); HANDOFF.md, HANDOFF_PROMPT.md, humanbehavior-install-report.md, docs/handoffs and docs/superpowers moved to ~/Instamessages-private; .env.example lists every variable the site reads (names only); .gitignore ignores docs/shipaton for future files.
+- Found while doing it: docs/shipaton was already committed in HEAD (cae6a0f) by Matthew, so the workspace is in the repo history; decision needed on removing it from the tree.
+- Tests: none affected (documentation and file moves only).
+- Status: technically verified locally; observed by judges only after Matthew commits and pushes.
+- Judge proof: GitHub About shows MIT; README sections map to the four criteria.
