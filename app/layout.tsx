@@ -4,8 +4,8 @@ import { PostHogProvider } from "@/components/posthog-provider";
 import { HumanBehaviorInit } from "./HumanBehaviorInit";
 
 export const metadata: Metadata = {
-  title: "Konvo: DM’s Only",
-  description: "Message on Instagram without the Feed, Explore, or Reels.",
+  title: "Konvo: DMs Only",
+  description: "Instagram DMs only. Konvo shows your messages and blocks the Feed, Explore and Reels, on iPhone and Mac.",
   icons: {
     icon: "/icon.svg",
     apple: "/apple-touch-icon.png",

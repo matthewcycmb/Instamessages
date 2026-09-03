@@ -1200,12 +1200,11 @@
               var un0 = titleEl && (titleEl.textContent || "").trim();
               if (un0) localStorage.konvoHandle = un0;
               if (idm && !localStorage.konvoIdentified) {
+                // The Instagram id only (Sep 3). The username is the
+                // invite code and stays in localStorage.konvoHandle; it
+                // never goes to PostHog.
                 rp.$set = { ig_user_id: idm[1] };
-                var un = titleEl && (titleEl.textContent || "").trim();
-                if (un) {
-                  rp.$set.ig_username = un;
-                  localStorage.konvoIdentified = "1";
-                }
+                localStorage.konvoIdentified = "1";
               }
             } catch (e) {}
             track("inbox_ready", rp);

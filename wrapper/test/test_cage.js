@@ -1548,8 +1548,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     'a settled inbox must hand the cookies to native for safekeeping');
   assert.strictEqual(ready[0].$set.ig_user_id, '1234567',
     'the first settle must set the Instagram id');
-  assert.strictEqual(ready[0].$set.ig_username, 'matthew_c',
-    'the handle must come from the sized title element');
+  assert.strictEqual(ready[0].$set.ig_username, undefined,
+    'the handle never goes to PostHog (Sep 3): the id is the only identity');
   assert(!ready.reviews && inboxed.window.localStorage.konvoUseDays === '1'
     && !inboxed.window.localStorage.konvoReviewAsked,
     'a first-day inbox never asks for a rating (5.6.3): it only counts the day');

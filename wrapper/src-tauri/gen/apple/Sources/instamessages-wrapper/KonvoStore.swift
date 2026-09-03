@@ -802,7 +802,10 @@ public class KonvoStore: NSObject, WKScriptMessageHandler {
         }
         if let data = try? PropertyListSerialization.data(
             fromPropertyList: rows, format: .binary, options: 0) {
-            try? data.write(to: cookieFile, options: [.atomic])
+            // Session cookies at rest: readable after the first unlock so the
+            // background badge check still runs, never before it (Sep 3).
+            try? data.write(to: cookieFile,
+                            options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         }
     }
 

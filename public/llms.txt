@@ -1,0 +1,17 @@
+# Konvo: DMs Only
+
+> Konvo is an iPhone and Mac app that shows only your Instagram DMs and blocks the Feed, Explore and Reels. You sign in on Instagram's own login page inside the app. Konvo never sees your messages, does not collect your password, and your data stays on Instagram's servers.
+
+## What it does
+- Opens Instagram's own website in a focused window with the messages inbox and friends' stories, and hides the feed, Reels and Explore.
+- Can lock the real Instagram app on your iPhone through Screen Time, with passes when you need it.
+- Notifies you about new DMs if you allow it.
+- Available for iPhone (iOS) and Mac. There is no Android version. You cannot post from Konvo; use the Instagram app for that.
+
+## Price
+- Konvo Pro: $19.99 a year with a 7-day free trial, or $6.99 a month with a 3-day free trial. No card is charged before the trial ends, and a reminder arrives 2 days before.
+
+## Links
+- App Store: https://apps.apple.com/app/id6794756261
+- Every option for using Instagram DMs without the feed, compared: https://konvoinstall.com/instagram-dms-only
+- Privacy: https://konvoinstall.com/privacy

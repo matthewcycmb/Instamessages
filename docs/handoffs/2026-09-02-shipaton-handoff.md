@@ -139,3 +139,16 @@ Apple refuses a second upload of the same build number: bump before every upload
 ## Where to look for decisions
 
 `docs/superpowers/plans/2026-09-01-invite-loop.md`, and the memory files: `konvo-onboarding-decisions`, `konvo-login-sheet-decisions`, `konvo-invite-loop`, `konvo-trial-cancel-evidence`, `konvo-rc-posthog-events`, `konvo-launch-snapshot`, `konvo-storekit-lifetime-trap`, `konvo-block-optin`, `konvo-posthog-access`, `konvo-site-deploys-from-main`, `konvo-cage-patch-channel`.
+
+## Added 2026-09-03: AI-visibility foundation (branch konvo-onboarding-v2, preview only until Matthew approves the copy)
+
+- `app/layout.tsx`: title "Konvo: DMs Only" (was "DM's"), meta description "Instagram DMs only. Konvo shows your messages and blocks the Feed, Explore and Reels, on iPhone and Mac."
+- `app/robots.ts` (allows every crawler, AI bots by name; blocks /api/ and /i/), `app/sitemap.ts`, `public/llms.txt`.
+- `app/instagram-dms-only/page.tsx`: the citable comparison page "Instagram DMs without the feed: every option for iPhone (2026)". Names Only DMs, UNDOOMED, Justagram, FocusGram, ScrollFree and the free Safari plus Screen Time route, answers the password question first, lists Konvo's price and limits. Every word is a draft for Matthew.
+- Still to do by hand: AlternativeTo entry (Instagram client category), Product Hunt launch, Show HN post with real numbers, answers in existing Reddit threads with the `ct=reddit` campaign link, and the weekly prompt check (ChatGPT, Gemini, Claude, Perplexity) for "what app only shows Instagram DMs on iPhone".
+
+### App Store listing text to paste with the next version (drafts, Matthew approves)
+
+First line of the description: "Konvo shows only your Instagram DMs and blocks the Feed, Explore and Reels."
+Promotional text (editable any time, 170 chars max): "Instagram DMs only. No feed, no Explore, no Reels. Sign in on Instagram's own page; Konvo never sees your messages or your password."
+Keywords (100 chars max, comma separated): instagram,dms,only,messages,dm,feed,blocker,reels,explore,screen time,focus,distraction,no feed
