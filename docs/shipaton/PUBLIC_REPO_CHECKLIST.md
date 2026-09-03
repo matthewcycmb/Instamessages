@@ -2,11 +2,11 @@
 
 | Item | State | Action |
 |---|---|---|
-| Open-source license file at root, detected by GitHub (About shows it) | LICENSE (MIT) added 2026-09-03, uncommitted | verify About shows MIT after the push |
+| Open-source license file at root, detected by GitHub (About shows it) | LICENSE (MIT) on main since 5d5c51e, 2026-09-03; GitHub About shows "MIT License" (gh repo view) | done |
 | Secret scan of HEAD and history | done: only public client keys (PostHog project token, RevenueCat public SDK key, Superwall public key); no private keys, no personal API keys | state this in README; keep `.env.local` ignored (it is) |
 | Internal notes in tree | moved to ~/Instamessages-private on 2026-09-03 (HANDOFF.md, HANDOFF_PROMPT.md, humanbehavior-install-report.md, docs/handoffs, docs/superpowers); docs/shipaton ignored via .gitignore | commit when Matthew says |
 | Device UDIDs, key ids, tester names in tracked docs | in the Sep 2 handoff | leaves with the handoffs |
-| README: what, architecture, build, run, test, privacy, limits | rewritten 2026-09-03, uncommitted | Matthew reads it once |
+| README: what, architecture, build, run, test, privacy, limits | rewritten, on main 2026-09-03 | Matthew reads it once |
 | Setup instructions for a stranger: Rust, Node, Xcode, Tauri CLI, signing team, `Konvo.storekit`, sandbox tester | absent | write; note that a free Apple ID builds a dev signed IPA |
 | Sample configuration: which keys are public, how to point at a preview host (`-konvoInviteHost`) | absent | `README` section plus `.env.example` for the site |
 | Architecture explanation with the cage rules count, the patch channel, the bridge command list | absent | README section, with file references |

@@ -69,6 +69,17 @@ export async function grantDays(rc: string): Promise<number> {
   return Date.now() + FREE_MS;
 }
 
+// Revoke every promotional grant on a subscriber (Sep 3): test claims left
+// three-day grants on Matthew's own ids, and a fresh install still inherits
+// them through the receipt. Admin-only, behind CRON_SECRET.
+export async function revokeDays(rc: string): Promise<number | null> {
+  const r = await fetch(`${RC}/subscribers/${encodeURIComponent(rc)}/entitlements/Pro/revoke_promotionals`, {
+    method: "POST", headers: rcHeaders(), cache: "no-store",
+  });
+  if (!r.ok) throw new Error(`revenuecat ${r.status}`);
+  return expiryOf(rc);
+}
+
 // Server-side PostHog capture into the app's project, so invite events sit
 // on the same person as the app's events (distinct_id = RevenueCat id).
 // The key is the project's public write token, the same one the app carries.

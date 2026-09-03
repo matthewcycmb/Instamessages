@@ -37,5 +37,5 @@ Status vocabulary: observed (live data after the change), technically verified (
 - Change: LICENSE (MIT) at root; README rewritten (what, why, the cage with its five rules and 39 selectors, the patch channel, what broke and what changed with the gate and its test named, RevenueCat usage, data that leaves the phone, build, tests, known limits, layout); HANDOFF.md, HANDOFF_PROMPT.md, humanbehavior-install-report.md, docs/handoffs and docs/superpowers moved to ~/Instamessages-private; .env.example lists every variable the site reads (names only); .gitignore ignores docs/shipaton for future files.
 - Found while doing it: docs/shipaton was already committed in HEAD (cae6a0f) by Matthew, so the workspace is in the repo history; decision needed on removing it from the tree.
 - Tests: none affected (documentation and file moves only).
-- Status: technically verified locally; observed by judges only after Matthew commits and pushes.
+- Status: observed. main fast-forwarded to 5d5c51e on 2026-09-03 (Matthew's word); GitHub About shows "MIT License".
 - Judge proof: GitHub About shows MIT; README sections map to the four criteria.

@@ -1,0 +1,22 @@
+# Demo video script draft v1 (2026-09-03), 1:50, in Matthew's voice
+
+Framework from the winners' first two minutes: you speak first by name, one plain sentence, the app in use narrated in the present tense by 0:30, the award named, the mechanism named with a unit, one failure closed with its fix, numbers with dates. Added for 2026: the purchase by 0:40, under two minutes, no music under the voice. [refresh] = re-pull on recording day. [yours] = only you can supply it.
+
+| Time | ON SCREEN | VOICE (say it, don't read it) |
+|---|---|---|
+| 0:00 | You, phone in hand, or just the phone with your voice. No title card. | Hi, I'm Matthew. I'm in high school. This is Konvo, my Next Gen entry. |
+| 0:05 | The Instagram app opening on Reels, two seconds. Cut to the Konvo icon. Tap. The inbox. | Konvo is Instagram with only the messages. Feed, Reels, Explore, gone. Your DMs stay. |
+| 0:12 | Still the inbox. | I built it because I deleted Instagram for two weeks and the urge to scroll actually went away. Then I redownloaded it to check on my friends and had fifteen unread messages. I had ghosted everyone. I couldn't delete it again, and I didn't want the feed back. |
+| 0:24 | Fresh install. Two quiz screens, fast. The privacy page "Before you sign in." | Here's what a new person sees. Setup is short. Then this page, because you're about to type your Instagram password. |
+| 0:30 | The drawn login sheet: lock, live hostname, the fields. Type the demo username, password dots. Instagram's wordmark blurred in the edit. | This is Instagram's own login page inside the app. Konvo never sees the password. The code only checks that the field isn't empty. |
+| 0:38 | The wall clears. The real inbox appears. | And you're in your inbox before anyone asks you for money. |
+| 0:41 | The paywall: live prices, per week line. Tap the yearly plan. Apple's sheet. Confirm. | Now the paywall. Prices come live from RevenueCat. Seven day trial on yearly, or monthly. I'll start the trial. |
+| 0:50 | Notifications page, allow. "Send Konvo to 3 friends." "You're in." | Notifications, so it can tell you about new messages. And every buyer gets a link: a friend who pastes it at their paywall gets three free days through a RevenueCat promotional entitlement. |
+| 0:58 | Open a chat, type a reply, send, back. Tap something that leads home. It bounces to the inbox. | Chats work like Instagram because it is Instagram. Now watch me try to leave. Home bounces me straight back. Explore never loads. |
+| 1:08 | Laptop: cage.js, the five FEED rules on screen for two seconds. Then public/cage-patch.json with one new selector, save, push. Phone: reload, the element is gone. | The whole cage is one script. Five URL rules and thirty-nine CSS rules. When Instagram changes something, I edit this JSON file on my site and the fix is live on every phone in about a minute. No app update. |
+| 1:22 | Split card: the old "Loading your plans" screen [yours, see Q1] beside the working paywall. Then the one-line fix and the test name in the repo. | It broke on my biggest day. A LinkedIn post brought 280 people in one day [refresh], and every one of them saw this. My paywall waited for three products and the third one was never approved by Apple, so the real store never sent it. My phone had a local file that still had it, so I never saw the bug. Fixed in 1.4.0, with a test that boots the paywall with that product missing. |
+| 1:36 | Numbers card, plain text, dated. | August 21 to September 2 [refresh]: 443 people signed in. 68 started the trial, 4 bought monthly. 6 of the first 8 trials that finished converted. 10 paying subscriptions. 10 App Store reviews, all five stars. |
+| 1:44 | Your phone's home screen: no Instagram icon. Or the Screen Time screenshot [yours]. | And I still don't have Instagram on my phone. |
+| 1:47 | End card: github.com/matthewcycmb/konvo, the App Store link, "Next Gen". | Code's open source. Thanks for watching. |
+
+Recording notes: iPhone 16e screen recording for the phone parts; a fresh dev build with a fresh sandbox tester so Apple's sheet appears; a demo Instagram account with staged chats (never your real inbox); blur Instagram's wordmark on the login page in the edit; no music under the voice; one take per row, cut together; keep the phone parts at 100 percent scale. The patch demo touches the live site, so use a selector that only affects your test element for sixty seconds and revert it, or record it against a preview deploy if the app can be pointed at one.
