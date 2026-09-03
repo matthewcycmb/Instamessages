@@ -1,9 +1,9 @@
 // Admin: strip promotional days from one RevenueCat subscriber. Guarded by
-// CRON_SECRET; used to reset Matthew's own test devices (Sep 3).
+// ADMIN_SECRET; used to reset Matthew's own test devices (Sep 3).
 import { rcConfigured, revokeDays, validRc } from "@/lib/invite";
 
 export async function POST(req: Request) {
-  const secret = process.env.CRON_SECRET;
+  const secret = process.env.ADMIN_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return Response.json({ ok: false }, { status: 401 });
   }
