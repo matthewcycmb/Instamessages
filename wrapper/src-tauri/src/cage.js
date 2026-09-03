@@ -2970,6 +2970,18 @@
       btn.disabled = true;
       storekit("purchase", productId, function (res) {
         btn.disabled = false;
+        // What happened after the buy tap (Sep 2): Apple's sheet closed,
+        // a StoreKit error, a pending approval, or a purchase. Until now
+        // 84 people who compared plans and walked were indistinguishable
+        // from a broken sheet. Enum only, never the error text.
+        track("purchase_result", {
+          plan: productId.indexOf("yearly") > 0 ? "annual"
+            : productId.indexOf("monthly") > 0 ? "monthly" : "lifetime",
+          result: !res ? "no_bridge" : (res.ok && res.entitled) ? "purchased"
+            : res.cancelled ? "cancelled" : res.pending ? "pending"
+            : res.ok ? "not_entitled" : "error",
+          screen_id: "s13_paywall",
+        });
         if (res && res.ok && res.entitled) {
           setCache(true);
           lastBuy = productId;

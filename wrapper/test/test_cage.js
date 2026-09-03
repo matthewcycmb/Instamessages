@@ -946,6 +946,30 @@ process.on('exit', () => open.forEach(d => d.window.close()));
     quiz.window.document.getElementById('im-pay').textContent),
     'the impact screen must speak the hours this visitor actually answered');
 
+  //     The outcome after the buy tap is recorded (Sep 2): a closed Apple
+  //     sheet reports as cancelled and leaves the price page live; a
+  //     purchase reports as purchased. Enum only, no error text.
+  const prMsgs = [];
+  const prBoot = boot('/direct/inbox/', '', { patch: { invite: false }, bridge: (m, d) => {
+    prMsgs.push(m);
+    const r = { entitlements: { entitled: false }, products: LIVE_PRODUCTS,
+      purchase: { ok: false, cancelled: true } }[m.cmd];
+    if (r) d.window.__konvoStoreReply(m.id, r);
+  } });
+  await settle(8400);
+  const prdoc = prBoot.window.document;
+  const prtap = act => prdoc.querySelector(`[data-act='${act}']`).dispatchEvent(
+    new prBoot.window.MouseEvent('click', { bubbles: true, cancelable: true }));
+  prtap('keep'); await settle(450); prtap('impact'); await settle(450); prtap('pay'); await settle(450);
+  prtap('buy-y'); await settle(450);
+  const prEv = prMsgs.find(m => m.event === 'purchase_result');
+  assert(prEv && prEv.props.result === 'cancelled' && prEv.props.plan === 'annual' && prEv.props.screen_id === 's13_paywall',
+    'a closed Apple sheet reports purchase_result cancelled for the plan tapped');
+  assert(!JSON.stringify(prEv.props).includes('Error'), 'no error text rides the event');
+  assert(/How your free trial works/.test(prdoc.getElementById('im-pay').textContent) &&
+    !prdoc.querySelector("#im-pay [data-act='buy-y']").disabled,
+    'the price page stays, with the button live again');
+
   //     A trial purchase lands on S14 activation: recap, notification ask
   //     (granted -> reminder set), then Open Konvo drops the wall.
   const buyer = boot('/direct/inbox/', '', { patch: { invite: false }, bridge: answer({
@@ -971,6 +995,7 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   await settle(450);   // crossfade to the Screen Time step
   assert(posted.includes('purchase:konvo.pro.yearly'),
     'the Annual CTA must purchase the yearly product');
+  assert(posted.includes('track:purchase_result'), 'a purchase reports its outcome too');
   //     The money ends on the confirmation, never on the Screen Time step
   //     (Sep 1): the block is offered from the inbox, not at purchase.
   const stext = bdoc.getElementById('im-pay').textContent;

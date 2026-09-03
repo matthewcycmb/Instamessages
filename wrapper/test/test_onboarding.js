@@ -262,6 +262,8 @@ process.on('exit', () => open.forEach(d => d.window.close()));
   tap('#s10 [data-next]');
   await settle(400);
   assert(doc.getElementById('s10b').classList.contains('on'), 'privacy hands to the caps page');
+  assert(/Have your Instagram password ready/.test(doc.getElementById('s10b').textContent),
+    'the caps page tells people to have their Instagram password ready (Sep 2, Matthew)');
   assert(/WE NEVER SEE YOUR DMS/.test(doc.getElementById('s10b').textContent) &&
     /YOUR DATA STAYS ON INSTAGRAM'S SERVERS/.test(doc.getElementById('s10b').textContent),
     'the caps page carries the three lines');
